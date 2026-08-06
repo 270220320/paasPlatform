@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AiFlow 单作业空间 · 原型（Element Plus + 深色）</title>
+  <style>
+    :root, [data-theme="dark"] {
+      --el-color-primary: #409eff;
+      --el-color-primary-light-3: #79bbff;
+      --el-color-primary-light-5: #a0cfff;
+      --el-color-primary-dark-2: #337ecc;
+      --el-color-success: #67c23a;
+      --el-color-warning: #e6a23c;
+      --el-color-danger: #f56c6c;
+      --el-color-info: #909399;
+      --el-bg-color: #141414;
+      --el-bg-color-page: #0a0a0a;
+      --el-bg-color-overlay: #1d1e1f;
+      --el-fill-color: #262727;
+      --el-fill-color-light: #1d1d1d;
+      --el-fill-color-blank: #141414;
+      --el-text-color-primary: #e5eaf3;
+      --el-text-color-regular: #cfd3dc;
+      --el-text-color-secondary: #a3a6ad;
+      --el-text-color-placeholder: #8d9095;
+      --el-border-color: #4c4d4f;
+      --el-border-color-light: #414243;
+      --el-border-color-lighter: #363637;
+      --el-mask: rgba(0,0,0,.7);
+      --radius: 4px;
+      --shadow: 0 8px 24px rgba(0,0,0,.45);
+      --header-h: 56px;
+      --rail-w: 56px;
+      --font: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+    [data-theme="light"] {
+      --el-bg-color: #ffffff;
+      --el-bg-color-page: #f5f7fa;
+      --el-bg-color-overlay: #ffffff;
+      --el-fill-color: #f0f2f5;
+      --el-fill-color-light: #f5f7fa;
+      --el-fill-color-blank: #ffffff;
+      --el-text-color-primary: #303133;
+      --el-text-color-regular: #606266;
+      --el-text-color-secondary: #909399;
+      --el-text-color-placeholder: #a8abb2;
+      --el-border-color: #dcdfe6;
+      --el-border-color-light: #e4e7ed;
+      --el-border-color-lighter: #ebeef5;
+      --el-mask: rgba(0,0,0,.45);
+      --shadow: 0 8px 24px rgba(0,0,0,.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: var(--font); background: var(--el-bg-color-page); color: var(--el-text-color-primary); }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    a { color: var(--el-color-primary); text-decoration: none; }
+    .hidden { display: none !important; }
+
+    /* Element-like atoms */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      height: 32px; padding: 0 15px; border-radius: var(--radius); border: 1px solid var(--el-border-color);
+      background: var(--el-fill-color-blank); color: var(--el-text-color-regular); cursor: pointer;
+      transition: .15s;
+    }
+    .btn:hover { color: var(--el-color-primary); border-color: var(--el-color-primary-light-5); }
+    .btn-primary { background: var(--el-color-primary); border-color: var(--el-color-primary); color: #fff; }
+    .btn-primary:hover { background: var(--el-color-primary-light-3); border-color: var(--el-color-primary-light-3); color: #fff; }
+    .btn-danger { background: var(--el-color-danger); border-color: var(--el-color-danger); color: #fff; }
+    .btn-text { border: none; background: transparent; color: var(--el-color-primary); padding: 0 8px; height: 28px; }
+    .btn-sm { height: 28px; padding: 0 10px; font-size: 13px; }
+    .input, .select {
+      height: 32px; padding: 0 11px; border: 1px solid var(--el-border-color); border-radius: var(--radius);
+      background: var(--el-fill-color-blank); outline: none; min-width: 140px;
+    }
+    .input:focus, .select:focus { border-color: var(--el-color-primary); }
+    .input-block { width: 100%; }
+    .tag {
+      display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 4px;
+      font-size: 12px; background: rgba(64,158,255,.15); color: var(--el-color-primary);
+    }
+    .tag-success { background: rgba(103,194,58,.15); color: var(--el-color-success); }
+    .tag-warning { background: rgba(230,162,60,.15); color: var(--el-color-warning); }
+    .tag-danger { background: rgba(245,108,108,.15); color: var(--el-color-danger); }
+    .tag-info { background: rgba(144,147,153,.2); color: var(--el-text-color-secondary); }
+    .card {
+      background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 6px; padding: 16px;
+    }
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table th, .table td { padding: 12px 10px; border-bottom: 1px solid var(--el-border-color-lighter); text-align: left; }
+    .table th { color: var(--el-text-color-secondary); font-weight: 500; background: var(--el-fill-color-light); }
+    .table tr:hover td { background: var(--el-fill-color-light); }
+    .tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--el-border-color-light); margin-bottom: 16px; }
+    .tab { padding: 10px 0; cursor: pointer; color: var(--el-text-color-regular); border-bottom: 2px solid transparent; }
+    .tab.active { color: var(--el-color-primary); border-bottom-color: var(--el-color-primary); }
+    .switch { width: 40px; height: 20px; border-radius: 10px; background: var(--el-border-color); position: relative; cursor: pointer; display: inline-block; vertical-align: middle; }
+    .switch.on { background: var(--el-color-primary); }
+    .switch::after { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: .15s; }
+    .switch.on::after { left: 22px; }
+    .toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999;
+      background: var(--el-bg-color-overlay); border: 1px solid var(--el-border-color-light);
+      padding: 10px 18px; border-radius: var(--radius); box-shadow: var(--shadow); display: none;
+    }
+    .toast.show { display: block; animation: fade .2s; }
+    @keyframes fade { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    .proto-bar {
+      position: fixed; right: 16px; bottom: 16px; z-index: 9000;
+      background: var(--el-bg-color-overlay); border: 1px solid var(--el-border-color);
+      border-radius: 8px; padding: 10px 12px; box-shadow: var(--shadow); font-size: 12px;
+      color: var(--el-text-color-secondary); display: flex; gap: 8px; align-items: center;
+    }
+
+    /* Login */
+    #view-login {
+      min-height: 100%; display: flex; align-items: center; justify-content: center;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(64,158,255,.18), transparent 45%),
+        radial-gradient(ellipse at 80% 80%, rgba(103,194,58,.1), transparent 40%),
+        var(--el-bg-color-page);
+    }
+    .login-card {
+      width: 400px; padding: 36px 32px; background: var(--el-bg-color); border: 1px solid var(--el-border-color-light);
+      border-radius: 8px; box-shadow: var(--shadow);
+    }
+    .login-card h1 { font-size: 22px; margin-bottom: 6px; }
+    .login-card p { color: var(--el-text-color-secondary); font-size: 13px; margin-bottom: 24px; }
+    .form-item { margin-bottom: 18px; }
+    .form-item label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--el-text-color-regular); }
+    .login-card .btn-primary { width: 100%; height: 40px; margin-top: 8px; }
+
+    /* App shell */
+    #view-app { height: 100%; display: flex; flex-direction: column; }
+    .header {
+      height: var(--header-h); flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+      padding: 0 16px; background: var(--el-bg-color); border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-right: 12px; white-space: nowrap; }
+    .brand-mark {
+      width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #409eff, #337ecc);
+      display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700;
+    }
+    .nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+    .nav-item {
+      padding: 8px 14px; border-radius: var(--radius); cursor: pointer; color: var(--el-text-color-regular);
+      white-space: nowrap; font-size: 14px;
+    }
+    .nav-item:hover { background: var(--el-fill-color-light); color: var(--el-color-primary); }
+    .nav-item.active { color: var(--el-color-primary); background: rgba(64,158,255,.12); font-weight: 500; }
+    .header-right { display: flex; align-items: center; gap: 10px; color: var(--el-text-color-secondary); font-size: 13px; }
+    .main { flex: 1; min-height: 0; overflow: hidden; }
+
+    /* Pages */
+    .page { height: 100%; overflow: auto; display: none; }
+    .page.active { display: block; }
+    .page-pad { padding: 16px 20px; }
+    .page-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .toolbar .spacer { flex: 1; }
+
+    /* Dashboard */
+    .dash-grid {
+      display: grid; grid-template-columns: 280px 1fr 300px; gap: 12px; height: calc(100vh - var(--header-h) - 32px);
+      min-height: 560px;
+    }
+    .dash-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; }
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat {
+      background: var(--el-fill-color-light); border-radius: 6px; padding: 10px 12px;
+    }
+    .stat .label { font-size: 12px; color: var(--el-text-color-secondary); }
+    .stat .value { font-size: 20px; font-weight: 600; margin-top: 4px; }
+    .stat .sub { font-size: 11px; color: var(--el-text-color-placeholder); margin-top: 2px; }
+    .map-mock {
+      flex: 1; min-height: 280px; border-radius: 6px; position: relative; overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(20,40,60,.35), rgba(10,14,20,.75)),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(64,158,255,.08) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(64,158,255,.08) 40px),
+        #0e1620;
+      border: 1px solid var(--el-border-color-lighter);
+    }
+    .map-mock .zone {
+      position: absolute; border: 2px dashed rgba(103,194,58,.8); background: rgba(103,194,58,.12);
+      width: 42%; height: 38%; left: 28%; top: 30%; border-radius: 4px;
+    }
+    .map-mock .nofly {
+      position: absolute; border: 2px dashed rgba(245,108,108,.85); background: rgba(245,108,108,.15);
+      width: 12%; height: 14%; left: 48%; top: 42%;
+    }
+    .map-tools {
+      position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .map-tools .btn { width: 36px; height: 36px; padding: 0; background: var(--el-bg-color); }
+    .map-footer {
+      position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 12px; font-size: 11px;
+      background: rgba(0,0,0,.45); color: #cfd3dc; display: flex; justify-content: space-between;
+    }
+    .time-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip {
+      height: 26px; padding: 0 10px; border-radius: 13px; border: 1px solid var(--el-border-color);
+      background: transparent; color: var(--el-text-color-secondary); cursor: pointer; font-size: 12px;
+    }
+    .chip.active { border-color: var(--el-color-primary); color: var(--el-color-primary); background: rgba(64,158,255,.12); }
+    .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; padding-top: 8px; }
+    .chart-bars span {
+      flex: 1; background: linear-gradient(180deg, var(--el-color-primary-light-3), var(--el-color-primary));
+      border-radius: 3px 3px 0 0; opacity: .85;
+    }
+    .donut-wrap { display: flex; align-items: center; gap: 12px; }
+    .donut {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: conic-gradient(#67c23a 0 55%, #409eff 55% 70%, #e6a23c 70% 80%, #909399 80% 100%);
+      position: relative;
+    }
+    .donut::after {
+      content: "4"; position: absolute; inset: 14px; border-radius: 50%;
+      background: var(--el-bg-color); display: grid; place-items: center; font-weight: 700;
+    }
+    .legend { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.7; }
+
+    /* Workspace */
+    .workspace { height: 100%; display: flex; }
+    .rail {
+      width: var(--rail-w); flex-shrink: 0; background: var(--el-bg-color);
+      border-right: 1px solid var(--el-border-color-lighter);
+      display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 6px;
+    }
+    .rail-btn {
+      width: 40px; height: 40px; border-radius: 8px; border: none; background: transparent;
+      color: var(--el-text-color-secondary); cursor: pointer; font-size: 18px;
+    }
+    .rail-btn:hover, .rail-btn.active { background: rgba(64,158,255,.15); color: var(--el-color-primary); }
+    .rail .spacer { flex: 1; }
+    .ws-panel {
+      width: 320px; flex-shrink: 0; background: var(--el-bg-color); border-right: 1px solid var(--el-border-color-lighter);
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .ws-panel .panel-hd { padding: 14px 14px 8px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .ws-panel .panel-bd { flex: 1; overflow: auto; padding: 0 12px 12px; }
+    .ws-panel .panel-ft { padding: 12px; border-top: 1px solid var(--el-border-color-lighter); }
+    .ws-main { flex: 1; min-width: 0; position: relative; }
+    .list-item {
+      display: flex; gap: 10px; padding: 10px; border-radius: 6px; cursor: pointer; margin-bottom: 6px;
+      border: 1px solid transparent;
+    }
+    .list-item:hover, .list-item.active { background: var(--el-fill-color-light); border-color: var(--el-border-color-lighter); }
+    .list-item .meta { flex: 1; min-width: 0; }
+    .list-item .name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-item .desc { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .dot-green { background: #67c23a; }
+    .dot-red { background: #f56c6c; }
+    .dot-blue { background: #409eff; }
+
+    /* Drawer */
+    .drawer-mask {
+      position: absolute; inset: 0; background: var(--el-mask); z-index: 80; display: none;
+    }
+    .drawer-mask.show { display: block; }
+    .drawer {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 380px; z-index: 81;
+      background: var(--el-bg-color); border-left: 1px solid var(--el-border-color-light);
+      transform: translateX(100%); transition: transform .2s; display: flex; flex-direction: column;
+      pointer-events: none;
+    }
+    .drawer.show { transform: translateX(0); pointer-events: auto; }
+    .drawer-hd { padding: 16px; font-weight: 600; border-bottom: 1px solid var(--el-border-color-lighter); display: flex; justify-content: space-between; }
+    .drawer-bd { flex: 1; overflow: auto; padding: 16px; }
+    .drawer-ft { padding: 12px 16px; border-top: 1px solid var(--el-border-color-lighter); display: flex; justify-content: flex-end; gap: 8px; }
+    .field { margin-bottom: 16px; }
+    .field > label { display: block; font-size: 13px; margin-bottom: 8px; color: var(--el-text-color-regular); }
+    .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+    .seg label {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--el-border-color);
+      border-radius: var(--radius); cursor: pointer; font-size: 13px;
+    }
+    .seg input { accent-color: var(--el-color-primary); }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+    .empty {
+      text-align: center; padding: 48px 16px; color: var(--el-text-color-secondary);
+    }
+    .empty .icon { font-size: 40px; margin-bottom: 8px; opacity: .6; }
+    .modal-mask {
+      position: fixed; inset: 0; background: var(--el-mask); z-index: 1000; display: none; align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: 420px; background: var(--el-bg-color-overlay); border-radius: 8px; border: 1px solid var(--el-border-color-light);
+      box-shadow: var(--shadow);
+    }
+    .modal-hd { padding: 16px; font-weight: 600; border-bottom: 1px solid var(--el-border-color-lighter); }
+    .modal-bd { padding: 16px; }
+    .modal-ft { padding: 12px 16px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--el-border-color-lighter); }
+
+    @media (max-width: 1100px) {
+      .dash-grid { grid-template-columns: 1fr; height: auto; }
+      .ws-panel { width: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <!-- LOGIN -->
+  <div id="view-login">
+    <div class="login-card">
+      <div class="brand" style="margin-bottom:16px">
+        <div class="brand-mark">AF</div>
+        <span>AiFlow 作业平台</span>
+      </div>
+      <h1>登录</h1>
+      <p>单作业空间原型 · Element Plus 深色风格<br/>任意账号密码可进入（原型）</p>
+      <div class="form-item">
+        <label>账号</label>
+        <input class="input input-block" id="login-user" value="admin@aiflow.local" />
+      </div>
+      <div class="form-item">
+        <label>密码</label>
+        <input class="input input-block" id="login-pass" type="password" value="123456" />
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">登录</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="view-app" class="hidden">
+    <header class="header">
+      <div class="brand"><div class="brand-mark">AF</div><span>AiFlow</span></div>
+      <nav class="nav" id="top-nav">
+        <div class="nav-item active" data-page="dashboard">数据看板</div>
+        <div class="nav-item" data-page="workspace" data-ws="map">作业台</div>
+        <div class="nav-item" data-page="members">人员管理</div>
+        <div class="nav-item" data-page="devices">设备管理</div>
+        <div class="nav-item" data-page="library">数据管理</div>
+        <div class="nav-item" data-page="algorithms">算法管理</div>
+      </nav>
+      <div class="header-right">
+        <button class="btn btn-sm" onclick="toggleTheme()" id="theme-btn">深色</button>
+        <span>🔔</span>
+        <span>简体中文</span>
+        <span id="user-label">admin@aiflow.local</span>
+        <button class="btn-text" onclick="doLogout()">退出</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- Dashboard -->
+      <section class="page active page-pad" id="page-dashboard">
+        <div class="page-title">
+          <span>数据看板</span>
+          <div class="time-filters" id="time-filters">
+            <button class="chip active" data-range="week">本周</button>
+            <button class="chip" data-range="month">本月</button>
+            <button class="chip" data-range="lastweek">上周</button>
+            <button class="chip" data-range="half">近半年</button>
+            <button class="chip" data-range="year">近一年</button>
+          </div>
+        </div>
+        <div class="dash-grid">
+          <div class="dash-col">
+            <div class="card">
+              <div style="font-weight:600;margin-bottom:10px">资产 · 标准版</div>
+              <div class="stat-row">
+                <div class="stat"><div class="label">存储空间</div><div class="value">4.5<span style="font-size:12px">GB</span></div><div class="sub">已用 0.5 / 5 GB</div></div>
+                <div class="stat"><div class="label">建图数量</div><div class="value">12</div><div class="sub">张</div></div>
+                <div class="stat"><div class="label">直播时长</div><div class="value">86</div><div class="sub">分钟</div></div>
+                <div class="stat"><div class="label">航线总数</div><div class="value">6</div></div>
+              </div>
+              <div style="margin-top:14px;font-size:13px;margin-bottom:8px">机场状态</div>
+              <div class="donut-wrap">
+                <div class="donut"></div>
+                <div class="legend">空闲 2<br/>作业中 1<br/>调试中 0<br/>离线 1</div>
+              </div>
+              <div class="stat-row" style="margin-top:12px">
+                <div class="stat"><div class="label">飞行器</div><div class="value">3</div></div>
+                <div class="stat"><div class="label">人员</div><div class="value">5</div></div>
+                <div class="stat"><div class="label">中继站</div><div class="value">0</div></div>
+                <div class="stat"><div class="label">AI 算法</div><div class="value">2</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div style="font-weight:600;margin-bottom:10px">数据成果</div>
+              <div class="stat-row">
+                <div class="stat" style="cursor:pointer" onclick="goPage('library')"><div class="label">媒体数</div><div class="value">128</div></div>
+                <div class="stat" style="cursor:pointer" onclick="goPage('library')"><div class="label">模型数</div><div class="value">3</div></div>
+                <div class="stat"><div class="label">报告数</div><div class="value">0</div></div>
+                <div class="stat"><div class="label">AI 告警</div><div class="value">7</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="dash-col">
+            <div class="map-mock" style="min-height:100%">
+              <div class="zone"></div>
+              <div class="nofly"></div>
+              <div class="map-tools">
+                <button class="btn" title="2D/3D">3D</button>
+                <button class="btn" title="定位">◎</button>
+                <button class="btn" title="放大">+</button>
+                <button class="btn" title="缩小">−</button>
+              </div>
+              <div class="map-footer">
+                <span>100% · 比例尺 200km</span>
+                <span>ASL — · HAE — · WGS 84</span>
+              </div>
+            </div>
+          </div>
+          <div class="dash-col">
+            <div class="card">
+              <div style="font-weight:600;margin-bottom:10px">自动化</div>
+              <div class="stat-row">
+                <div class="stat"><div class="label">工作流</div><div class="value">2</div></div>
+                <div class="stat"><div class="label">执行循环</div><div class="value">14</div></div>
+              </div>
+              <div class="stat" style="margin-top:8px"><div class="label">执行成功率</div><div class="value">92%</div></div>
+            </div>
+            <div class="card">
+              <div style="font-weight:600;margin-bottom:6px">任务分布</div>
+              <div class="chart-bars">
+                <span style="height:40%"></span><span style="height:70%"></span><span style="height:55%"></span>
+                <span style="height:85%"></span><span style="height:45%"></span><span style="height:60%"></span><span style="height:30%"></span>
+              </div>
+              <div class="legend" style="margin-top:6px">计划任务 / 手动任务（示意）</div>
+            </div>
+            <div class="card">
+              <div style="font-weight:600;margin-bottom:10px">飞行数据</div>
+              <div class="stat-row">
+                <div class="stat"><div class="label">飞行架次</div><div class="value">24</div></div>
+                <div class="stat"><div class="label">飞行时长</div><div class="value">6.2<span style="font-size:12px">h</span></div></div>
+                <div class="stat" style="grid-column:1/-1"><div class="label">飞行里程</div><div class="value">48.6<span style="font-size:12px"> km</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workspace: map / waylines / library-side / missions -->
+      <section class="page" id="page-workspace">
+        <div class="workspace">
+          <aside class="rail">
+            <button class="rail-btn active" title="地图标注" data-ws="map" onclick="setWs('map')">🗺</button>
+            <button class="rail-btn" title="航线库" data-ws="waylines" onclick="setWs('waylines')">✈</button>
+            <button class="rail-btn" title="任务记录" data-ws="missions" onclick="setWs('missions')">📋</button>
+            <button class="rail-btn" title="资源库" data-ws="media" onclick="setWs('media')">📁</button>
+            <button class="rail-btn" title="直播" onclick="toast('直播观看为 P1/后置能力，本期占位')">📹</button>
+            <div class="spacer"></div>
+            <button class="rail-btn" title="人员" onclick="goPage('members')">👤</button>
+            <button class="rail-btn" title="设备" onclick="goPage('devices')">📡</button>
+            <button class="rail-btn" title="设置" onclick="toast('平台设置为占位')">⚙</button>
+          </aside>
+
+          <!-- Map panel -->
+          <aside class="ws-panel" id="panel-map">
+            <div class="panel-hd">
+              <span>地图标注</span>
+              <button class="btn btn-sm btn-primary" onclick="openMissionDrawer()">新建计划</button>
+            </div>
+            <div class="tabs" style="padding:0 12px;margin-bottom:8px">
+              <div class="tab active">标注</div>
+              <div class="tab" onclick="toast('高程/2.5D 为 P1')">高程</div>
+              <div class="tab" onclick="setWs('waylines')">航线</div>
+              <div class="tab" onclick="toast('安全区配置为 P1')">安全</div>
+            </div>
+            <div class="panel-bd">
+              <div class="list-item active">
+                <div class="dot dot-green"></div>
+                <div class="meta"><div class="name">自定义作业区</div><div class="desc">面 · 已显示</div></div>
+              </div>
+              <div class="list-item">
+                <div class="dot dot-red"></div>
+                <div class="meta"><div class="name">限飞区-A</div><div class="desc">面 · 已显示</div></div>
+              </div>
+              <div class="list-item">
+                <div class="dot dot-blue"></div>
+                <div class="meta"><div class="name">出入口1</div><div class="desc">点</div></div>
+              </div>
+              <div class="list-item">
+                <div class="dot dot-blue"></div>
+                <div class="meta"><div class="name">禁止停车区域</div><div class="desc">线</div></div>
+              </div>
+            </div>
+            <div class="panel-ft">
+              <button class="btn btn-primary" style="width:100%" onclick="toast('已发起设备同步（原型）')">设备同步</button>
+            </div>
+          </aside>
+
+          <!-- Waylines panel -->
+          <aside class="ws-panel hidden" id="panel-waylines">
+            <div class="panel-hd">
+              <span>航线库</span>
+              <button class="btn btn-sm btn-primary" onclick="toast('打开航线编辑器（原型）')">新建</button>
+            </div>
+            <div class="panel-bd">
+              <div class="toolbar" style="margin-bottom:8px">
+                <select class="select" style="min-width:110px">
+                  <option>全部机型</option>
+                  <option>Matrice 3D</option>
+                  <option>Matrice 4T</option>
+                  <option>M30T</option>
+                </select>
+                <button class="btn btn-sm" onclick="toast('导入 KMZ（原型）')">导入</button>
+              </div>
+              <div style="font-size:12px;color:var(--el-text-color-secondary);margin:6px 0">默认文件夹</div>
+              <div class="list-item" onclick="toast('编辑：巡检航线')">
+                <div class="meta"><div class="name">巡检</div><div class="desc">Matrice 3D · 2026-03-12</div></div>
+                <button class="btn-text">↓</button>
+              </div>
+              <div class="list-item">
+                <div class="meta"><div class="name">巡检航点航线</div><div class="desc">Matrice 4T · 2025-12-01</div></div>
+              </div>
+              <div class="list-item">
+                <div class="meta"><div class="name">二维网状航线</div><div class="desc">M30T · 2025-10-20</div></div>
+              </div>
+              <div class="list-item">
+                <div class="meta"><div class="name">叠场斜面航线</div><div class="desc">Matrice 3D · 2025-09-08</div></div>
+              </div>
+              <div class="list-item">
+                <div class="meta"><div class="name">几何体精细航线</div><div class="desc">Matrice 3TD · 2025-08-15</div></div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Missions panel -->
+          <aside class="ws-panel hidden" id="panel-missions">
+            <div class="panel-hd">
+              <span>任务记录</span>
+              <button class="btn btn-sm btn-primary" onclick="openMissionDrawer()">新建计划</button>
+            </div>
+            <div class="panel-bd">
+              <div class="list-item">
+                <div class="meta">
+                  <div class="name">东区日常巡检 <span class="tag tag-success">已完成</span></div>
+                  <div class="desc">立即 · 机场-01 · 昨天 16:20</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="meta">
+                  <div class="name">周界循环巡查 <span class="tag">待执行</span></div>
+                  <div class="desc">循环 · 机场-01 · 明天 08:00</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="meta">
+                  <div class="name">临时手动勘察 <span class="tag tag-warning">已暂停</span></div>
+                  <div class="desc">手动飞行 · 飞行器-M4T</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="meta">
+                  <div class="name">断点续飞-测绘 <span class="tag tag-danger">失败</span></div>
+                  <div class="desc">定时 · 失联返航触发</div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Media side panel -->
+          <aside class="ws-panel hidden" id="panel-media">
+            <div class="panel-hd"><span>资源快捷</span></div>
+            <div class="panel-bd">
+              <p style="font-size:13px;color:var(--el-text-color-secondary);margin-bottom:12px">完整文件管理请使用顶栏「数据管理」。</p>
+              <button class="btn btn-primary" style="width:100%" onclick="goPage('library')">打开资源库</button>
+            </div>
+          </aside>
+
+          <div class="ws-main">
+            <div class="map-mock" style="height:100%;border:none;border-radius:0">
+              <div class="zone"></div>
+              <div class="nofly"></div>
+              <div class="map-tools">
+                <button class="btn" title="选择">↖</button>
+                <button class="btn" title="点" onclick="toast('绘制点标注')">·</button>
+                <button class="btn" title="线" onclick="toast('绘制线标注')">／</button>
+                <button class="btn" title="面" onclick="toast('绘制面标注')">◻</button>
+                <button class="btn" title="测距" onclick="toast('测距：128.4 m（示意）')">📏</button>
+                <button class="btn" title="测面" onclick="toast('测面：0.86 ha（示意）')">▦</button>
+              </div>
+              <div class="map-footer">
+                <span>作业台 · 无多项目切换</span>
+                <span>ASL 31.1 m · HAE 27.6 m · WGS 84</span>
+              </div>
+            </div>
+
+            <div class="drawer-mask" id="mission-mask" onclick="closeMissionDrawer()"></div>
+            <div class="drawer" id="mission-drawer">
+              <div class="drawer-hd">
+                <span>新建计划</span>
+                <button class="btn-text" onclick="closeMissionDrawer()">✕</button>
+              </div>
+              <div class="drawer-bd">
+                <div class="field">
+                  <label>计划名称</label>
+                  <input class="input input-block" id="mission-name" placeholder="请输入计划名称" value="新建计划" />
+                </div>
+                <div class="field">
+                  <label>任务类型</label>
+                  <div class="seg">
+                    <label><input type="radio" name="mtype" checked /> 普通任务</label>
+                    <label><input type="radio" name="mtype" /> 航线任务</label>
+                    <label><input type="radio" name="mtype" /> 手动飞行任务</label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>选择航线</label>
+                  <select class="select input-block"><option>巡检航点航线</option><option>二维网状航线</option></select>
+                </div>
+                <div class="field">
+                  <label>选择设备</label>
+                  <select class="select input-block"><option>机场-01（Dock）</option><option>飞行器-M4T</option></select>
+                </div>
+                <div class="field">
+                  <div class="row-between"><label style="margin:0">多模态识别</label><span class="switch" id="sw-mm" onclick="this.classList.toggle('on')"></span></div>
+                  <div style="font-size:12px;color:var(--el-text-color-placeholder);margin-top:6px">无可用算法时可禁用（P1）</div>
+                </div>
+                <div class="field">
+                  <label>任务精度</label>
+                  <div class="seg">
+                    <label><input type="radio" name="acc" checked /> 高精度 RTK</label>
+                    <label><input type="radio" name="acc" /> GNSS</label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>任务策略</label>
+                  <div class="seg">
+                    <label><input type="radio" name="strat" checked /> 立即</label>
+                    <label><input type="radio" name="strat" /> 单次定时</label>
+                    <label><input type="radio" name="strat" /> 循环定时</label>
+                    <label><input type="radio" name="strat" /> 连续执行</label>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="row-between"><label style="margin:0">断点续飞</label><span class="switch on" onclick="this.classList.toggle('on')"></span></div>
+                </div>
+                <div class="field">
+                  <div class="row-between"><label style="margin:0">智能返航规划</label><span class="switch on" onclick="this.classList.toggle('on')"></span></div>
+                </div>
+                <div class="field">
+                  <label>最低飞行高度（相对起飞点）</label>
+                  <input class="input input-block" type="number" value="60" />
+                </div>
+                <div class="field">
+                  <label>失联动作</label>
+                  <div class="seg">
+                    <label><input type="radio" name="lost" checked /> 返航</label>
+                    <label><input type="radio" name="lost" /> 继续执行</label>
+                  </div>
+                </div>
+              </div>
+              <div class="drawer-ft">
+                <button class="btn" onclick="closeMissionDrawer()">取消</button>
+                <button class="btn btn-primary" onclick="submitMission()">确定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Members -->
+      <section class="page page-pad" id="page-members">
+        <div class="page-title"><span>人员管理</span></div>
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openModal('modal-add-member')">添加人员</button>
+          <button class="btn" onclick="openModal('modal-roles')">角色管理</button>
+          <select class="select"><option>全部角色</option><option>超级管理员</option><option>管理员</option><option>作业员</option></select>
+          <select class="select"><option>全部加入方式</option><option>组织添加</option></select>
+          <input class="input" placeholder="按账号或人员名称搜索" style="min-width:220px" />
+          <div class="spacer"></div>
+          <button class="btn" onclick="toast('已刷新')">刷新</button>
+        </div>
+        <div class="card" style="padding:0;overflow:auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" /></th>
+                <th>账号</th>
+                <th>人员名称</th>
+                <th>用户角色</th>
+                <th>加入方式</th>
+                <th>加入时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="member-tbody">
+              <tr data-account="admin@aiflow.local" data-name="平台超管" data-role="超级管理员">
+                <td><input type="checkbox" /></td>
+                <td>admin@aiflow.local</td>
+                <td>平台超管</td>
+                <td class="col-role"><span class="tag">超级管理员</span></td>
+                <td>组织添加</td>
+                <td>2026-07-21 16:46:26</td>
+                <td><button class="btn-text" onclick="openEditMember(this)">编辑角色</button></td>
+              </tr>
+              <tr data-account="ops@aiflow.local" data-name="运维管理员" data-role="管理员">
+                <td><input type="checkbox" /></td>
+                <td>ops@aiflow.local</td>
+                <td>运维管理员</td>
+                <td class="col-role"><span class="tag tag-success">管理员</span></td>
+                <td>组织添加</td>
+                <td>2026-07-21 17:01:02</td>
+                <td>
+                  <button class="btn-text" onclick="openEditMember(this)">编辑角色</button>
+                  <button class="btn-text" style="color:var(--el-color-danger)" onclick="confirmDelete('人员')">删除</button>
+                </td>
+              </tr>
+              <tr data-account="pilot01@aiflow.local" data-name="作业员-张三" data-role="作业员">
+                <td><input type="checkbox" /></td>
+                <td>pilot01@aiflow.local</td>
+                <td>作业员-张三</td>
+                <td class="col-role"><span class="tag tag-info">作业员</span></td>
+                <td>组织添加</td>
+                <td>2026-07-21 17:05:18</td>
+                <td>
+                  <button class="btn-text" onclick="openEditMember(this)">编辑角色</button>
+                  <button class="btn-text" style="color:var(--el-color-danger)" onclick="confirmDelete('人员')">删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Devices -->
+      <section class="page page-pad" id="page-devices">
+        <div class="page-title"><span>设备管理</span></div>
+        <div class="tabs" id="device-tabs">
+          <div class="tab active" data-dtab="dock">机场/地面站</div>
+          <div class="tab" data-dtab="aircraft">飞行器</div>
+          <div class="tab" data-dtab="other">其它物流设备</div>
+        </div>
+        <div class="toolbar">
+          <button class="btn" onclick="toast('打开设备定损与反馈（原型）')">设备定损与反馈</button>
+          <button class="btn btn-primary" onclick="openModal('modal-bind')">设备绑定码</button>
+          <button class="btn-text" onclick="toast('如何绑定机场/地面站说明')">如何绑定机场/地面站</button>
+          <div class="spacer"></div>
+          <input class="input" placeholder="按 SN 或设备名称搜索" style="min-width:220px" />
+          <button class="btn">刷新</button>
+        </div>
+        <div class="card" style="padding:0;overflow:auto" id="device-table-dock">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>设备型号</th><th>设备 SN</th><th>设备名称</th><th>固件版本</th><th>固件升级</th>
+                <th>飞行安全数据库</th><th>工作状态</th><th>加入时间</th><th>在线时间</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>DJI Dock 2</td><td>7CTDKxxxx001</td><td>机场-01</td><td>09.02.01.02</td>
+                <td><span class="tag tag-success">最新</span></td>
+                <td>2026.06</td><td><span class="tag tag-success">空闲</span></td>
+                <td>2026-07-10</td><td>2026-07-21 16:50</td>
+                <td><button class="btn-text" onclick="toast('远程运维占位')">详情</button></td>
+              </tr>
+              <tr>
+                <td>DJI Dock 2</td><td>7CTDKxxxx002</td><td>机场-02</td><td>09.01.00.10</td>
+                <td><span class="tag tag-warning">可升级</span></td>
+                <td>2026.06</td><td><span class="tag tag-info">离线</span></td>
+                <td>2026-07-12</td><td>—</td>
+                <td><button class="btn-text">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card hidden" style="padding:0;overflow:auto" id="device-table-aircraft">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>设备型号</th><th>设备 SN</th><th>设备名称</th><th>固件版本</th><th>工作状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Matrice 4T</td><td>1581FxxxxA1</td><td>飞行器-M4T</td><td>10.01.05.03</td>
+                <td><span class="tag">在舱</span></td>
+                <td><button class="btn-text">详情</button></td>
+              </tr>
+              <tr>
+                <td>Matrice 3D</td><td>1581FxxxxB2</td><td>飞行器-M3D</td><td>09.00.05.01</td>
+                <td><span class="tag tag-success">空闲</span></td>
+                <td><button class="btn-text">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card hidden" id="device-table-other">
+          <div class="empty"><div class="icon">📦</div><div>暂无其它物流设备</div></div>
+        </div>
+      </section>
+
+      <!-- Library / Data -->
+      <section class="page page-pad" id="page-library">
+        <div class="page-title">
+          <span>数据管理 · 资源库</span>
+          <span style="font-size:12px;font-weight:400;color:var(--el-text-color-secondary)">方案 A：顶栏数据管理 = 资源库</span>
+        </div>
+        <div style="display:flex;gap:16px;min-height:calc(100vh - 140px)">
+          <aside style="width:220px;flex-shrink:0" class="card">
+            <div class="list-item active" onclick="setLibCat(this,'媒体')"><div class="meta"><div class="name">媒体</div><div class="desc">496.5 MB</div></div></div>
+            <div style="padding-left:18px;font-size:13px;color:var(--el-text-color-secondary);line-height:2">
+              <div>照片 · 496.5 MB</div>
+              <div>视频 · 0 MB</div>
+              <div>压缩文件 · 0 MB</div>
+            </div>
+            <div class="list-item" onclick="setLibCat(this,'模型')"><div class="meta"><div class="name">模型</div><div class="desc">0.0 MB</div></div></div>
+            <div class="list-item" onclick="setLibCat(this,'设计文件')"><div class="meta"><div class="name">设计文件</div><div class="desc">0 MB</div></div></div>
+            <div class="list-item" onclick="setLibCat(this,'回收站')"><div class="meta"><div class="name">回收站</div><div class="desc">0 MB</div></div></div>
+            <div style="margin-top:16px;font-size:12px;color:var(--el-text-color-placeholder)">剩余可用空间 4.5 GB</div>
+          </aside>
+          <div style="flex:1;min-width:0" class="card">
+            <div class="toolbar">
+              <button class="btn" onclick="toast('模型重建任务已创建（异步占位）')">模型重建</button>
+              <button class="btn" onclick="toast('智能搜索为 P2')">智能搜索</button>
+              <button class="btn" onclick="toast('变化检测 Pro 为 P2')">变化检测 Pro</button>
+              <button class="btn" onclick="toast('超清全景为 P2')">超清全景</button>
+              <button class="btn" onclick="toast('创建文件夹')">创建文件夹</button>
+              <button class="btn btn-primary" onclick="toast('导入文件')">导入</button>
+              <div class="spacer"></div>
+              <input class="input" placeholder="按文件名搜索" />
+            </div>
+            <table class="table">
+              <thead>
+                <tr><th>名称</th><th>标签</th><th>拍摄负载</th><th>大小</th><th>创建时间</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>📁 直播录制回放</td><td>—</td><td>—</td><td>—</td><td>2026-07-18</td>
+                  <td><button class="btn-text">打开</button></td>
+                </tr>
+                <tr>
+                  <td>📁 巡检 2026-07-20 09:12</td><td><span class="tag">巡检</span></td><td>H30T</td><td>128 MB</td><td>2026-07-20</td>
+                  <td><button class="btn-text">下载</button><button class="btn-text">分享</button></td>
+                </tr>
+                <tr>
+                  <td>📁 巡检 2026-07-15 14:03</td><td><span class="tag">巡检</span></td><td>M30T</td><td>96 MB</td><td>2026-07-15</td>
+                  <td><button class="btn-text">下载</button></td>
+                </tr>
+                <tr>
+                  <td>📁 全景图</td><td>—</td><td>—</td><td>42 MB</td><td>2026-06-02</td>
+                  <td><button class="btn-text">打开</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Algorithms -->
+      <section class="page page-pad" id="page-algorithms">
+        <div class="page-title"><span>算法管理</span></div>
+        <div class="card">
+          <p style="color:var(--el-text-color-secondary);margin-bottom:16px">P2 占位模块：展示已接入算法，与看板「AI 算法数 / AI 告警」对齐，不阻塞 P0 主流程。</p>
+          <table class="table">
+            <thead><tr><th>算法名称</th><th>类型</th><th>状态</th><th>告警数（近 7 天）</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>车辆检测</td><td>目标检测</td><td><span class="tag tag-success">已启用</span></td><td>5</td>
+                <td><button class="btn-text" onclick="toast('配置规则占位')">配置</button></td>
+              </tr>
+              <tr>
+                <td>人员闯入</td><td>目标检测</td><td><span class="tag tag-success">已启用</span></td><td>2</td>
+                <td><button class="btn-text">配置</button></td>
+              </tr>
+              <tr>
+                <td>多模态泛化检测</td><td>多模态</td><td><span class="tag tag-info">未开通</span></td><td>—</td>
+                <td><button class="btn-text" onclick="toast('请联系开通')">开通</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal-mask" id="modal-add-member">
+    <div class="modal">
+      <div class="modal-hd">添加人员</div>
+      <div class="modal-bd">
+        <div class="field"><label>账号</label><input class="input input-block" placeholder="邮箱或手机号" /></div>
+        <div class="field"><label>人员名称</label><input class="input input-block" placeholder="显示名称" /></div>
+        <div class="field">
+          <label>角色</label>
+          <select class="select input-block"><option>作业员</option><option>管理员</option><option>设备维护员</option></select>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeModal('modal-add-member')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('modal-add-member');toast('已添加人员（原型）')">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-roles">
+    <div class="modal" style="width:640px">
+      <div class="modal-hd" style="display:flex;justify-content:space-between;align-items:center">
+        <span>角色管理</span>
+        <button class="btn-text" onclick="closeModal('modal-roles')">✕</button>
+      </div>
+      <div class="modal-bd">
+        <table class="table" id="role-table">
+          <thead><tr><th>角色</th><th>说明</th><th>权限摘要</th><th>操作</th></tr></thead>
+          <tbody id="role-tbody"></tbody>
+        </table>
+        <p style="margin-top:10px;font-size:12px;color:var(--el-text-color-placeholder)">超级管理员权限固定为全部，不可降权。</p>
+      </div>
+      <div class="modal-ft"><button class="btn btn-primary" onclick="closeModal('modal-roles')">完成</button></div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-role-edit">
+    <div class="modal" style="width:520px">
+      <div class="modal-hd" id="role-edit-title">编辑角色权限</div>
+      <div class="modal-bd">
+        <div class="field">
+          <label>角色名称</label>
+          <input class="input input-block" id="role-edit-name" />
+        </div>
+        <div class="field">
+          <label>说明</label>
+          <input class="input input-block" id="role-edit-desc" />
+        </div>
+        <div class="field">
+          <label>模块权限（勾选 = 可写；未勾选 = 仅可见或不可见见说明）</label>
+          <div id="role-perm-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px"></div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeModal('modal-role-edit')">取消</button>
+        <button class="btn btn-primary" onclick="saveRoleEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-edit-member">
+    <div class="modal" style="width:420px">
+      <div class="modal-hd">编辑人员角色</div>
+      <div class="modal-bd">
+        <div class="field"><label>账号</label><input class="input input-block" id="edit-member-account" readonly /></div>
+        <div class="field"><label>人员名称</label><input class="input input-block" id="edit-member-name" /></div>
+        <div class="field">
+          <label>用户角色</label>
+          <select class="select input-block" id="edit-member-role">
+            <option>超级管理员</option>
+            <option>管理员</option>
+            <option>设备维护员</option>
+            <option>作业员</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeModal('modal-edit-member')">取消</button>
+        <button class="btn btn-primary" onclick="saveMemberEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-bind">
+    <div class="modal">
+      <div class="modal-hd">设备绑定码</div>
+      <div class="modal-bd">
+        <p style="margin-bottom:12px;color:var(--el-text-color-secondary);font-size:13px">在现场端输入下列信息完成绑定。</p>
+        <div class="field"><label>组织/平台 ID</label><input class="input input-block" readonly value="aiflow-workspace-001" /></div>
+        <div class="field"><label>绑定码</label><input class="input input-block" readonly value="BIND-8F3K-92QX" /></div>
+        <button class="btn" onclick="toast('已刷新绑定码')">刷新绑定码</button>
+      </div>
+      <div class="modal-ft"><button class="btn btn-primary" onclick="closeModal('modal-bind')">完成</button></div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-confirm">
+    <div class="modal" style="width:360px">
+      <div class="modal-hd">确认删除</div>
+      <div class="modal-bd" id="confirm-text">确定删除该资源吗？</div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeModal('modal-confirm')">取消</button>
+        <button class="btn btn-danger" onclick="closeModal('modal-confirm');toast('已删除（原型）')">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="proto-bar">
+    <span>原型</span>
+    <select class="select" style="min-width:120px;height:28px" onchange="document.documentElement.setAttribute('data-theme', this.value); document.getElementById('theme-btn').textContent = this.value==='dark'?'深色':'浅色'">
+      <option value="dark">Element Plus · 深色</option>
+      <option value="light">Element Plus · 浅色</option>
+    </select>
+  </div>
+
+  <script>
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(window.__tt);
+      window.__tt = setTimeout(() => el.classList.remove('show'), 1800);
+    }
+
+    function doLogin() {
+      const u = document.getElementById('login-user').value.trim();
+      const p = document.getElementById('login-pass').value;
+      if (!u || !p) { toast('请输入账号和密码'); return; }
+      document.getElementById('user-label').textContent = u;
+      document.getElementById('view-login').classList.add('hidden');
+      document.getElementById('view-app').classList.remove('hidden');
+      goPage('dashboard');
+      toast('登录成功');
+    }
+
+    function doLogout() {
+      document.getElementById('view-app').classList.add('hidden');
+      document.getElementById('view-login').classList.remove('hidden');
+      toast('已退出');
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      document.getElementById('theme-btn').textContent = next === 'dark' ? '深色' : '浅色';
+      const sel = document.querySelector('.proto-bar select');
+      if (sel) sel.value = next;
+    }
+
+    function goPage(page, ws) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const pageId = page === 'workspace' ? 'workspace' : page;
+      const target = document.getElementById('page-' + pageId);
+      if (!target) return;
+      target.classList.add('active');
+      document.querySelectorAll('#top-nav .nav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.page === page);
+      });
+      if (page === 'workspace') applyWs(ws || currentWs || 'map');
+    }
+
+    let currentWs = 'map';
+
+    function applyWs(name) {
+      currentWs = name;
+      ['map','waylines','missions','media'].forEach(id => {
+        const panel = document.getElementById('panel-' + id);
+        if (panel) panel.classList.toggle('hidden', id !== name);
+      });
+      document.querySelectorAll('.rail-btn[data-ws]').forEach(b => {
+        b.classList.toggle('active', b.dataset.ws === name);
+      });
+    }
+
+    function setWs(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-workspace').classList.add('active');
+      document.querySelectorAll('#top-nav .nav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.page === 'workspace');
+      });
+      applyWs(name);
+    }
+
+    document.getElementById('top-nav').addEventListener('click', (e) => {
+      const item = e.target.closest('.nav-item');
+      if (!item) return;
+      goPage(item.dataset.page, item.dataset.ws);
+    });
+
+    document.getElementById('time-filters').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('#time-filters .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      toast('已切换时间范围：' + chip.textContent);
+    });
+
+    function openMissionDrawer() {
+      setWs('map');
+      // next frame: ensure panel visible then show drawer
+      requestAnimationFrame(() => {
+        document.getElementById('mission-mask').classList.add('show');
+        document.getElementById('mission-drawer').classList.add('show');
+      });
+    }
+    function closeMissionDrawer() {
+      document.getElementById('mission-mask').classList.remove('show');
+      document.getElementById('mission-drawer').classList.remove('show');
+    }
+    function submitMission() {
+      const name = document.getElementById('mission-name').value.trim();
+      if (!name) { toast('请填写计划名称'); return; }
+      closeMissionDrawer();
+      setWs('missions');
+      toast('计划已创建：' + name);
+    }
+
+    /* ---- 角色 / 人员编辑 ---- */
+    const PERM_KEYS = [
+      { key: 'dashboard', label: '数据看板' },
+      { key: 'map', label: '地图标注' },
+      { key: 'wayline', label: '航线库' },
+      { key: 'mission', label: '任务计划' },
+      { key: 'library', label: '资源库' },
+      { key: 'member', label: '人员管理' },
+      { key: 'device', label: '设备管理' },
+      { key: 'algorithm', label: '算法管理' },
+      { key: 'role', label: '角色管理' }
+    ];
+
+    let roles = [
+      { id: 'super', name: '超级管理员', desc: '全部权限', locked: true, perms: PERM_KEYS.map(p => p.key) },
+      { id: 'admin', name: '管理员', desc: '业务配置与任务', locked: false, perms: ['dashboard','map','wayline','mission','library','device','algorithm'] },
+      { id: 'maintainer', name: '设备维护员', desc: '设备运维为主', locked: false, perms: ['dashboard','device','library'] },
+      { id: 'operator', name: '作业员', desc: '执行与查看', locked: false, perms: ['dashboard','map','wayline','mission','library'] }
+    ];
+    let editingRoleId = null;
+    let editingMemberRow = null;
+
+    function roleTagHtml(roleName) {
+      if (roleName === '超级管理员') return '<span class="tag">超级管理员</span>';
+      if (roleName === '管理员') return '<span class="tag tag-success">管理员</span>';
+      if (roleName === '设备维护员') return '<span class="tag tag-warning">设备维护员</span>';
+      return '<span class="tag tag-info">' + roleName + '</span>';
+    }
+
+    function permSummary(role) {
+      if (role.locked) return '全部';
+      return role.perms.map(k => (PERM_KEYS.find(p => p.key === k) || {}).label || k).join(' / ') || '无';
+    }
+
+    function renderRoleTable() {
+      const tb = document.getElementById('role-tbody');
+      tb.innerHTML = roles.map(r => `
+        <tr>
+          <td>${r.name}</td>
+          <td>${r.desc}</td>
+          <td style="font-size:12px;color:var(--el-text-color-secondary)">${permSummary(r)}</td>
+          <td>
+            <button class="btn-text" onclick="openRoleEdit('${r.id}')">${r.locked ? '查看' : '编辑权限'}</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openRoleEdit(id) {
+      const role = roles.find(r => r.id === id);
+      if (!role) return;
+      editingRoleId = id;
+      document.getElementById('role-edit-title').textContent = role.locked ? '查看角色权限' : '编辑角色权限';
+      document.getElementById('role-edit-name').value = role.name;
+      document.getElementById('role-edit-name').readOnly = role.locked;
+      document.getElementById('role-edit-desc').value = role.desc;
+      document.getElementById('role-edit-desc').readOnly = role.locked;
+      const list = document.getElementById('role-perm-list');
+      list.innerHTML = PERM_KEYS.map(p => {
+        const checked = role.perms.includes(p.key) ? 'checked' : '';
+        const disabled = role.locked ? 'disabled' : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--el-border-color-lighter);border-radius:4px">
+          <input type="checkbox" data-perm="${p.key}" ${checked} ${disabled} /> ${p.label}
+        </label>`;
+      }).join('');
+      const saveBtn = document.querySelector('#modal-role-edit .btn-primary');
+      saveBtn.style.display = role.locked ? 'none' : '';
+      openModal('modal-role-edit');
+    }
+
+    function saveRoleEdit() {
+      const role = roles.find(r => r.id === editingRoleId);
+      if (!role || role.locked) { closeModal('modal-role-edit'); return; }
+      const name = document.getElementById('role-edit-name').value.trim();
+      const desc = document.getElementById('role-edit-desc').value.trim();
+      if (!name) { toast('请填写角色名称'); return; }
+      role.name = name;
+      role.desc = desc;
+      role.perms = Array.from(document.querySelectorAll('#role-perm-list input[type=checkbox]:checked')).map(i => i.dataset.perm);
+      renderRoleTable();
+      syncRoleSelects();
+      closeModal('modal-role-edit');
+      toast('角色权限已保存');
+    }
+
+    function syncRoleSelects() {
+      const names = roles.map(r => r.name);
+      ['edit-member-role', ].forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const cur = sel.value;
+        sel.innerHTML = names.map(n => `<option>${n}</option>`).join('');
+        if (names.includes(cur)) sel.value = cur;
+      });
+      const addSel = document.querySelector('#modal-add-member select');
+      if (addSel) {
+        addSel.innerHTML = names.filter(n => n !== '超级管理员').map(n => `<option>${n}</option>`).join('');
+      }
+    }
+
+    function openEditMember(btn) {
+      const row = btn.closest('tr');
+      editingMemberRow = row;
+      document.getElementById('edit-member-account').value = row.dataset.account;
+      document.getElementById('edit-member-name').value = row.dataset.name;
+      syncRoleSelects();
+      document.getElementById('edit-member-role').value = row.dataset.role;
+      openModal('modal-edit-member');
+    }
+
+    function saveMemberEdit() {
+      if (!editingMemberRow) return;
+      const name = document.getElementById('edit-member-name').value.trim();
+      const role = document.getElementById('edit-member-role').value;
+      if (!name) { toast('请填写人员名称'); return; }
+      if (editingMemberRow.dataset.role === '超级管理员' && role !== '超级管理员') {
+        toast('不可直接降级唯一超级管理员（原型校验）');
+        return;
+      }
+      editingMemberRow.dataset.name = name;
+      editingMemberRow.dataset.role = role;
+      editingMemberRow.children[2].textContent = name;
+      editingMemberRow.querySelector('.col-role').innerHTML = roleTagHtml(role);
+      closeModal('modal-edit-member');
+      toast('人员角色已更新');
+    }
+
+    document.getElementById('device-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.tab');
+      if (!tab) return;
+      document.querySelectorAll('#device-tabs .tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const key = tab.dataset.dtab;
+      ['dock','aircraft','other'].forEach(k => {
+        document.getElementById('device-table-' + k).classList.toggle('hidden', k !== key);
+      });
+    });
+
+    function setLibCat(el, name) {
+      el.parentElement.querySelectorAll('.list-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+      toast('切换分类：' + name);
+    }
+
+    function openModal(id) {
+      if (id === 'modal-roles') renderRoleTable();
+      document.getElementById(id).classList.add('show');
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    function confirmDelete( what ) {
+      document.getElementById('confirm-text').textContent = '确定删除该' + what + '吗？此操作需二次确认。';
+      openModal('modal-confirm');
+    }
+
+    renderRoleTable();
+    syncRoleSelects();
+
+    // Enter to login
+    document.getElementById('login-pass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Windows 开发机：后端在 Linux 容器中运行（FlightHub SDK 仅有 linux/mac JNI）
+services:
+  backend:
+    build:
+      context: ./backend
+    image: aiflow-backend:local
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    restart: unless-stopped

@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: uav-platform
+  datasource:
+    # MYSQL_HOST: Windows 本机默认 127.0.0.1；WSL 内跑后端请用 profile=wsl，或导出 MYSQL_HOST=host.docker.internal / 网关 IP
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:3306/UAVPlatform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:meng1234}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      id-type: auto
+
+uav:
+  jwt:
+    secret: UAVPlatformDevSecretKeyMustBeLongEnoughForHS256Algorithm
+    expire-seconds: 86400
+  fh2:
+    enabled: true
+    # paas.js 在 80 端口；API/WS 在 30812
+    front-host: http://192.168.41.185
+    server-host: http://192.168.41.185:30812
+    gateway-base: http://192.168.41.185:30812/gateway
+    wss-url: ws://192.168.41.185:30812/openapi/v0.9/notification/ws/v1/notifications
+    # 请填入司空下发的用户 Token 与 binding_uuid（也可用 t_fh2_config 覆盖）
+    user-token: "eyJhbGciOiJIUzUxMiIsImtpZCI6IjU3YmQyNmEwLTYyMDktNGE5My1hNjg4LWY4NzUyYmU1ZDE5MSIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiZGVmYXVsdCIsImV4cCI6MTkyNDgxOTIwMCwibmJmIjoxNjA5NDU5MjAwLCJvcmdhbml6YXRpb25fdXVpZCI6IjVhNmY5ZDRiLTJhMzgtNGI0Yi04NmY5LTNhNjc4ZGEwYmY4OCIsInByb2plY3RfdXVpZCI6IiIsInN1YiI6ImZoMiIsInVzZXJfaWQiOiJkZWZhdWx0In0.psKQTfTOEVB9fn0OrBW4puoHzIV6C9pgnwk6JqEjpwoPE4D1DDiLAuCbMcH_hpnb8DUZrWvNI6d6X7hQTHzEnQ"
+    # 与 token 内 organization_uuid 一致
+    binding-uuid: "5a6f9d4b-2a38-4b4b-86f9-3a678da0bf4a"
+    object-key-prefix: "5a6f9d4b-2a38-4b4b-86f9-3a678da0bf4a"
+    sdk-address: http://192.168.41.185
+    sdk-port: "30812"
+    sdk-native-enabled: true
+    wayline-sdk-css: http://192.168.41.185/paasjs-demo/wayline-edit-sdk/index.css
+    wayline-sdk-js: http://192.168.41.185/paasjs-demo/wayline-edit-sdk/index.js
+    device-sdk-css: http://192.168.41.185/paasjs-demo/device-manager-sdk/index.css
+    device-sdk-js: http://192.168.41.185/paasjs-demo/device-manager-sdk/index.js
+    replay-sdk-css: http://192.168.41.185/paasjs-demo/fly-data-sdk/index.css
+    replay-sdk-js: http://192.168.41.185/paasjs-demo/fly-data-sdk/index.js
+    # dji2 后台（限飞区 /safety、飞行任务 /task|/flighttask）
+    route-api-base: http://192.168.41.185:56789
+    # 私有化网关额外头（可选，对照 FlightHubSDKDemo 的 x-demo-uuid）
+    extra-http-header-key: ${FH2_EXTRA_HEADER_KEY:}
+    extra-http-header-value: ${FH2_EXTRA_HEADER_VALUE:}
+
+  mission:
+    dispatch-interval-ms: 30000
+    sync-interval-ms: 20000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.uavplatform: info
+    com.uavplatform.fh2: debug

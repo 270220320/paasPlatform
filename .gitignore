@@ -1,0 +1,22 @@
+target/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+*.log
+.DS_Store
+
+node_modules/
+dist/
+*.local
+
+backend/src/main/resources/application-local.yml
+
+# FlightHub SDK jar ~180MB，超过 GitHub 100MB 单文件限制；本地放到 backend/libs/
+backend/libs/*.jar
+!backend/libs/README.md
+
+# Vite 启动时从 node_modules/zywlgis 复制，勿入库（体积大易导致 push 断连）
+frontend/public/libs/
