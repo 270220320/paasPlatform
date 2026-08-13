@@ -22,6 +22,9 @@ export const FH2_GLOBAL_CONTAINER_IDS = [
   'wayline-header',
   'device-manager-app-container',
   'uranus-device-manager-app',
+  'cockpit-app-container',
+  'cockpit-header-container',
+  'fly-data-app-container',
 ] as const
 
 /**
@@ -39,4 +42,85 @@ export function purgeOrphanSdkContainers(keepWithin?: HTMLElement | null): void 
       node.parentNode?.removeChild(node)
     })
   }
+}
+
+type Fh2ResetApi = {
+  destroyCockpit?: (self?: boolean) => Promise<boolean> | boolean
+  destroyMap?: () => Promise<unknown> | unknown
+  destroyPaasView?: () => Promise<unknown> | unknown
+  destroyDevice?: () => Promise<unknown> | unknown
+}
+
+/**
+ * 离开驾驶舱/设备管理等页面后，重置 FH2 共享地图上下文。
+ * 不传 keepWithin 时会清掉所有同名全局容器，避免下一页 getElementById 命中 0 尺寸游离节点。
+ */
+export async function resetFh2SharedMapContext(keepWithin?: HTMLElement | null): Promise<void> {
+  if (typeof window === 'undefined') return
+  const fh2 = (window as unknown as { FH2?: Fh2ResetApi }).FH2
+  if (fh2) {
+    try {
+      // 默认 false：卸载驾驶舱 + 地图 + 项目视图（司空文档要求切页这样调）
+      await Promise.resolve(fh2.destroyCockpit?.())
+    } catch {
+      // ignore
+    }
+    try {
+      await Promise.resolve(fh2.destroyPaasView?.())
+    } catch {
+      // ignore
+    }
+    try {
+      await Promise.resolve(fh2.destroyMap?.())
+    } catch {
+      // ignore
+    }
+    try {
+      await Promise.resolve(fh2.destroyDevice?.())
+    } catch {
+      // ignore
+    }
+  }
+  purgeOrphanSdkContainers(keepWithin)
+  purgeWaylineSdkOverlays()
+}
+
+/**
+ * 航线 WaylineEditor 的 Ant 弹层（含「高程数据」生成/下载弹窗）会 teleport 到
+ * document.body，prefixCls 为 uranus-wayline-app-ant-*。组件 destroy 后这些
+ * fixed 层常残留在其它页面上。
+ */
+const WAYLINE_BODY_OVERLAY_SELECTORS = [
+  '.uranus-wayline-app-ant-modal-root',
+  '.uranus-wayline-app-ant-modal-wrap',
+  '.uranus-wayline-app-ant-modal-mask',
+  '.uranus-wayline-app-ant-tooltip',
+  '.uranus-wayline-app-ant-popover',
+  '.uranus-wayline-app-ant-message',
+  '.uranus-wayline-app-ant-select-dropdown',
+  '.uranus-wayline-app-ant-dropdown',
+  '.uranus-wayline-app-ant-dropdown-menu',
+] as const
+
+export function purgeWaylineSdkOverlays(): void {
+  if (typeof document === 'undefined') return
+  for (const selector of WAYLINE_BODY_OVERLAY_SELECTORS) {
+    document.querySelectorAll(selector).forEach((node) => {
+      // modal-root 优先整棵拆掉；若只有 wrap/mask，再删自身
+      const root = node.closest('.uranus-wayline-app-ant-modal-root')
+      const target = root && selector.includes('modal') ? root : node
+      if (target.isConnected) target.parentNode?.removeChild(target)
+    })
+  }
+  // 兜底：仅检查 body 直接子节点中、文案含「高程数据」的 fixed 浮层
+  Array.from(document.body.children).forEach((node) => {
+    if (!(node instanceof HTMLElement)) return
+    if (node.id === 'app' || node.classList.contains('layout')) return
+    const style = window.getComputedStyle(node)
+    if (style.position !== 'fixed' && style.position !== 'absolute') return
+    const text = (node.textContent || '').trim()
+    if (text.includes('高程数据')) {
+      node.parentNode?.removeChild(node)
+    }
+  })
 }

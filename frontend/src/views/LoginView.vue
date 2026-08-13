@@ -2,8 +2,6 @@
 
   <div class="login-page">
 
-    <LocaleSwitcher class="locale-switch" />
-
     <div class="login-card">
 
       <div class="brand">
@@ -13,8 +11,6 @@
         <div>
 
           <h1>UAVPlatform</h1>
-
-          <p>{{ t('login.subtitle') }}</p>
 
         </div>
 
@@ -77,8 +73,6 @@ import { ElMessage } from 'element-plus'
 import { loginApi } from '@/api/auth'
 
 import { useUserStore } from '@/stores/user'
-
-import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
 
 
 
@@ -167,18 +161,6 @@ async function onSubmit() {
     radial-gradient(ellipse at 80% 80%, rgba(103, 194, 58, 0.1), transparent 40%),
 
     #0a0a0a;
-
-}
-
-
-
-.locale-switch {
-
-  position: absolute;
-
-  top: 20px;
-
-  right: 20px;
 
 }
 

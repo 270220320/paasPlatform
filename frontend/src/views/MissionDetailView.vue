@@ -33,43 +33,39 @@
 
       <div class="block">
         <div class="block-title">{{ t('missions.executionList') }}</div>
-        <el-table :data="detail.executions || []" border stripe>
+        <el-table class="exec-table" :data="detail.executions || []" border stripe>
           <el-table-column type="index" width="60" :label="t('missions.execIndex')" />
-          <el-table-column :label="t('missions.execRecordType')" width="110">
-            <template #default="{ row }">
-              {{ row.recordType === 'planned' ? t('missions.recordPlanned') : t('missions.recordExecution') }}
-            </template>
-          </el-table-column>
-          <el-table-column :label="t('common.status')" width="120">
+          <el-table-column :label="t('common.status')" width="100">
             <template #default="{ row }">
               <el-tag :type="execTagType(row.status)" size="small">{{ execStatusLabel(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="plannedAt" :label="t('missions.plannedAt')" min-width="170" />
-          <el-table-column prop="actualStartAt" :label="t('missions.actualStartAt')" min-width="170">
+          <el-table-column prop="actualStartAt" :label="t('missions.actualStartAt')" min-width="160">
             <template #default="{ row }">{{ row.actualStartAt || '-' }}</template>
           </el-table-column>
-          <el-table-column prop="actualEndAt" :label="t('missions.actualEndAt')" min-width="170">
+          <el-table-column prop="actualEndAt" :label="t('missions.actualEndAt')" min-width="160">
             <template #default="{ row }">{{ row.actualEndAt || '-' }}</template>
           </el-table-column>
-          <el-table-column :label="t('missions.flightDuration')" width="120">
+          <el-table-column :label="t('missions.flightDuration')" width="100">
             <template #default="{ row }">{{ row.flightDurationSec != null ? `${row.flightDurationSec}s` : '-' }}</template>
           </el-table-column>
-          <el-table-column :label="t('missions.flightDistance')" width="120">
-            <template #default="{ row }">{{ row.flightDistanceM != null ? `${row.flightDistanceM}m` : '-' }}</template>
-          </el-table-column>
-          <el-table-column :label="t('missions.collectedMedia')" min-width="220">
+          <el-table-column :label="t('missions.collectedMedia')" min-width="320">
             <template #default="{ row }">
               <div v-if="(row.media || []).length" class="media-cell">
-                <template v-for="(item, idx) in visibleMedia(row)" :key="`${row.id}-${item.id || idx}`">
+                <div
+                  v-for="(item, idx) in row.media || []"
+                  :key="`${row.id}-m-${idx}-${item.uuid || item.id || item.name || 'x'}`"
+                  class="thumb-wrap"
+                  :ref="(el) => bindMediaThumb(el, item)"
+                >
                   <el-image
-                    v-if="isImage(item) && previewMap[mediaKey(item)]"
+                    v-if="isImage(item) && mediaThumb(item)"
                     class="thumb"
-                    :src="previewMap[mediaKey(item)]"
-                    :preview-src-list="[previewMap[mediaKey(item)]]"
-                    :initial-index="0"
+                    :src="mediaThumb(item)"
                     fit="cover"
-                    preview-teleported
+                    lazy
+                    :title="item.name"
+                    @click="openImage(item)"
                   />
                   <div
                     v-else-if="isVideo(item)"
@@ -82,18 +78,90 @@
                   <div
                     v-else-if="isImage(item)"
                     class="thumb placeholder"
+                    :class="{ busy: !!loadingUrlKeys[mediaKey(item)] }"
                     :title="item.name"
                     @click="openImage(item)"
                   >
-                    图
+                    <span v-if="loadingUrlKeys[mediaKey(item)]" class="dot" />
+                    <span v-else>图</span>
                   </div>
-                  <div v-else class="thumb placeholder" :title="item.name">媒</div>
-                </template>
-                <span v-if="(row.media || []).length > 3" class="more">
-                  {{ t('missions.mediaMore', { n: (row.media || []).length - 3 }) }}
-                </span>
+                  <div v-else class="thumb placeholder" :title="item.name || String(idx + 1)">媒</div>
+                  <button
+                    v-if="item.id && row.id"
+                    type="button"
+                    class="thumb-del"
+                    :title="t('common.delete')"
+                    :disabled="deletingMediaKey === mediaKey(item)"
+                    @click.stop.prevent="removeMedia(row, item)"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
               <span v-else class="muted">{{ t('missions.noMedia') }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('missions.reconstruct')" width="120" fixed="right">
+            <template #default="{ row }">
+              <div v-if="row.recordType === 'execution' && row.id" class="recon-cell">
+                <template v-if="row.reconstruct?.status === 'success'">
+                  <el-image
+                    v-if="row.reconstruct.previewUrl"
+                    class="thumb"
+                    :src="row.reconstruct.previewUrl"
+                    fit="cover"
+                    :title="t('missions.reconstructPreview')"
+                    @click="openModel(row)"
+                  />
+                  <el-button v-else link type="primary" @click="openModel(row)">
+                    {{ t('missions.reconstructPreview') }}
+                  </el-button>
+                  <el-button
+                    link
+                    type="primary"
+                    :loading="downloadingModelId === row.id"
+                    @click="downloadModel(row)"
+                  >
+                    {{ t('missions.reconstructDownloadZip') }}
+                  </el-button>
+                  <el-tag size="small" type="success">{{ t('missions.reconstructSuccess') }}</el-tag>
+                </template>
+                <template v-else-if="row.reconstruct?.status === 'pending' || row.reconstruct?.status === 'running'">
+                  <el-tag size="small" type="warning">
+                    {{
+                      row.reconstruct.status === 'pending'
+                        ? t('missions.reconstructPending')
+                        : t('missions.reconstructRunning')
+                    }}
+                  </el-tag>
+                </template>
+                <template v-else-if="row.reconstruct?.status === 'failed'">
+                  <el-tooltip :content="row.reconstruct.errorMessage || t('missions.reconstructStatusFailed')" placement="top">
+                    <el-tag size="small" type="danger">{{ t('missions.reconstructStatusFailed') }}</el-tag>
+                  </el-tooltip>
+                  <el-button
+                    link
+                    type="primary"
+                    :loading="reconstructingId === row.id"
+                    @click="startReconstruct(row)"
+                  >
+                    {{ t('missions.reconstructRetry') }}
+                  </el-button>
+                </template>
+                <el-button
+                  v-else-if="row.reconstruct?.available"
+                  link
+                  type="primary"
+                  :loading="reconstructingId === row.id"
+                  @click="startReconstruct(row)"
+                >
+                  {{ t('missions.reconstruct') }}
+                </el-button>
+                <el-tooltip v-else :content="t('missions.reconstructNeedMedia')" placement="top">
+                  <span class="muted">-</span>
+                </el-tooltip>
+              </div>
+              <span v-else class="muted">-</span>
             </template>
           </el-table-column>
           <el-table-column :label="t('missions.replay')" width="100" fixed="right">
@@ -132,6 +200,12 @@
     <el-dialog v-model="imageVisible" :title="imagePreviewName || t('library.image')" width="720px" destroy-on-close>
       <img v-if="imagePreviewUrl" class="player" :src="imagePreviewUrl" alt="" />
     </el-dialog>
+    <ModelPreviewDialog
+      v-model:visible="modelVisible"
+      :title="modelTitle"
+      :preview-url="modelPreviewUrl"
+      :model-url="modelUrl"
+    />
   </div>
 </template>
 
@@ -139,10 +213,14 @@
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import ModelPreviewDialog from '@/components/ModelPreviewDialog.vue'
 import { fetchMediaDownloadUrl } from '@/api/library'
 import {
+  deleteExecutionMedia,
   fetchMissionDetail,
+  fetchReconstructModelUrl,
+  startMissionReconstruct,
   type ExecutionMediaVO,
   type MissionDetailVO,
   type MissionExecutionVO,
@@ -157,48 +235,139 @@ const router = useRouter()
 const loading = ref(false)
 const detail = ref<MissionDetailVO | null>(null)
 const previewMap = reactive<Record<string, string>>({})
+/** 正在拉取预览/下载地址的媒体 key，用于占位态 */
+const loadingUrlKeys = reactive<Record<string, boolean>>({})
 const videoVisible = ref(false)
 const playing = ref<ExecutionMediaVO | null>(null)
 const playingUrl = ref('')
 const imageVisible = ref(false)
 const imagePreviewUrl = ref('')
 const imagePreviewName = ref('')
+const modelVisible = ref(false)
+const modelTitle = ref('')
+const modelPreviewUrl = ref('')
+const modelUrl = ref('')
+const reconstructingId = ref<number | null>(null)
+const downloadingModelId = ref<number | null>(null)
+const deletingMediaKey = ref<string | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let loadSeq = 0
+/** 视口内懒加载缩略图：并发上限，避免一次打爆司空 */
+const THUMB_FETCH_CONCURRENCY = 4
+let thumbObserver: IntersectionObserver | null = null
+const observedThumbEls = new WeakSet<Element>()
+const thumbItemByKey = new Map<string, ExecutionMediaVO>()
+let thumbActiveFetches = 0
+const thumbWaitQueue: Array<() => void> = []
 
 function goBack() {
   router.push({ name: 'missions' })
 }
 
 function mediaKey(item: ExecutionMediaVO) {
-  return String(item.id ?? item.name ?? '')
+  return String(item.uuid || item.id || item.name || item.previewUrl || item.downloadUrl || '')
+}
+
+function mediaThumb(item: ExecutionMediaVO) {
+  return previewMap[mediaKey(item)] || item.previewUrl || item.downloadUrl || ''
 }
 
 function isImage(item: ExecutionMediaVO) {
   const tpe = (item.mediaType || '').toLowerCase()
-  return tpe.includes('image') || tpe.includes('photo')
+  if (tpe.includes('video')) return false
+  if (tpe.includes('image') || tpe.includes('photo') || tpe.includes('jpeg') || tpe.includes('jpg') || tpe.includes('png') || tpe.includes('dng')) {
+    return true
+  }
+  // 有预览/下载地址但类型未知时，按图片展示，避免被吞掉
+  return !tpe && !!(item.previewUrl || item.downloadUrl)
 }
 
 function isVideo(item: ExecutionMediaVO) {
   return (item.mediaType || '').toLowerCase().includes('video')
 }
 
-function visibleMedia(row: MissionExecutionVO) {
-  return (row.media || []).slice(0, 3)
+function ensureThumbObserver() {
+  if (thumbObserver || typeof IntersectionObserver === 'undefined') return thumbObserver
+  thumbObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        const el = entry.target as HTMLElement
+        const key = el.dataset.mediaKey
+        if (!key) continue
+        thumbObserver?.unobserve(el)
+        const item = thumbItemByKey.get(key)
+        if (item) void loadThumbUrl(item)
+      }
+    },
+    { root: null, rootMargin: '120px 0px', threshold: 0.01 },
+  )
+  return thumbObserver
+}
+
+/** 仅观察尚无地址的图片占位；进入视口后再请求下载 URL 作为缩略图 */
+function bindMediaThumb(el: unknown, item: ExecutionMediaVO) {
+  if (!(el instanceof Element)) return
+  if (!isImage(item) || mediaThumb(item)) return
+  if (observedThumbEls.has(el)) return
+  const key = mediaKey(item)
+  if (!item.id && !item.previewUrl && !item.downloadUrl) return
+  observedThumbEls.add(el)
+  thumbItemByKey.set(key, item)
+  ;(el as HTMLElement).dataset.mediaKey = key
+  const observer = ensureThumbObserver()
+  if (observer) observer.observe(el)
+  else void loadThumbUrl(item)
+}
+
+function releaseThumbSlot() {
+  thumbActiveFetches = Math.max(0, thumbActiveFetches - 1)
+  const next = thumbWaitQueue.shift()
+  if (next) next()
+}
+
+async function acquireThumbSlot() {
+  if (thumbActiveFetches < THUMB_FETCH_CONCURRENCY) {
+    thumbActiveFetches += 1
+    return
+  }
+  await new Promise<void>((resolve) => thumbWaitQueue.push(resolve))
+  thumbActiveFetches += 1
+}
+
+async function loadThumbUrl(item: ExecutionMediaVO) {
+  const key = mediaKey(item)
+  if (mediaThumb(item) || loadingUrlKeys[key]) return
+  if (!item.id && !(item.previewUrl || item.downloadUrl)) return
+  loadingUrlKeys[key] = true
+  try {
+    await acquireThumbSlot()
+    try {
+      await resolveMediaUrl(item)
+    } finally {
+      releaseThumbSlot()
+    }
+  } catch {
+    // 懒加载失败保留占位，点击大图时再提示
+  } finally {
+    loadingUrlKeys[key] = false
+  }
+}
+
+async function resolveMediaUrl(item: ExecutionMediaVO) {
+  const cached = mediaThumb(item)
+  if (cached) return cached
+  if (!item.id) return ''
+  const { data } = await fetchMediaDownloadUrl(item.id)
+  const url = data.data?.downloadUrl || ''
+  if (url) previewMap[mediaKey(item)] = url
+  return url
 }
 
 async function openImage(item: ExecutionMediaVO) {
-  if (!item.id) {
-    ElMessage.warning(t('library.noVideoUrl'))
-    return
-  }
   try {
-    let url = previewMap[mediaKey(item)]
-    if (!url) {
-      const { data } = await fetchMediaDownloadUrl(item.id)
-      url = data.data?.downloadUrl || ''
-      if (url) previewMap[mediaKey(item)] = url
-    }
+    loadingUrlKeys[mediaKey(item)] = true
+    const url = await resolveMediaUrl(item)
     if (!url) {
       ElMessage.warning(t('library.loadFailed'))
       return
@@ -208,46 +377,45 @@ async function openImage(item: ExecutionMediaVO) {
     imageVisible.value = true
   } catch {
     ElMessage.error(t('library.loadFailed'))
+  } finally {
+    loadingUrlKeys[mediaKey(item)] = false
   }
 }
 
-async function hydratePreviews(executions: MissionExecutionVO[]) {
-  const pending: ExecutionMediaVO[] = []
-  for (const row of executions) {
-    for (const item of row.media || []) {
-      if (!item.id || previewMap[mediaKey(item)]) continue
-      if (!isImage(item) && !isVideo(item)) continue
-      pending.push(item)
-    }
+async function removeMedia(row: MissionExecutionVO, item: ExecutionMediaVO) {
+  const planId = detail.value?.plan?.id
+  if (!planId || !row.id || !item.id) {
+    ElMessage.warning(t('missions.mediaDeleteNeedId'))
+    return
   }
-  const chunk = pending.slice(0, 30)
-  await Promise.all(
-    chunk.map(async (item) => {
-      try {
-        const { data } = await fetchMediaDownloadUrl(item.id!)
-        const url = data.data?.downloadUrl
-        if (url) previewMap[mediaKey(item)] = url
-      } catch {
-        // 本地媒体或非司空 fileId 时忽略
-      }
-    }),
-  )
+  try {
+    await ElMessageBox.confirm(t('missions.mediaDeleteConfirm'), t('common.confirmTitle'), {
+      type: 'warning',
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+    })
+  } catch {
+    return
+  }
+  const key = mediaKey(item)
+  deletingMediaKey.value = key
+  try {
+    await deleteExecutionMedia(planId, row.id, item.id)
+    row.media = (row.media || []).filter((m) => mediaKey(m) !== key)
+    delete previewMap[key]
+    ElMessage.success(t('missions.mediaDeleteOk'))
+  } catch {
+    ElMessage.error(t('missions.mediaDeleteFailed'))
+  } finally {
+    deletingMediaKey.value = null
+  }
 }
 
 async function openVideo(item: ExecutionMediaVO) {
   playing.value = item
   playingUrl.value = ''
-  if (!item.id) {
-    ElMessage.warning(t('library.noVideoUrl'))
-    return
-  }
   try {
-    let url = previewMap[mediaKey(item)]
-    if (!url) {
-      const { data } = await fetchMediaDownloadUrl(item.id)
-      url = data.data?.downloadUrl || ''
-      if (url) previewMap[mediaKey(item)] = url
-    }
+    const url = await resolveMediaUrl(item)
     if (!url) {
       ElMessage.warning(t('library.noVideoUrl'))
       return
@@ -267,6 +435,66 @@ function openReplay(row: MissionExecutionVO) {
     params: { planId, executionId: row.id },
     query: { taskId: row.fh2TaskUuid },
   })
+}
+
+async function startReconstruct(row: MissionExecutionVO) {
+  const planId = detail.value?.plan?.id
+  if (!planId || !row.id) return
+  reconstructingId.value = row.id
+  try {
+    await startMissionReconstruct(planId, row.id)
+    ElMessage.success(t('missions.reconstructStarted'))
+    await load()
+  } catch {
+    // 错误提示由 http 拦截器统一弹出
+  } finally {
+    reconstructingId.value = null
+  }
+}
+
+async function resolveModelZipUrl(row: MissionExecutionVO): Promise<string> {
+  const planId = detail.value?.plan?.id
+  const r = row.reconstruct
+  if (!planId || !row.id || !r) return ''
+  const { data } = await fetchReconstructModelUrl(planId, row.id)
+  const url = data.data?.downloadUrl || ''
+  if (url && row.reconstruct) {
+    row.reconstruct.modelUrl = url
+  }
+  return url
+}
+
+async function downloadModel(row: MissionExecutionVO) {
+  if (!row.id) return
+  downloadingModelId.value = row.id
+  try {
+    const url = await resolveModelZipUrl(row)
+    if (!url) {
+      ElMessage.warning(t('missions.reconstructDownloadFailed'))
+      return
+    }
+    window.open(url, '_blank', 'noopener')
+  } catch {
+    ElMessage.error(t('missions.reconstructDownloadFailed'))
+  } finally {
+    downloadingModelId.value = null
+  }
+}
+
+async function openModel(row: MissionExecutionVO) {
+  const r = row.reconstruct
+  if (!r) return
+  modelTitle.value = t('missions.reconstructPreview')
+  modelPreviewUrl.value = r.previewUrl || ''
+  modelUrl.value = r.modelUrl || ''
+  modelVisible.value = true
+  if (!modelUrl.value && row.id) {
+    try {
+      modelUrl.value = await resolveModelZipUrl(row)
+    } catch {
+      // 弹窗内已有「暂无地址」提示
+    }
+  }
 }
 
 function statusLabel(status?: string) {
@@ -350,9 +578,11 @@ function needsExecutionPoll(data: MissionDetailVO | null) {
   const planStatus = (data.plan.status || '').toLowerCase()
   if (['pending', 'running', 'paused'].includes(planStatus)) return true
   if ((data.pendingCount || 0) > 0 || (data.runningCount || 0) > 0) return true
-  return (data.executions || []).some((row) =>
-    ['pending', 'scheduled', 'running'].includes((row.status || '').toLowerCase()),
-  )
+  return (data.executions || []).some((row) => {
+    if (['pending', 'scheduled', 'running'].includes((row.status || '').toLowerCase())) return true
+    const rs = (row.reconstruct?.status || '').toLowerCase()
+    return rs === 'pending' || rs === 'running'
+  })
 }
 
 async function load(options?: { silent?: boolean }) {
@@ -365,7 +595,6 @@ async function load(options?: { silent?: boolean }) {
     const { data } = await fetchMissionDetail(id)
     if (seq !== loadSeq) return
     detail.value = data.data
-    await hydratePreviews(data.data?.executions || [])
     if (needsExecutionPoll(data.data)) startPolling()
     else stopPolling()
   } finally {
@@ -409,6 +638,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopPolling()
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  thumbObserver?.disconnect()
+  thumbObserver = null
+  thumbItemByKey.clear()
+  thumbWaitQueue.length = 0
+  thumbActiveFetches = 0
 })
 </script>
 
@@ -467,11 +701,78 @@ onBeforeUnmount(() => {
   margin-bottom: 10px;
 }
 
+/* 行高对齐采集媒体约 3 行缩略图（40px + gap 8px），顶部留白避免删除叉号被裁切 */
+$media-row-pad-top: 8px;
+$media-row-h: calc(3 * 40px + 2 * 8px + #{$media-row-pad-top} + 4px);
+
+.exec-table {
+  :deep(.el-table__body .el-table__cell) {
+    vertical-align: middle;
+    height: $media-row-h;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  :deep(.el-table__fixed-right .el-table__body .el-table__cell),
+  :deep(.el-table__fixed .el-table__body .el-table__cell) {
+    height: $media-row-h;
+  }
+}
+
 .media-cell {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 8px;
   flex-wrap: wrap;
+  height: $media-row-h;
+  max-height: $media-row-h;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: $media-row-pad-top 8px 0 0;
+  box-sizing: border-box;
+}
+
+.thumb-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.thumb-del {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #f56c6c;
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+
+  &:hover:not(:disabled) {
+    background: #e04545;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+}
+
+.recon-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 100%;
 }
 
 .thumb {
@@ -491,8 +792,28 @@ onBeforeUnmount(() => {
     background: #243044;
   }
 
-  &.placeholder {
-    cursor: default;
+  &.placeholder.busy {
+    color: #8b919a;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #8b919a;
+    animation: media-pulse 0.9s ease-in-out infinite;
+  }
+}
+
+@keyframes media-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

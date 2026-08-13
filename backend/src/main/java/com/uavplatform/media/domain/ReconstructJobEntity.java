@@ -15,9 +15,16 @@ public class ReconstructJobEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long workspaceId;
+    private Long missionPlanId;
+    private Long missionExecutionId;
+    private String fh2TaskUuid;
+    private Long fh2ModelId;
+    private Long fh2TaskFolderId;
     private String status;
     private Long modelId;
     private String errorMessage;
+    private String previewUrl;
+    private String modelUrl;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime finishedAt;

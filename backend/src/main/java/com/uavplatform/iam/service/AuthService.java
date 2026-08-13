@@ -9,8 +9,10 @@ import com.uavplatform.common.security.UserContext;
 import com.uavplatform.common.web.TokenBlacklist;
 import com.uavplatform.iam.domain.RoleEntity;
 import com.uavplatform.iam.domain.UserEntity;
+import com.uavplatform.iam.dto.ChangePasswordRequest;
 import com.uavplatform.iam.dto.LoginRequest;
 import com.uavplatform.iam.dto.LoginResponse;
+import com.uavplatform.iam.dto.UpdateEmailRequest;
 import com.uavplatform.iam.dto.UserVO;
 import com.uavplatform.iam.mapper.RoleMapper;
 import com.uavplatform.iam.mapper.UserMapper;
@@ -76,6 +78,7 @@ public class AuthService {
                 .id(user.getId())
                 .account(user.getAccount())
                 .displayName(user.getDisplayName())
+                .email(user.getEmail())
                 .roleCode(role.getCode())
                 .roleName(role.getName())
                 .permissions(permissions)
@@ -121,9 +124,48 @@ public class AuthService {
                 .id(user.getId())
                 .account(user.getAccount())
                 .displayName(user.getDisplayName())
+                .email(user.getEmail())
                 .roleCode(role == null ? loginUser.getRoleCode() : role.getCode())
                 .roleName(role == null ? null : role.getName())
                 .permissions(permissions == null ? Collections.emptyList() : permissions)
                 .build();
+    }
+
+    /**
+     * 修改当前用户邮箱。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateEmail(UpdateEmailRequest request) {
+        LoginUser loginUser = UserContext.get();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            throw new BizException(ErrorCodes.UNAUTHORIZED, "未登录或 Token 无效");
+        }
+        UserEntity user = userMapper.selectById(loginUser.getUserId());
+        if (user == null) {
+            throw new BizException(ErrorCodes.UNAUTHORIZED, "未登录或 Token 无效");
+        }
+        user.setEmail(request.getEmail().trim());
+        userMapper.updateById(user);
+    }
+
+    /**
+     * 修改当前用户密码：校验原密码后更新，并吊销所有 Token 强制重新登录。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void changePassword(ChangePasswordRequest request) {
+        LoginUser loginUser = UserContext.get();
+        if (loginUser == null || loginUser.getUserId() == null) {
+            throw new BizException(ErrorCodes.UNAUTHORIZED, "未登录或 Token 无效");
+        }
+        UserEntity user = userMapper.selectById(loginUser.getUserId());
+        if (user == null) {
+            throw new BizException(ErrorCodes.UNAUTHORIZED, "未登录或 Token 无效");
+        }
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new BizException(ErrorCodes.AUTH_PASSWORD_INCORRECT, "原密码错误");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userMapper.updateById(user);
+        tokenBlacklist.revokeUser(user.getId());
     }
 }

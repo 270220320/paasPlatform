@@ -24,9 +24,21 @@ export interface MissionVO {
 
 export interface ExecutionMediaVO {
   id?: number
+  uuid?: string
   name?: string
   mediaType?: string
   previewUrl?: string
+  downloadUrl?: string
+}
+
+export interface ExecutionReconstructVO {
+  available?: boolean
+  jobId?: number
+  status?: string
+  fh2ModelId?: number
+  previewUrl?: string
+  modelUrl?: string
+  errorMessage?: string
 }
 
 export interface MissionExecutionVO {
@@ -41,6 +53,18 @@ export interface MissionExecutionVO {
   failReason?: string
   fh2TaskUuid?: string
   media?: ExecutionMediaVO[]
+  reconstruct?: ExecutionReconstructVO
+}
+
+export interface ReconstructJobVO {
+  jobId: number
+  status: string
+  modelId?: number
+  fh2ModelId?: number
+  missionExecutionId?: number
+  previewUrl?: string
+  modelUrl?: string
+  errorMessage?: string
 }
 
 export interface MissionDetailVO {
@@ -72,4 +96,28 @@ export function missionAction(id: number, action: 'pause' | 'resume' | 'cancel' 
 
 export function deleteMission(id: number) {
   return http.delete<ApiResult<null>>(`/missions/${id}`)
+}
+
+/** 对某次执行发起司空三维重建 */
+export function startMissionReconstruct(planId: number, executionId: number) {
+  return http.post<ApiResult<ReconstructJobVO>>(
+    `/missions/${planId}/executions/${executionId}/reconstruct`,
+    undefined,
+    { timeout: 90000 },
+  )
+}
+
+/** 获取已完成三维重建的模型 ZIP 下载地址 */
+export function fetchReconstructModelUrl(planId: number, executionId: number) {
+  return http.get<ApiResult<{ downloadUrl: string; expireAt?: string }>>(
+    `/missions/${planId}/executions/${executionId}/reconstruct/model-url`,
+    { timeout: 60000 },
+  )
+}
+
+/** 删除执行记录下的采集媒体 */
+export function deleteExecutionMedia(planId: number, executionId: number, mediaId: number) {
+  return http.delete<ApiResult<null>>(
+    `/missions/${planId}/executions/${executionId}/media/${mediaId}`,
+  )
 }

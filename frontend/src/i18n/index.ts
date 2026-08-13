@@ -11,9 +11,8 @@ export const localeOptions: { value: AppLocale; label: string }[] = [
 ]
 
 function resolveInitialLocale(): AppLocale {
-  const saved = localStorage.getItem(LOCALE_STORAGE_KEY)
-  if (saved === 'zh-CN' || saved === 'en-US') return saved
-  return navigator.language.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en-US'
+  // 中英文切换已下线，统一锁定为中文
+  return 'zh-CN'
 }
 
 export const i18n = createI18n({

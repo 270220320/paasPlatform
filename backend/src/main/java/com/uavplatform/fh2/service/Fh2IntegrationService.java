@@ -99,10 +99,21 @@ public class Fh2IntegrationService {
     public int syncDevices() {
         PermissionChecker.require("device:write");
         ensureSdk();
-        List<Fh2DeviceItemVO> remote = sdkClient.listDevices();
+        // 拓扑常只有机场；再合并机场下挂载的飞行器，避免本地库长期缺 aircraft
+        java.util.LinkedHashMap<String, Fh2DeviceItemVO> bySn = new java.util.LinkedHashMap<>();
+        for (Fh2DeviceItemVO item : sdkClient.listDevices()) {
+            if (item != null && StringUtils.hasText(item.getSn())) {
+                bySn.put(item.getSn(), item);
+            }
+        }
+        for (Fh2DeviceItemVO item : sdkClient.listAircraft()) {
+            if (item != null && StringUtils.hasText(item.getSn())) {
+                bySn.putIfAbsent(item.getSn(), item);
+            }
+        }
         int n = 0;
         LocalDateTime now = LocalDateTime.now();
-        for (Fh2DeviceItemVO item : remote) {
+        for (Fh2DeviceItemVO item : bySn.values()) {
             if (!StringUtils.hasText(item.getSn())) {
                 continue;
             }
@@ -201,7 +212,8 @@ public class Fh2IntegrationService {
     }
 
     /**
-     * 前端 WaylineEditor 保存成功后回写本地镜像（名称、文件夹、删除状态由本地库维护）。
+     * 前端 WaylineEditor 保存/改名后回写本地镜像。
+     * <p>name 为空时从司空侧拉取最新名称，避免编辑器改名后本地仍写旧名。
      */
     @Transactional(rollbackFor = Exception.class)
     public WaylineListVO upsertWaylineFromEditor(String waylineUuid, String name, Long folderId) {
@@ -209,6 +221,7 @@ public class Fh2IntegrationService {
         if (!StringUtils.hasText(waylineUuid)) {
             throw new BizException(ErrorCodes.BAD_REQUEST, "waylineUuid 必填");
         }
+        String resolvedName = StringUtils.hasText(name) ? name.trim() : resolveRemoteWaylineName(waylineUuid);
         LocalDateTime now = LocalDateTime.now();
         WaylineEntity exist = waylineMapper.selectOne(new LambdaQueryWrapper<WaylineEntity>()
                 .eq(WaylineEntity::getFh2WaylineUuid, waylineUuid).last("LIMIT 1"));
@@ -216,7 +229,7 @@ public class Fh2IntegrationService {
             exist = new WaylineEntity();
             exist.setWorkspaceId(1L);
             exist.setFolderId(folderId != null ? folderId : ensureDefaultFolderId());
-            exist.setName(blank(name, "未命名航线"));
+            exist.setName(blank(resolvedName, "未命名航线"));
             exist.setAircraftModel("unknown");
             exist.setWaylineType("waypoint");
             exist.setStatus("published");
@@ -227,8 +240,8 @@ public class Fh2IntegrationService {
             exist.setUpdatedAt(now);
             waylineMapper.insert(exist);
         } else {
-            if (StringUtils.hasText(name)) {
-                exist.setName(name.trim());
+            if (StringUtils.hasText(resolvedName)) {
+                exist.setName(resolvedName);
             }
             if (folderId != null) {
                 exist.setFolderId(folderId);
@@ -250,6 +263,28 @@ public class Fh2IntegrationService {
                 .folderId(exist.getFolderId())
                 .updatedAt(exist.getUpdatedAt() == null ? null : exist.getUpdatedAt().format(FMT))
                 .build();
+    }
+
+    /** 从司空航线列表取指定 uuid 的最新名称；SDK 不可用或未找到时返回 null。 */
+    private String resolveRemoteWaylineName(String waylineUuid) {
+        if (!sdkClient.available()) {
+            return null;
+        }
+        try {
+            List<Fh2WaylineItemVO> remote = sdkClient.listWaylines(0, 200);
+            if (remote == null) {
+                return null;
+            }
+            for (Fh2WaylineItemVO item : remote) {
+                if (item != null && waylineUuid.equals(item.getWaylineUuid())
+                        && StringUtils.hasText(item.getWaylineName())) {
+                    return item.getWaylineName().trim();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[fh2] resolveRemoteWaylineName {} failed: {}", waylineUuid, e.getMessage());
+        }
+        return null;
     }
 
     public PageResult<DeviceVO> previewRemoteDevices() {

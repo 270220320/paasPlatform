@@ -3,50 +3,11 @@
     <div ref="mapEl" class="map-bg" />
 
     <div class="overlay">
-      <div class="top-bar">
-        <el-radio-group v-model="rangeKey" size="small" @change="onRangePreset">
-          <el-radio-button value="week">{{ t('home.rangeWeek') }}</el-radio-button>
-          <el-radio-button value="month">{{ t('home.rangeMonth') }}</el-radio-button>
-          <el-radio-button value="lastWeek">{{ t('home.rangeLastWeek') }}</el-radio-button>
-          <el-radio-button value="lastMonth">{{ t('home.rangeLastMonth') }}</el-radio-button>
-          <el-radio-button value="halfYear">{{ t('home.rangeHalfYear') }}</el-radio-button>
-          <el-radio-button value="year">{{ t('home.rangeYear') }}</el-radio-button>
-        </el-radio-group>
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          size="small"
-          value-format="YYYY-MM-DD"
-          :start-placeholder="t('home.dateStart')"
-          :end-placeholder="t('home.dateEnd')"
-          @change="onCustomRange"
-        />
-      </div>
-
       <aside class="panel-col left">
         <section class="glass panel">
           <header class="panel-hd">
             <strong>{{ t('home.assets') }}</strong>
-            <span class="tag">{{ t('home.standardEdition') }}</span>
           </header>
-
-          <div class="quota-block">
-            <div class="quota-row">
-              <span>{{ t('home.storage') }}</span>
-              <span class="muted">{{ formatBytes(summary?.quota.storageUsedBytes) }} / {{ formatBytes(summary?.quota.storageTotalBytes) }}</span>
-            </div>
-            <el-progress :percentage="storagePct" :stroke-width="6" :show-text="false" color="#409eff" />
-            <div class="quota-row mt">
-              <span>{{ t('home.mappingQuota') }}</span>
-              <span class="muted">{{ summary?.quota.mappingUsed ?? 0 }} / {{ summary?.quota.mappingQuota ?? 0 }}</span>
-            </div>
-            <el-progress :percentage="mappingPct" :stroke-width="6" :show-text="false" color="#67c23a" />
-            <div class="quota-row mt">
-              <span>{{ t('home.livestream') }}</span>
-              <span class="muted">{{ summary?.quota.livestreamMinutesUsed ?? 0 }} / {{ summary?.quota.livestreamMinutesTotal ?? 0 }} min</span>
-            </div>
-            <el-progress :percentage="livePct" :stroke-width="6" :show-text="false" color="#e6a23c" />
-          </div>
 
           <div class="dock-block">
             <div class="sub-title">{{ t('home.docks') }}</div>
@@ -62,30 +23,26 @@
             </div>
             <div class="mini-stats">
               <div><label>{{ t('home.aircraft') }}</label><b>{{ summary?.aircraftCount ?? 0 }}</b></div>
-              <div><label>{{ t('home.relay') }}</label><b>{{ summary?.relayCount ?? 0 }}</b></div>
             </div>
           </div>
 
           <div class="stat-grid">
             <div class="stat-cell"><b>{{ summary?.memberCount ?? 0 }}</b><span>{{ t('home.members') }}</span></div>
             <div class="stat-cell"><b>{{ summary?.waylineCount ?? 0 }}</b><span>{{ t('home.waylines') }}</span></div>
-            <div class="stat-cell"><b>{{ summary?.algorithmCount ?? 0 }}</b><span>{{ t('home.algorithms') }}</span></div>
             <div class="stat-cell"><b>{{ summary?.mediaCount ?? 0 }}</b><span>{{ t('home.mediaTotal') }}</span></div>
           </div>
         </section>
 
-        <section class="glass panel">
-          <header class="panel-hd">
-            <strong>{{ t('home.dataResults') }}</strong>
-            <el-button link type="primary" size="small" @click="$router.push('/library')">{{ t('home.more') }}</el-button>
-          </header>
-          <div class="result-grid">
-            <div v-for="item in resultCards" :key="item.key" class="result-card">
-              <div class="result-meta">
-                <span>{{ item.label }}</span>
-                <b>{{ item.value }}</b>
-              </div>
-              <div :ref="(el) => setSparkRef(item.key, el)" class="spark" />
+        <section class="glass panel compact">
+          <header class="panel-hd"><strong>{{ t('home.flightData') }}</strong></header>
+          <div class="kpi-row kpi-row--2">
+            <div class="kpi">
+              <b>{{ flight?.sortieCount ?? 0 }}</b>
+              <span>{{ t('home.sorties') }}</span>
+            </div>
+            <div class="kpi">
+              <b>{{ Math.round(Number(flight?.durationSec ?? 0)) }}</b>
+              <span>{{ t('home.durationSec') }}</span>
             </div>
           </div>
         </section>
@@ -93,24 +50,6 @@
 
       <aside class="panel-col right">
         <section class="glass panel compact">
-          <header class="panel-hd"><strong>{{ t('home.automation') }}</strong></header>
-          <div class="kpi-row">
-            <div class="kpi">
-              <b>{{ summary?.automation?.workflowCount ?? 0 }}</b>
-              <span>{{ t('home.workflows') }}</span>
-            </div>
-            <div class="kpi">
-              <b>{{ summary?.automation?.workflowCycles ?? 0 }}</b>
-              <span>{{ t('home.cycles') }}</span>
-            </div>
-            <div class="kpi">
-              <b>{{ formatRate(summary?.automation?.workflowSuccessRate) }}</b>
-              <span>{{ t('home.successRate') }}</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="glass panel grow">
           <header class="panel-hd"><strong>{{ t('home.tasks') }}</strong></header>
           <div class="chart-block">
             <div class="chart-title">{{ t('home.taskDistribution') }}</div>
@@ -121,31 +60,13 @@
             <div ref="missionResultEl" class="chart bar-chart" />
           </div>
         </section>
-
-        <section class="glass panel compact">
-          <header class="panel-hd"><strong>{{ t('home.flightData') }}</strong></header>
-          <div class="kpi-row">
-            <div class="kpi">
-              <b>{{ flight?.sortieCount ?? 0 }}</b>
-              <span>{{ t('home.sorties') }}</span>
-            </div>
-            <div class="kpi">
-              <b>{{ Math.round(Number(flight?.durationSec ?? 0)) }}</b>
-              <span>{{ t('home.durationSec') }}</span>
-            </div>
-            <div class="kpi">
-              <b>{{ Math.round(Number(flight?.distanceM ?? 0)) }}</b>
-              <span>{{ t('home.distanceM') }}</span>
-            </div>
-          </div>
-        </section>
       </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart, PieChart } from 'echarts/charts'
@@ -189,8 +110,6 @@ const { t } = useI18n()
 const userStore = useUserStore()
 
 const loading = ref(false)
-const rangeKey = ref('month')
-const dateRange = ref<[string, string] | null>(null)
 const summary = ref<DashboardSummary | null>(null)
 const flight = ref<{ sortieCount: number; durationSec: number; distanceM: number; series: FlightSeriesPoint[] } | null>(null)
 const missionSeries = ref<MissionSeriesPoint[]>([])
@@ -199,7 +118,6 @@ const mapEl = ref<HTMLElement | null>(null)
 const dockChartEl = ref<HTMLElement | null>(null)
 const missionDistEl = ref<HTMLElement | null>(null)
 const missionResultEl = ref<HTMLElement | null>(null)
-const sparkEls = shallowRef<Record<string, HTMLElement | null>>({})
 
 let map: L.Map | null = null
 let aircraftLayer: L.LayerGroup | null = null
@@ -211,7 +129,6 @@ let annotationTimer: ReturnType<typeof setInterval> | null = null
 let dockChart: EChartsType | null = null
 let distChart: EChartsType | null = null
 let resultChart: EChartsType | null = null
-const sparkCharts: Record<string, EChartsType | null> = {}
 let resizeObserver: ResizeObserver | null = null
 
 const AIRCRAFT_POLL_MS = 5000
@@ -277,32 +194,6 @@ const DOCK_COLORS = {
   offline: '#909399',
 }
 
-function setSparkRef(key: string, el: unknown) {
-  const node = (el as HTMLElement | null) || null
-  sparkEls.value = { ...sparkEls.value, [key]: node }
-}
-
-const storagePct = computed(() => {
-  const total = summary.value?.quota.storageTotalBytes || 0
-  const used = summary.value?.quota.storageUsedBytes || 0
-  if (!total) return 0
-  return Math.min(100, Math.round((used / total) * 100))
-})
-
-const mappingPct = computed(() => {
-  const total = summary.value?.quota.mappingQuota || 0
-  const used = summary.value?.quota.mappingUsed || 0
-  if (!total) return 0
-  return Math.min(100, Math.round((used / total) * 100))
-})
-
-const livePct = computed(() => {
-  const total = summary.value?.quota.livestreamMinutesTotal || 0
-  const used = summary.value?.quota.livestreamMinutesUsed || 0
-  if (!total) return 0
-  return Math.min(100, Math.round((used / total) * 100))
-})
-
 const dockLegend = computed(() => {
   const d = summary.value?.dockStatus || { idle: 0, working: 0, debugging: 0, offline: 0 }
   const total = d.idle + d.working + d.debugging + d.offline
@@ -315,47 +206,8 @@ const dockLegend = computed(() => {
   ]
 })
 
-const resultCards = computed(() => [
-  { key: 'media', label: t('home.mediaCount'), value: summary.value?.mediaCount ?? 0 },
-  { key: 'model', label: t('home.modelCount'), value: summary.value?.modelCount ?? 0 },
-  { key: 'report', label: t('home.reportCount'), value: summary.value?.reportCount ?? 0 },
-  { key: 'ai', label: t('home.aiAlarmCount'), value: summary.value?.aiAlarmCount ?? 0 },
-])
-
-function formatBytes(n?: number) {
-  if (n == null) return '-'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let v = n
-  let i = 0
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024
-    i++
-  }
-  return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
-}
-
-function formatRate(v?: number) {
-  if (v == null) return '0%'
-  const n = v <= 1 ? v * 100 : v
-  return `${n.toFixed(0)}%`
-}
-
 function queryParams(): Record<string, string> {
-  if (rangeKey.value === 'custom' && dateRange.value?.length === 2) {
-    return { range: 'custom', startDate: dateRange.value[0], endDate: dateRange.value[1] }
-  }
-  return { range: rangeKey.value }
-}
-
-function onRangePreset() {
-  dateRange.value = null
-  void load()
-}
-
-function onCustomRange(val: [string, string] | null) {
-  if (!val?.length) return
-  rangeKey.value = 'custom'
-  void load()
+  return { range: 'month' }
 }
 
 function initMap() {
@@ -761,44 +613,11 @@ function renderMissionCharts() {
   })
 }
 
-function sparkDataFor(key: string) {
-  const series = flight.value?.series || []
-  if (!series.length) return Array.from({ length: 7 }, () => 0)
-  if (key === 'media') return series.map((s) => s.sortieCount)
-  if (key === 'model') return series.map((s) => Math.round(Number(s.durationSec) / 60))
-  if (key === 'report') return series.map((s) => Math.round(Number(s.distanceM) / 1000))
-  return series.map((s) => s.sortieCount % 5)
-}
-
-function renderSparks() {
-  for (const card of resultCards.value) {
-    const el = sparkEls.value[card.key]
-    if (!el) continue
-    sparkCharts[card.key] = ensureChart(el, sparkCharts[card.key] || null)
-    const chart = sparkCharts[card.key]
-    const data = sparkDataFor(card.key)
-    chart?.setOption({
-      grid: { left: 0, right: 0, top: 4, bottom: 0 },
-      xAxis: { type: 'category', show: false, data: data.map((_, i) => i) },
-      yAxis: { type: 'value', show: false },
-      series: [
-        {
-          type: 'bar',
-          barWidth: '55%',
-          itemStyle: { color: 'rgba(64,158,255,0.55)', borderRadius: [2, 2, 0, 0] },
-          data,
-        },
-      ],
-    })
-  }
-}
-
 function resizeCharts() {
   map?.invalidateSize()
   dockChart?.resize()
   distChart?.resize()
   resultChart?.resize()
-  Object.values(sparkCharts).forEach((c) => c?.resize())
 }
 
 async function load() {
@@ -816,7 +635,6 @@ async function load() {
     await nextTick()
     renderDockChart()
     renderMissionCharts()
-    renderSparks()
     resizeCharts()
   } catch {
     // interceptor
@@ -852,7 +670,6 @@ onBeforeUnmount(() => {
   dockChart?.dispose()
   distChart?.dispose()
   resultChart?.dispose()
-  Object.values(sparkCharts).forEach((c) => c?.dispose())
   aircraftLayer?.clearLayers()
   aircraftLayer = null
   annotationLayer?.clearLayers()
@@ -907,19 +724,9 @@ onBeforeUnmount(() => {
   pointer-events: none;
   display: grid;
   grid-template-columns: minmax(300px, 360px) 1fr minmax(320px, 400px);
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   gap: 12px;
   padding: 12px 14px 16px;
-}
-
-.top-bar {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  pointer-events: auto;
-  flex-wrap: wrap;
 }
 
 .panel-col {
@@ -927,7 +734,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
-  pointer-events: auto;
+  /* 列本身不拦地图；否则空白区域会挡住右下角缩放 */
+  pointer-events: none;
 
   &.left {
     grid-column: 1;
@@ -935,6 +743,10 @@ onBeforeUnmount(() => {
 
   &.right {
     grid-column: 3;
+  }
+
+  .panel {
+    pointer-events: auto;
   }
 }
 
@@ -979,25 +791,6 @@ onBeforeUnmount(() => {
     border-radius: 4px;
     padding: 1px 6px;
   }
-}
-
-.quota-block {
-  margin-bottom: 12px;
-}
-
-.quota-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  margin-bottom: 4px;
-
-  &.mt {
-    margin-top: 8px;
-  }
-}
-
-.muted {
-  color: #8b919a;
 }
 
 .sub-title {
@@ -1049,7 +842,7 @@ onBeforeUnmount(() => {
 
 .mini-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-top: 10px;
 
@@ -1074,7 +867,7 @@ onBeforeUnmount(() => {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   margin-top: 12px;
 }
@@ -1097,46 +890,14 @@ onBeforeUnmount(() => {
   }
 }
 
-.result-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.result-card {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.result-meta {
-  flex: 1;
-  min-width: 0;
-
-  span {
-    display: block;
-    font-size: 12px;
-    color: #8b919a;
-  }
-
-  b {
-    font-size: 18px;
-  }
-}
-
-.spark {
-  width: 64px;
-  height: 36px;
-  flex-shrink: 0;
-}
-
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+
+  &--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .kpi {
@@ -1157,8 +918,7 @@ onBeforeUnmount(() => {
 }
 
 .chart-block {
-  flex: 1;
-  min-height: 140px;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
 
@@ -1175,8 +935,8 @@ onBeforeUnmount(() => {
 
 .line-chart,
 .bar-chart {
-  flex: 1;
-  min-height: 120px;
+  height: 190px;
+  flex: none;
 }
 
 :deep(.el-radio-group) {
@@ -1202,6 +962,16 @@ onBeforeUnmount(() => {
   background: rgba(12, 14, 18, 0.72);
   box-shadow: none;
   --el-fill-color-blank: transparent;
+}
+
+:deep(.leaflet-control-container) {
+  /* 叠在侧栏空白区之上，保证加减号可点 */
+  z-index: 5 !important;
+  pointer-events: none;
+}
+
+:deep(.leaflet-control) {
+  pointer-events: auto;
 }
 
 :deep(.leaflet-control-zoom) {

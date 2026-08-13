@@ -35,6 +35,24 @@ import {
   type NoFlyZoneRecord,
   type NoFlyZoneType,
 } from '@/utils/noflyZoneStorage'
+import {
+  createWorkArea,
+  deleteWorkArea,
+  listWorkAreas,
+  updateWorkArea,
+  type WorkAreaSaveBody,
+} from '@/api/workArea'
+import {
+  createWorkAreaZone,
+  endWorkAreaEdit,
+  fromWorkAreaGisId,
+  isWorkAreaId,
+  loadWorkAreasLocal,
+  saveWorkAreasLocal,
+  startWorkAreaEdit,
+  toWorkAreaGisId,
+  workAreaToZone,
+} from '@/utils/workAreaStorage'
 
 const MAP_ID = 'airspace-nofly-map'
 const { load: loadPaasBootstrap } = usePaasBootstrap()
@@ -62,6 +80,13 @@ const deviceSyncList = ref<DeviceFlightAreaSync[]>([])
 const deviceOptions = ref<Array<{ sn: string; name: string }>>([])
 /** 是否已成功用 /safety/syncstatus 刷新过状态 */
 const hasServerSyncStatus = ref(false)
+
+/** ==================== 作业区状态 ==================== */
+const workAreas = ref<NoFlyZoneRecord[]>([])
+const savedWorkAreaSnapshot = ref<NoFlyZoneRecord[]>([])
+const workAreasLoading = ref(false)
+const workAreaEditingId = ref('')
+const workAreaDetail = ref<{ minAltitude?: number; maxAltitude?: number; description?: string } | null>(null)
 
 let statusPollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -134,10 +159,64 @@ const MapLayers = reactive([
 
 const ActiveContainerIDs = reactive([MAP_ID])
 
-const CustomNoFlyZones = computed(() => zones.value)
+/** 地图渲染合并限飞区 + 作业区 */
+const CustomNoFlyZones = computed(() => [...zones.value, ...workAreas.value])
 
 const editingZone = computed(() => zones.value.find((z) => z.ID === editingId.value) || null)
-const isEditing = computed(() => Boolean(editingId.value))
+const isEditing = computed(() => Boolean(editingId.value) || Boolean(workAreaEditingId.value))
+
+/** 计算区域几何中心点（圆形取圆心，多边形取坐标均值） */
+function calcZoneCenter(zone: NoFlyZoneRecord): { longitude: number; latitude: number } | null {
+  const coords = zone.coordinates || []
+  if (!coords.length) return null
+  if (zone.type === 4) {
+    const c = coords[0]
+    if (!Number.isFinite(c.longitude) || !Number.isFinite(c.latitude)) return null
+    return { longitude: c.longitude, latitude: c.latitude }
+  }
+  let lngSum = 0
+  let latSum = 0
+  let count = 0
+  for (const c of coords) {
+    if (Number.isFinite(c.longitude) && Number.isFinite(c.latitude)) {
+      lngSum += c.longitude
+      latSum += c.latitude
+      count++
+    }
+  }
+  if (!count) return null
+  return { longitude: lngSum / count, latitude: latSum / count }
+}
+
+/** 点击回中：将地图平滑移动到区域中心 */
+function locateZone(zone: NoFlyZoneRecord) {
+  const map = (window as unknown as {
+    mapEngines?: Map<string, { animateTo?: (view: Record<string, unknown>, opts?: Record<string, unknown>) => void }>
+  }).mapEngines?.get(`${MAP_ID}-maptalks`)
+  if (!map?.animateTo) {
+    ElMessage.warning('地图引擎未就绪')
+    return
+  }
+  const c = calcZoneCenter(zone)
+  if (!c) {
+    ElMessage.warning('该区域暂无坐标，无法定位')
+    return
+  }
+  map.animateTo({ center: { x: c.longitude, y: c.latitude } }, { duration: 600 })
+}
+
+/** 切换区域显隐（限飞区 + 作业区通用） */
+function toggleZoneVisible(zone: NoFlyZoneRecord) {
+  if (isWorkAreaId(zone.ID)) {
+    replaceWorkArea(zone.ID, { visible: !zone.visible })
+    cacheWorkAreasLocally()
+  } else {
+    replaceZone(zone.ID, { visible: !zone.visible })
+    cacheZonesLocally()
+  }
+}
+
+const workAreaEditingZone = computed(() => workAreas.value.find((z) => z.ID === workAreaEditingId.value) || null)
 
 const syncSummary = computed(() => {
   const list = deviceSyncList.value
@@ -151,6 +230,12 @@ const syncSummary = computed(() => {
 })
 
 const canOpenSync = computed(() => !isEditing.value && deviceOptions.value.length > 0)
+
+/** 全部区域（限飞区 + 作业区）是否正在加载 */
+const allAreasLoading = computed(() => zonesLoading.value || workAreasLoading.value)
+
+/** 是否存在任何区域 */
+const hasAnyArea = computed(() => zones.value.length > 0 || workAreas.value.length > 0)
 
 /** 刷新侧边设备同步状态列表 */
 function refreshDeviceSyncList() {
@@ -356,6 +441,11 @@ function ensureBaseLayers() {
   map.checkSize?.()
 }
 
+/** 刷新所有限飞区 + 作业区 */
+async function refreshAllAreas() {
+  await Promise.all([loadZones(), loadWorkAreas()])
+}
+
 /** 地图初始化完成回调（对齐 paasVue，并兜底底图/交互） */
 function onMapInitCompleted() {
   mapReady.value = true
@@ -366,22 +456,27 @@ function onMapInitCompleted() {
   })
 }
 
-/** 点击地图上限飞区时进入对应编辑态（引擎仅在非编辑态图形上触发） */
+/** 点击地图上图形时进入对应编辑态（引擎仅在非编辑态图形上触发） */
 function onGraphClick(payload: { ID?: string; class?: string; data?: NoFlyZoneRecord }) {
   if (payload?.class && payload.class !== 'CustomNoFlyZones') return
   const id = payload.ID || payload.data?.ID
   if (!id) return
+  if (isWorkAreaId(id)) {
+    const waZone = workAreas.value.find((z) => z.ID === id)
+    if (waZone) beginEditWorkArea(waZone)
+    return
+  }
   const zone = zones.value.find((z) => z.ID === id)
   if (!zone) return
   beginEdit(zone)
 }
 
-/** 同步地图图形坐标/半径变更到本地限飞区数据 */
+/** 同步地图图形坐标/半径变更到本地数据（限飞区 + 作业区共用） */
 function onGraphChanged(payload: { ID?: string; class?: string; coordinates?: NoFlyZoneRecord['coordinates']; data?: NoFlyZoneRecord }) {
   if (payload?.class && payload.class !== 'CustomNoFlyZones') return
   const id = payload.ID
   if (!id) return
-  replaceZone(id, (zone) => {
+  const apply = (zone: NoFlyZoneRecord): NoFlyZoneRecord => {
     const coordinates = payload.coordinates || payload.data?.coordinates || zone.coordinates
     const radius = (payload.data as { symbol?: { radius?: number } } | undefined)?.symbol?.radius
     return {
@@ -392,15 +487,17 @@ function onGraphChanged(payload: { ID?: string; class?: string; coordinates?: No
         ...(radius !== undefined ? { radius } : {}),
       },
     }
-  })
+  }
+  if (isWorkAreaId(id)) replaceWorkArea(id, apply)
+  else replaceZone(id, apply)
 }
 
-/** 同步地图图形整体编辑结果（含标签等字段） */
+/** 同步地图图形整体编辑结果（含标签等字段，限飞区 + 作业区共用） */
 function onGraphEdited(payload: { ID?: string; class?: string; data?: NoFlyZoneRecord }) {
   if (payload?.class && payload.class !== 'CustomNoFlyZones') return
   const id = payload.ID
   if (!id || !payload.data) return
-  replaceZone(id, (zone) => ({
+  const apply = (zone: NoFlyZoneRecord): NoFlyZoneRecord => ({
     ...zone,
     ...payload.data,
     ID: id,
@@ -409,14 +506,31 @@ function onGraphEdited(payload: { ID?: string; class?: string; data?: NoFlyZoneR
       ...(payload.data?.customLabel || {}),
       content: payload.data?.customLabel?.content || zone.customLabel.content,
     },
-  }))
+  })
+  if (isWorkAreaId(id)) replaceWorkArea(id, apply)
+  else replaceZone(id, apply)
 }
 
-/** 地图上删除图形时同步移除本地记录（已落库则调后台） */
+/** 地图上删除图形时同步移除本地记录（已落库则调后台，限飞区 + 作业区共用） */
 async function onGraphRemoved(payload: { ID?: string; class?: string }) {
   if (payload?.class && payload.class !== 'CustomNoFlyZones') return
   const id = payload.ID
   if (!id) return
+  if (isWorkAreaId(id)) {
+    const waZone = workAreas.value.find((z) => z.ID === id)
+    if (workAreaEditingId.value === id) workAreaEditingId.value = ''
+    try {
+      if (waZone && !isDraftWorkArea(waZone)) await deleteWorkArea(fromWorkAreaGisId(id))
+    } catch (err: unknown) {
+      ElMessage.error((err as Error)?.message || '后台删除失败')
+      await loadWorkAreas()
+      return
+    }
+    workAreas.value = workAreas.value.filter((z) => z.ID !== id)
+    savedWorkAreaSnapshot.value = savedWorkAreaSnapshot.value.filter((z) => z.ID !== id)
+    cacheWorkAreasLocally()
+    return
+  }
   const zone = zones.value.find((z) => z.ID === id)
   if (editingId.value === id) editingId.value = ''
   try {
@@ -434,6 +548,195 @@ async function onGraphRemoved(payload: { ID?: string; class?: string }) {
 /** 更新当前编辑限飞区的显示名称 */
 function updateEditingName(name: string) {
   const zone = editingZone.value
+  if (!zone) return
+  zone.name = name
+  zone.customLabel = { ...zone.customLabel, content: name, show: true }
+}
+
+/** ==================== 作业区 CRUD ==================== */
+
+/** 缓存作业区到 localStorage */
+function cacheWorkAreasLocally() {
+  saveWorkAreasLocal(workAreas.value.map((z) => (z.ID === workAreaEditingId.value ? z : endWorkAreaEdit(z))))
+}
+
+/** 按 ID 替换或合并更新一条作业区记录 */
+function replaceWorkArea(id: string, patch: Partial<NoFlyZoneRecord> | ((zone: NoFlyZoneRecord) => NoFlyZoneRecord)) {
+  const index = workAreas.value.findIndex((z) => z.ID === id)
+  if (index < 0) return
+  const current = workAreas.value[index]
+  const next = typeof patch === 'function' ? patch(current) : { ...current, ...patch }
+  const list = workAreas.value.slice()
+  list[index] = next
+  workAreas.value = list
+}
+
+/** 判断是否为尚未落库的草稿作业区 */
+function isDraftWorkArea(zone: NoFlyZoneRecord): boolean {
+  return !savedWorkAreaSnapshot.value.some((item) => item.ID === zone.ID)
+}
+
+/** 从后端拉取作业区并渲染到地图 */
+async function loadWorkAreas() {
+  workAreasLoading.value = true
+  try {
+    const result = await listWorkAreas()
+    const mapped = (result.list || [])
+      .map(workAreaToZone)
+      .filter((item): item is NoFlyZoneRecord => Boolean(item))
+    workAreas.value = mapped
+    savedWorkAreaSnapshot.value = mapped.map((z) => endWorkAreaEdit({ ...z, coordinates: [...(z.coordinates || [])] }))
+    cacheWorkAreasLocally()
+  } catch (error: unknown) {
+    const cached = loadWorkAreasLocal()
+    if (cached.length) {
+      workAreas.value = cached
+      savedWorkAreaSnapshot.value = cached.map((z) => endWorkAreaEdit({ ...z }))
+      ElMessage.warning((error as Error)?.message || '作业区列表加载失败，已使用本地缓存')
+    } else {
+      workAreas.value = []
+      savedWorkAreaSnapshot.value = []
+    }
+  } finally {
+    workAreasLoading.value = false
+  }
+}
+
+/** 新建作业区并进入地图绘制/编辑态 */
+function beginCreateWorkArea(type: NoFlyZoneType) {
+  if (isEditing.value) {
+    ElMessage.warning('请先完成当前的保存或取消')
+    return
+  }
+  const zone = startWorkAreaEdit(createWorkAreaZone(type, `${type === 4 ? '圆形' : '多边形'}作业区_${workAreas.value.length + 1}`))
+  workAreas.value = [...workAreas.value, zone]
+  workAreaEditingId.value = zone.ID
+  ElMessage.success(type === 4 ? '请在地图上点击圆心并拖出半径' : '请在地图上依次点击绘制多边形边界')
+}
+
+/** 进入已有作业区的编辑模式 */
+function beginEditWorkArea(zone: NoFlyZoneRecord) {
+  if (workAreaEditingId.value === zone.ID) return
+  if (isEditing.value) {
+    ElMessage.warning('请先完成当前的保存或取消')
+    return
+  }
+  replaceWorkArea(zone.ID, startWorkAreaEdit(zone))
+  workAreaEditingId.value = zone.ID
+  ElMessage.info('已进入编辑模式，可拖动节点调整范围')
+}
+
+/** 校验作业区几何与名称 */
+function validateWorkArea(zone: NoFlyZoneRecord): string | null {
+  const coords = zone.coordinates || []
+  if (zone.type === 3 && coords.length < 3) return '多边形作业区至少需要 3 个点'
+  if (zone.type === 4 && coords.length < 1) return '圆形作业区至少需要 1 个中心点'
+  if (!zone.customLabel?.content?.trim() && !zone.name?.trim()) return '请填写作业区名称'
+  return null
+}
+
+/** 作业区 GIS 图形 → 后端请求体 */
+function workAreaZoneToSaveBody(zone: NoFlyZoneRecord): WorkAreaSaveBody {
+  const detail = workAreaDetail.value
+  return {
+    name: zone.customLabel?.content?.trim() || zone.name,
+    zoneType: zone.type,
+    coordinates: (zone.coordinates || []).map((c) => ({
+      longitude: c.longitude,
+      latitude: c.latitude,
+      altitude: c.altitude,
+    })),
+    radiusM: zone.type === 4 ? Number(zone.symbol?.radius) || 300 : undefined,
+    color: zone.symbol?.polygonColor || '#2EB85C',
+    lineWidth: Number(zone.symbol?.lineWidth) || 4,
+    clampToGround: zone.isClampToGround !== false,
+    minAltitude: detail?.minAltitude,
+    maxAltitude: detail?.maxAltitude,
+    description: detail?.description,
+  }
+}
+
+/** 保存当前编辑中的作业区 */
+async function saveEditingWorkArea() {
+  const zone = workAreaEditingZone.value
+  if (!zone) return
+  const error = validateWorkArea(zone)
+  if (error) {
+    ElMessage.warning(error)
+    return
+  }
+
+  const name = zone.customLabel?.content?.trim() || zone.name
+  const prepared = endWorkAreaEdit({
+    ...zone,
+    name,
+    customLabel: { ...zone.customLabel, content: name, show: true },
+  })
+
+  try {
+    if (isDraftWorkArea(zone)) {
+      const waId = await createWorkArea(workAreaZoneToSaveBody(prepared))
+      replaceWorkArea(zone.ID, { ...prepared, ID: toWorkAreaGisId(waId) })
+    } else {
+      await updateWorkArea(fromWorkAreaGisId(zone.ID), workAreaZoneToSaveBody(prepared))
+      replaceWorkArea(zone.ID, prepared)
+    }
+    workAreaEditingId.value = ''
+    workAreaDetail.value = null
+    savedWorkAreaSnapshot.value = workAreas.value.map((z) => endWorkAreaEdit({
+      ...z,
+      coordinates: [...(z.coordinates || [])],
+      symbol: { ...z.symbol },
+      customLabel: { ...z.customLabel },
+    }))
+    cacheWorkAreasLocally()
+    ElMessage.success('作业区已保存')
+  } catch (err: unknown) {
+    ElMessage.error((err as Error)?.message || '保存失败')
+  }
+}
+
+/** 取消作业区编辑 */
+function cancelEditingWorkArea() {
+  const zone = workAreaEditingZone.value
+  if (!zone) return
+  if (isDraftWorkArea(zone)) {
+    workAreas.value = workAreas.value.filter((z) => z.ID !== zone.ID)
+  } else {
+    const saved = savedWorkAreaSnapshot.value.find((z) => z.ID === zone.ID)
+    if (saved) replaceWorkArea(zone.ID, endWorkAreaEdit({ ...saved, coordinates: [...(saved.coordinates || [])] }))
+    else replaceWorkArea(zone.ID, endWorkAreaEdit(zone))
+  }
+  workAreaEditingId.value = ''
+  workAreaDetail.value = null
+  cacheWorkAreasLocally()
+}
+
+/** 删除作业区 */
+function removeWorkArea(zone: NoFlyZoneRecord) {
+  ElMessageBox.confirm(`确定删除「${zone.customLabel?.content || zone.name}」吗？`, '删除作业区', {
+    type: 'warning',
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+  }).then(async () => {
+    try {
+      if (!isDraftWorkArea(zone)) {
+        await deleteWorkArea(fromWorkAreaGisId(zone.ID))
+      }
+      if (workAreaEditingId.value === zone.ID) workAreaEditingId.value = ''
+      workAreas.value = workAreas.value.filter((z) => z.ID !== zone.ID)
+      savedWorkAreaSnapshot.value = savedWorkAreaSnapshot.value.filter((z) => z.ID !== zone.ID)
+      cacheWorkAreasLocally()
+      ElMessage.success('已删除')
+    } catch (err: unknown) {
+      ElMessage.error((err as Error)?.message || '删除失败')
+    }
+  }).catch(() => {})
+}
+
+/** 更新当前编辑作业区的显示名称 */
+function updateWorkAreaEditingName(name: string) {
+  const zone = workAreaEditingZone.value
   if (!zone) return
   zone.name = name
   zone.customLabel = { ...zone.customLabel, content: name, show: true }
@@ -617,12 +920,14 @@ onMounted(async () => {
     ElMessage.error(gisError.value)
   }
   await loadZones()
+  loadWorkAreas()
   loadDevices()
 })
 
 onBeforeUnmount(() => {
   stopStatusPolling()
   if (editingId.value) cancelEditing()
+  if (workAreaEditingId.value) cancelEditingWorkArea()
 })
 </script>
 
@@ -631,27 +936,35 @@ onBeforeUnmount(() => {
     <div class="page-toolbar">
       <div>
         <strong>空域安全</strong>
-        <small>限飞区存本地库；同步时推送司空并下发机场</small>
+        <small>限飞区（红色）同步时推送司空并下发机场；作业区（绿色）仅本地管理</small>
       </div>
       <div class="airspace-actions">
-        <el-button type="danger" plain :disabled="isEditing || !mapReady || zonesLoading" @click="beginCreate(3)">
+        <el-button type="danger" plain :disabled="isEditing || !mapReady || allAreasLoading" @click="beginCreate(3)">
           新增多边形限飞区
         </el-button>
-        <el-button type="danger" plain :disabled="isEditing || !mapReady || zonesLoading" @click="beginCreate(4)">
+        <el-button type="danger" plain :disabled="isEditing || !mapReady || allAreasLoading" @click="beginCreate(4)">
           新增圆形限飞区
+        </el-button>
+        <el-button type="success" plain :disabled="isEditing || !mapReady || allAreasLoading" @click="beginCreateWorkArea(3)">
+          新增多边形作业区
+        </el-button>
+        <el-button type="success" plain :disabled="isEditing || !mapReady || allAreasLoading" @click="beginCreateWorkArea(4)">
+          新增圆形作业区
         </el-button>
         <el-button type="primary" :disabled="!canOpenSync || syncing" @click="openSyncDialog">
           同步到设备
         </el-button>
-        <el-button :loading="zonesLoading" @click="loadZones">刷新列表</el-button>
+        <el-button :loading="allAreasLoading" @click="refreshAllAreas">刷新列表</el-button>
       </div>
     </div>
 
     <div class="airspace-body">
       <aside class="airspace-side">
-        <div class="airspace-side-title">限飞区列表</div>
-        <div v-if="zonesLoading && !zones.length" class="empty-state">正在加载限飞区…</div>
-        <div v-else-if="!zones.length" class="empty-state">暂无限飞区，点击上方按钮开始绘制。</div>
+        <div class="airspace-side-title">区域列表</div>
+        <div v-if="allAreasLoading && !hasAnyArea" class="empty-state">正在加载区域…</div>
+        <div v-else-if="!hasAnyArea" class="empty-state">暂无区域，点击上方按钮开始绘制。</div>
+
+        <!-- ==================== 限飞区 ==================== -->
         <article
           v-for="zone in zones"
           :key="zone.ID"
@@ -660,16 +973,72 @@ onBeforeUnmount(() => {
         >
           <div class="airspace-zone-meta">
             <strong>{{ zone.customLabel?.content || zone.name }}</strong>
-            <small>{{ zone.type === 4 ? '圆形' : '多边形' }} · {{ zone.coordinates?.length || 0 }} 点</small>
+            <div class="airspace-zone-tags">
+              <el-tag size="small" type="danger" effect="dark">限飞区</el-tag>
+              <small>{{ zone.type === 4 ? '圆形' : '多边形' }} · {{ zone.coordinates?.length || 0 }} 点</small>
+            </div>
           </div>
           <div class="airspace-zone-btns">
+            <el-button
+              size="small"
+              :type="zone.visible ? 'primary' : 'info'"
+              plain
+              :disabled="isEditing && editingId !== zone.ID"
+              @click="toggleZoneVisible(zone)"
+            >
+              {{ zone.visible ? '隐藏' : '显示' }}
+            </el-button>
+            <el-button
+              size="small"
+              :disabled="!zone.coordinates?.length"
+              @click="locateZone(zone)"
+            >
+              回中
+            </el-button>
             <el-button size="small" :disabled="isEditing && editingId !== zone.ID" @click="beginEdit(zone)">编辑</el-button>
             <el-button size="small" type="danger" plain :disabled="isEditing && editingId !== zone.ID" @click="removeZone(zone)">删除</el-button>
           </div>
         </article>
 
+        <!-- ==================== 作业区 ==================== -->
+        <article
+          v-for="wa in workAreas"
+          :key="wa.ID"
+          class="airspace-zone-item airspace-zone-item--workarea"
+          :class="{ active: wa.ID === workAreaEditingId }"
+        >
+          <div class="airspace-zone-meta">
+            <strong>{{ wa.customLabel?.content || wa.name }}</strong>
+            <div class="airspace-zone-tags">
+              <el-tag size="small" type="success" effect="dark">作业区</el-tag>
+              <small>{{ wa.type === 4 ? '圆形' : '多边形' }} · {{ wa.coordinates?.length || 0 }} 点</small>
+            </div>
+          </div>
+          <div class="airspace-zone-btns">
+            <el-button
+              size="small"
+              :type="wa.visible ? 'primary' : 'info'"
+              plain
+              :disabled="isEditing && workAreaEditingId !== wa.ID"
+              @click="toggleZoneVisible(wa)"
+            >
+              {{ wa.visible ? '隐藏' : '显示' }}
+            </el-button>
+            <el-button
+              size="small"
+              :disabled="!wa.coordinates?.length"
+              @click="locateZone(wa)"
+            >
+              回中
+            </el-button>
+            <el-button size="small" :disabled="isEditing && workAreaEditingId !== wa.ID" @click="beginEditWorkArea(wa)">编辑</el-button>
+            <el-button size="small" type="danger" plain :disabled="isEditing && workAreaEditingId !== wa.ID" @click="removeWorkArea(wa)">删除</el-button>
+          </div>
+        </article>
+
+        <!-- ==================== 限飞区编辑面板 ==================== -->
         <div v-if="editingZone" class="airspace-edit-panel">
-          <div class="airspace-side-title">正在编辑</div>
+          <div class="airspace-side-title">正在编辑限飞区</div>
           <el-form label-position="top" size="small">
             <el-form-item label="名称">
               <el-input
@@ -685,6 +1054,25 @@ onBeforeUnmount(() => {
           </el-form>
         </div>
 
+        <!-- ==================== 作业区编辑面板 ==================== -->
+        <div v-if="workAreaEditingZone" class="airspace-edit-panel">
+          <div class="airspace-side-title">正在编辑作业区</div>
+          <el-form label-position="top" size="small">
+            <el-form-item label="名称">
+              <el-input
+                :model-value="workAreaEditingZone.customLabel?.content || workAreaEditingZone.name"
+                maxlength="30"
+                @update:model-value="updateWorkAreaEditingName"
+              />
+            </el-form-item>
+            <div class="airspace-edit-actions">
+              <el-button type="primary" @click="saveEditingWorkArea">保存</el-button>
+              <el-button @click="cancelEditingWorkArea">取消</el-button>
+            </div>
+          </el-form>
+        </div>
+
+        <!-- ==================== 设备同步状态 ==================== -->
         <div class="airspace-sync-panel">
           <div class="airspace-side-title airspace-sync-head">
             <span>设备同步状态</span>
@@ -853,6 +1241,16 @@ onBeforeUnmount(() => {
   &.active {
     border-color: #f56c6c;
   }
+
+  &.airspace-zone-item--workarea.active {
+    border-color: #2EB85C;
+  }
+}
+
+.airspace-zone-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .airspace-zone-meta {

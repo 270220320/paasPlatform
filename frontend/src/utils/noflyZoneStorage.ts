@@ -21,9 +21,14 @@ export interface NoFlyZoneRecord {
   defaultHeight: number
   symbol: {
     lineWidth: number
+    lineColor?: string
     polygonAlpha: number
     polygonColor: string
     radius?: number
+    /** 边框纹理图片（maptalks linePatternFile），不设则用引擎默认红色 */
+    appearance?: string
+    /** 高亮态边框纹理图片（鼠标 hover） */
+    highlightAppearance?: string
   }
   customLabel: {
     show: boolean

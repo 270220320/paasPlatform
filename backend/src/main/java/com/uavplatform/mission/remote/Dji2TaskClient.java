@@ -103,6 +103,23 @@ public class Dji2TaskClient {
         return asObject(data);
     }
 
+    /**
+     * 按架次/任务 UUID 查媒体列表（私有化 dji2）。
+     * 返回项通常含 {@code filePath}（如 {@code 60/65/66}）：倒数第二段为飞行任务资源夹 ID，
+     * 末段多为可见光等子目录（三维重建应使用任务夹，勿用末段）。
+     */
+    public List<Map<String, Object>> listMediaByFlightId(String flightId, int pageNo, int pageCount) {
+        if (!StringUtils.hasText(flightId)) {
+            return List.of();
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("pageNo", Math.max(pageNo, 1));
+        body.put("pageCount", Math.min(Math.max(pageCount, 1), 200));
+        body.put("flightId", flightId.trim());
+        JsonNode data = post("/media/list.rest", body);
+        return asObjectList(data);
+    }
+
     public void deleteTaskSub(String taskUuid) {
         if (!StringUtils.hasText(taskUuid)) {
             return;

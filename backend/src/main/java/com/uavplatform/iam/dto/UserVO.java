@@ -15,6 +15,7 @@ public class UserVO {
     private Long id;
     private String account;
     private String displayName;
+    private String email;
     private String roleCode;
     private String roleName;
     private List<String> permissions;

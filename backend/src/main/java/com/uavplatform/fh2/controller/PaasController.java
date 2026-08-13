@@ -66,7 +66,10 @@ public class PaasController {
         return ApiResult.ok(Map.of("synced", n));
     }
 
-    /** WaylineEditor 保存后回写本地航线镜像（名称 / 文件夹） */
+    /**
+     * WaylineEditor 保存/改名后回写本地航线镜像（名称 / 文件夹）。
+     * name 为空时由服务端从司空拉取最新名称。
+     */
     @PostMapping("/waylines/upsert")
     public ApiResult<WaylineListVO> upsertWayline(@RequestBody UpsertWaylineReq req) {
         return ApiResult.ok(fh2IntegrationService.upsertWaylineFromEditor(

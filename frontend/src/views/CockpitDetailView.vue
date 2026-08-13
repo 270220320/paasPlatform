@@ -1,12 +1,12 @@
 <template>
-  <div class="cockpit-page">
+  <div ref="rootEl" class="cockpit-page">
     <div class="toolbar">
       <el-button @click="goBack">{{ t('cockpit.back') }}</el-button>
       <span class="title">{{ deviceName || t('cockpit.title') }}</span>
       <span class="hint">{{ status }}</span>
     </div>
 
-    <div class="fh2-container">
+    <div :key="skeletonKey" class="fh2-container">
       <div id="cockpit-header-container"></div>
       <div class="project-details router-cockpit">
         <div id="project-app-container"></div>
@@ -36,6 +36,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs } from '@/utils/loadScript'
+import { resetFh2SharedMapContext } from '@/utils/sdkContainers'
 
 interface CockpitFh2Api {
   initConfig: (config: {
@@ -62,23 +63,40 @@ const status = ref(t('cockpit.loading'))
 const deviceName = String(route.query.name || '')
 const gatewaySn = String(route.query.gatewaySn || '')
 const droneSn = String(route.query.droneSn || '')
+const rootEl = ref<HTMLElement | null>(null)
+const skeletonKey = ref(0)
+let alive = true
+let bootToken = 0
 
-function goBack() {
+async function goBack() {
+  await teardown()
   router.push({ name: 'cockpit' })
 }
 
-async function destroyCockpit() {
-  const fh2 = window.FH2 as unknown as CockpitFh2Api | undefined
-  if (!fh2?.destroyCockpit) return
-  try {
-    await Promise.resolve(fh2.destroyCockpit())
-  } catch {
-    // ignore
+/** 切页前必须卸驾驶舱+地图，并清掉游离全局容器，否则航线库地图会挂到 0 尺寸节点 */
+async function teardown() {
+  alive = false
+  bootToken += 1
+  await resetFh2SharedMapContext()
+}
+
+/**
+ * 卸掉旧 FH2 地图态后，保留本页骨架；若 #map-app-global 仍缺失则强制重建。
+ * 注意：reset 时绝不能无 keepWithin，否则会删掉当前页容器 → map-app mount failed。
+ */
+async function prepareMountSurface() {
+  await resetFh2SharedMapContext(rootEl.value)
+  await nextTick()
+  if (!document.getElementById('map-app-global') || !document.getElementById('cockpit-app-container')) {
+    skeletonKey.value += 1
+    await nextTick()
   }
 }
 
 async function boot() {
-  await destroyCockpit()
+  const token = ++bootToken
+  await prepareMountSurface()
+  if (!alive || token !== bootToken) return
 
   if (!gatewaySn || !droneSn) {
     status.value = t('cockpit.missingDevice')
@@ -87,6 +105,7 @@ async function boot() {
   }
 
   const cfg = await load()
+  if (!alive || token !== bootToken) return
   if (!cfg?.enabled) {
     status.value = t('cockpit.paasDisabled')
     return
@@ -100,10 +119,15 @@ async function boot() {
   status.value = t('cockpit.loadingSdk')
   await loadPaasJs(cfg.frontHost)
   await nextTick()
+  if (!alive || token !== bootToken) return
 
   const fh2 = window.FH2 as unknown as CockpitFh2Api | undefined
   if (!fh2) {
     throw new Error(t('cockpit.sdkUnavailable'))
+  }
+
+  if (!document.getElementById('map-app-global')) {
+    throw new Error('map-app mount failed!: #map-app-global missing')
   }
 
   // 对齐已通 paasVue：
@@ -121,6 +145,10 @@ async function boot() {
   })
   fh2.initNotifyCenter(cfg.wssUrl, auth)
   await Promise.resolve(fh2.loadMap(cfg.serverHost, auth))
+  if (!alive || token !== bootToken) {
+    await resetFh2SharedMapContext()
+    return
+  }
   fh2.loadCockpit('cockpit-app-container', {
     gateway_sn: gatewaySn,
     drone_sn: droneSn,
@@ -130,14 +158,16 @@ async function boot() {
 }
 
 onMounted(() => {
+  alive = true
   boot().catch((error: unknown) => {
+    if (!alive) return
     status.value = error instanceof Error ? error.message : t('cockpit.loadFailed')
     ElMessage.error(status.value)
   })
 })
 
 onBeforeUnmount(() => {
-  void destroyCockpit()
+  void teardown()
 })
 </script>
 

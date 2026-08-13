@@ -21,6 +21,8 @@ public final class ErrorCodes {
     public static final int ROLE_LOCKED = 10005;
     public static final int SUPER_ADMIN_PROTECTED = 10006;
     public static final int CANNOT_DELETE_SELF = 10007;
+    public static final int AUTH_PASSWORD_INCORRECT = 10008;
+    public static final int EMAIL_INVALID = 10009;
 
     public static final int DEVICE_SN_EXISTS = 20001;
     public static final int BIND_CODE_INVALID = 20002;
@@ -33,6 +35,7 @@ public final class ErrorCodes {
     public static final int SYNC_RUNNING = 30005;
     public static final int SAFETY_AREA_NOT_FOUND = 30006;
     public static final int SAFETY_REMOTE_ERROR = 30007;
+    public static final int WORK_AREA_NOT_FOUND = 30008;
 
     public static final int WAYLINE_NOT_FOUND = 40001;
     public static final int WAYLINE_NAME_INVALID = 40002;

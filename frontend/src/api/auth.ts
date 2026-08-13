@@ -5,6 +5,7 @@ export interface UserVO {
   id: number
   account: string
   displayName: string
+  email?: string
   roleCode: string
   roleName: string
   permissions: string[]
@@ -26,4 +27,12 @@ export function logoutApi() {
 
 export function meApi() {
   return http.get<ApiResult<UserVO>>('/auth/me')
+}
+
+export function updateEmailApi(email: string) {
+  return http.put<ApiResult<null>>('/auth/email', { email })
+}
+
+export function changePasswordApi(oldPassword: string, newPassword: string) {
+  return http.put<ApiResult<null>>('/auth/password', { oldPassword, newPassword })
 }

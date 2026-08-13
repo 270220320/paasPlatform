@@ -24,4 +24,6 @@ public class MissionExecutionVO {
     private String fh2TaskUuid;
     /** 本条执行收集到的图片/视频 */
     private List<ExecutionMediaVO> media;
+    /** 三维重建状态与结果（挂在任务行） */
+    private ExecutionReconstructVO reconstruct;
 }

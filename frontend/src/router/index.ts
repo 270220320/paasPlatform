@@ -21,8 +21,7 @@ const router = createRouter({
         },
         {
           path: 'dashboard',
-          name: 'dashboard',
-          component: () => import('@/views/DashboardView.vue'),
+          redirect: '/',
         },
         {
           path: 'map',
@@ -89,8 +88,7 @@ const router = createRouter({
         },
         {
           path: 'algorithms',
-          name: 'algorithms',
-          component: () => import('@/views/AlgorithmsView.vue'),
+          redirect: '/',
         },
         {
           path: 'members',
@@ -110,6 +108,11 @@ const router = createRouter({
         {
           path: 'devices/manager',
           redirect: '/devices',
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/ProfileView.vue'),
         },
       ],
     },

@@ -45,26 +45,12 @@
             </el-button>
           </el-form-item>
 
-          <el-form-item :label="t('missions.multimodal')">
-            <div class="switch-row">
-              <span class="switch-hint">{{ t('missions.multimodalHint') }}</span>
-              <el-switch v-model="form.multimodalEnabled" />
-            </div>
-          </el-form-item>
-
-          <el-form-item :label="t('missions.accuracyMode')" required>
-            <el-radio-group v-model="form.accuracyMode" class="seg-group">
-              <el-radio-button value="rtk">{{ t('missions.accuracyRtk') }}</el-radio-button>
-              <el-radio-button value="standard">{{ t('missions.accuracyGnss') }}</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-
           <el-form-item :label="t('missions.strategy')" required>
             <el-radio-group v-model="form.strategy" class="seg-group seg-wrap">
               <el-radio-button value="immediate">{{ t('missions.immediate') }}</el-radio-button>
               <el-radio-button value="once">{{ t('missions.once') }}</el-radio-button>
-              <el-radio-button value="recurring">{{ t('missions.recurring') }}</el-radio-button>
-              <el-radio-button value="continuous">{{ t('missions.continuous') }}</el-radio-button>
+              <el-radio-button v-if="supportsCycleStrategy" value="recurring">{{ t('missions.recurring') }}</el-radio-button>
+              <el-radio-button v-if="supportsCycleStrategy" value="continuous">{{ t('missions.continuous') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
 
@@ -100,8 +86,8 @@
             </el-form-item>
           </template>
 
-          <!-- 重复定时 / 连续执行 -->
-          <template v-if="form.strategy === 'recurring' || form.strategy === 'continuous'">
+          <!-- 重复定时 / 连续执行（仅航线类 + dji2） -->
+          <template v-if="supportsCycleStrategy && (form.strategy === 'recurring' || form.strategy === 'continuous')">
             <el-form-item :label="t('missions.executeDate')" required>
               <el-date-picker
                 v-model="form.dateRange"
@@ -178,45 +164,55 @@
             </el-form-item>
           </template>
 
-          <el-form-item :label="t('missions.breakpointResume')">
-            <div class="switch-row">
-              <span class="switch-hint">{{ t('missions.breakpointResumeHint') }}</span>
-              <el-switch v-model="form.breakpointResume" />
-            </div>
-          </el-form-item>
+          <!-- 仅立即/单次走 FlightHub SDK createFlightTask 时展示 -->
+          <template v-if="showSdkFlightParams">
+            <el-form-item :label="t('missions.accuracyMode')" required>
+              <el-radio-group v-model="form.accuracyMode" class="seg-group">
+                <el-radio-button value="rtk">{{ t('missions.accuracyRtk') }}</el-radio-button>
+                <el-radio-button value="standard">{{ t('missions.accuracyGnss') }}</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
 
-          <el-form-item :label="t('missions.smartRth')">
-            <div class="switch-row">
-              <span class="switch-hint">{{ t('missions.smartRthHint') }}</span>
-              <el-switch v-model="form.smartRth" />
-            </div>
-          </el-form-item>
+            <el-form-item :label="t('missions.breakpointResume')">
+              <div class="switch-row">
+                <span class="switch-hint">{{ t('missions.breakpointResumeHint') }}</span>
+                <el-switch v-model="form.breakpointResume" />
+              </div>
+            </el-form-item>
 
-          <el-form-item :label="t('missions.minFlightHeight')" required>
-            <div class="height-row">
-              <el-button size="small" @click="adjustHeight(-100)">-100</el-button>
-              <el-button size="small" @click="adjustHeight(-10)">-10</el-button>
-              <el-button size="small" @click="adjustHeight(-1)">-1</el-button>
-              <el-input-number
-                v-model="form.minFlightHeightM"
-                :min="20"
-                :max="1500"
-                :controls="false"
-                class="height-input"
-              />
-              <span class="unit">m</span>
-              <el-button size="small" @click="adjustHeight(1)">+1</el-button>
-              <el-button size="small" @click="adjustHeight(10)">+10</el-button>
-              <el-button size="small" @click="adjustHeight(100)">+100</el-button>
-            </div>
-          </el-form-item>
+            <el-form-item :label="t('missions.smartRth')">
+              <div class="switch-row">
+                <span class="switch-hint">{{ t('missions.smartRthHint') }}</span>
+                <el-switch v-model="form.smartRth" />
+              </div>
+            </el-form-item>
 
-          <el-form-item :label="t('missions.signalLostAction')" required>
-            <el-radio-group v-model="form.signalLostAction" class="seg-group">
-              <el-radio-button value="rth">{{ t('missions.rth') }}</el-radio-button>
-              <el-radio-button value="continue">{{ t('missions.continueExec') }}</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
+            <el-form-item :label="t('missions.minFlightHeight')" required>
+              <div class="height-row">
+                <el-button size="small" @click="adjustHeight(-100)">-100</el-button>
+                <el-button size="small" @click="adjustHeight(-10)">-10</el-button>
+                <el-button size="small" @click="adjustHeight(-1)">-1</el-button>
+                <el-input-number
+                  v-model="form.minFlightHeightM"
+                  :min="20"
+                  :max="1500"
+                  :controls="false"
+                  class="height-input"
+                />
+                <span class="unit">m</span>
+                <el-button size="small" @click="adjustHeight(1)">+1</el-button>
+                <el-button size="small" @click="adjustHeight(10)">+10</el-button>
+                <el-button size="small" @click="adjustHeight(100)">+100</el-button>
+              </div>
+            </el-form-item>
+
+            <el-form-item :label="t('missions.signalLostAction')" required>
+              <el-radio-group v-model="form.signalLostAction" class="seg-group">
+                <el-radio-button value="rth">{{ t('missions.rth') }}</el-radio-button>
+                <el-radio-button value="continue">{{ t('missions.continueExec') }}</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </template>
         </el-form>
       </el-scrollbar>
 
@@ -325,10 +321,15 @@ const form = reactive({
   signalLostAction: 'rth',
   breakpointResume: false,
   smartRth: false,
-  multimodalEnabled: false,
 })
 
 const needsWayline = computed(() => form.taskType === 'normal' || form.taskType === 'wayline')
+/** 周期/连续走 dji2，手动任务不下发司空 */
+const supportsCycleStrategy = computed(() => needsWayline.value)
+/** 立即/单次走 createFlightTask，才支持精度/断点/返航等 */
+const showSdkFlightParams = computed(
+  () => needsWayline.value && (form.strategy === 'immediate' || form.strategy === 'once'),
+)
 const previewUuid = computed(() =>
   needsWayline.value ? selectedWayline.value?.fh2WaylineUuid || '' : '',
 )
@@ -341,6 +342,15 @@ watch(
     }
     if (strategy === 'once' && form.timeWindows.length > 1) {
       form.timeWindows.splice(1)
+    }
+  },
+)
+
+watch(
+  () => form.taskType,
+  () => {
+    if (!supportsCycleStrategy.value && (form.strategy === 'recurring' || form.strategy === 'continuous')) {
+      form.strategy = 'immediate'
     }
   },
 )
@@ -390,6 +400,9 @@ function validateSchedule(): string | null {
 function onTaskTypeChange() {
   if (!needsWayline.value) {
     clearWayline()
+  }
+  if (!supportsCycleStrategy.value && (form.strategy === 'recurring' || form.strategy === 'continuous')) {
+    form.strategy = 'immediate'
   }
 }
 
@@ -467,12 +480,15 @@ async function submit() {
       deviceSn: form.deviceSn,
       waylineId: needsWayline.value ? form.waylineId : undefined,
       strategy: form.strategy,
-      accuracyMode: form.accuracyMode,
-      minFlightHeightM: Number(form.minFlightHeightM ?? 30) || 30,
-      signalLostAction: form.signalLostAction || 'rth',
-      breakpointResume: !!form.breakpointResume,
-      smartRth: !!form.smartRth,
-      multimodalEnabled: !!form.multimodalEnabled,
+      // 隐藏字段仍传默认值，满足后端必填校验；周期/手动不会下发到 SDK
+      accuracyMode: showSdkFlightParams.value ? form.accuracyMode : 'rtk',
+      minFlightHeightM: showSdkFlightParams.value
+        ? Number(form.minFlightHeightM ?? 30) || 30
+        : 30,
+      signalLostAction: showSdkFlightParams.value ? form.signalLostAction || 'rth' : 'rth',
+      breakpointResume: showSdkFlightParams.value ? !!form.breakpointResume : false,
+      smartRth: showSdkFlightParams.value ? !!form.smartRth : false,
+      multimodalEnabled: false,
     }
     if (form.strategy === 'once') {
       payload.executeDate = form.executeDate

@@ -20,6 +20,7 @@ public class UserEntity {
     private Long workspaceId;
     private String account;
     private String displayName;
+    private String email;
     private String passwordHash;
     private String status;
     private String joinMethod;

@@ -112,6 +112,52 @@ const Annotations = computed(() => annotations.value)
 const editingItem = computed(() => annotations.value.find((z) => z.ID === editingId.value) || null)
 const isEditing = computed(() => Boolean(editingId.value))
 
+/** 计算标注的几何中心点（圆形取圆心，其余取坐标均值） */
+function calcAnnotationCenter(item: AnnotationRecord): { longitude: number; latitude: number } | null {
+  const coords = item.coordinates || []
+  if (!coords.length) return null
+  if (item.type === 4) {
+    const c = coords[0]
+    if (!Number.isFinite(c.longitude) || !Number.isFinite(c.latitude)) return null
+    return { longitude: c.longitude, latitude: c.latitude }
+  }
+  let lngSum = 0
+  let latSum = 0
+  let count = 0
+  for (const c of coords) {
+    if (Number.isFinite(c.longitude) && Number.isFinite(c.latitude)) {
+      lngSum += c.longitude
+      latSum += c.latitude
+      count++
+    }
+  }
+  if (!count) return null
+  return { longitude: lngSum / count, latitude: latSum / count }
+}
+
+/** 点击回中：将地图平滑移动到标注中心 */
+function locateAnnotation(item: AnnotationRecord) {
+  const map = (window as unknown as {
+    mapEngines?: Map<string, { animateTo?: (view: Record<string, unknown>, opts?: Record<string, unknown>) => void }>
+  }).mapEngines?.get(`${MAP_ID}-maptalks`)
+  if (!map?.animateTo) {
+    ElMessage.warning('地图引擎未就绪')
+    return
+  }
+  const c = calcAnnotationCenter(item)
+  if (!c) {
+    ElMessage.warning('该标注暂无坐标，无法定位')
+    return
+  }
+  map.animateTo({ center: { x: c.longitude, y: c.latitude } }, { duration: 600 })
+}
+
+/** 切换标注显隐 */
+function toggleVisible(item: AnnotationRecord) {
+  replaceItem(item.ID, { visible: !item.visible })
+  cacheLocally()
+}
+
 function typeLabel(type: AnnotationGisType) {
   if (type === 4) return '圆形'
   if (type === 2) return '折线'
@@ -500,6 +546,22 @@ onBeforeUnmount(() => {
           <div class="map-item-btns">
             <el-button
               size="small"
+              :type="item.visible ? 'primary' : 'info'"
+              plain
+              :disabled="isEditing && editingId !== item.ID"
+              @click="toggleVisible(item)"
+            >
+              {{ item.visible ? '隐藏' : '显示' }}
+            </el-button>
+            <el-button
+              size="small"
+              :disabled="!item.coordinates?.length"
+              @click="locateAnnotation(item)"
+            >
+              回中
+            </el-button>
+            <el-button
+              size="small"
               :disabled="!canWrite || (isEditing && editingId !== item.ID)"
               @click="beginEdit(item)"
             >
@@ -646,8 +708,7 @@ onBeforeUnmount(() => {
 
 .map-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 8px;
   padding: 10px;
   margin-bottom: 8px;
@@ -693,7 +754,10 @@ onBeforeUnmount(() => {
 .map-item-btns {
   display: flex;
   gap: 4px;
-  flex-shrink: 0;
+
+  .el-button {
+    flex: 1;
+  }
 }
 
 .map-edit-panel {

@@ -28,7 +28,8 @@ import { ElMessage } from 'element-plus'
 import { upsertFh2Wayline } from '@/api/paas'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs, loadScript, loadStylesheet } from '@/utils/loadScript'
-import { purgeOrphanSdkContainers } from '@/utils/sdkContainers'
+import { purgeOrphanSdkContainers, purgeWaylineSdkOverlays, resetFh2SharedMapContext } from '@/utils/sdkContainers'
+import { installWaylineRenameWatcher } from '@/utils/waylineNameSync'
 
 declare global {
   interface Window {
@@ -65,6 +66,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   saved: [payload: { waylineId: string; name: string }]
   created: [payload: { waylineId: string; name: string }]
+  /** 编辑器内改名（司空已生效）后本地同步完成 */
+  renamed: [payload: { waylineId: string; name: string }]
 }>()
 
 const { t } = useI18n()
@@ -90,6 +93,107 @@ let mapLoaded = false
 let alive = true
 let bootToken = 0
 let editSession = 0
+let resizeObserver: ResizeObserver | null = null
+let resizeRaf = 0
+let lastResizeKey = ''
+let uninstallRenameWatcher: (() => void) | null = null
+let lastSyncedName = ''
+let renameSyncTimer: ReturnType<typeof setTimeout> | null = null
+
+type CesiumLike = {
+  resize?: () => void
+  cesiumWidget?: { resize?: () => void }
+  scene?: { requestRender?: () => void }
+}
+
+function getFh2Bridge() {
+  return (window as unknown as {
+    FH2?: {
+      cesiumViewer?: Record<string, CesiumLike | undefined>
+      mapAppState?: {
+        getMapAppUntilReady?: (key?: string) => Promise<{
+          resize?: () => void
+          viewer?: CesiumLike
+          recenterMap?: (
+            positions: Array<{ longitude: number; latitude: number; height?: number }>,
+            duration?: number,
+          ) => Promise<unknown> | unknown
+          initView?: (positions: Array<{ longitude: number; latitude: number; height?: number }>) => boolean
+        } | null>
+      }
+    }
+  }).FH2
+}
+
+/** 窗口/侧栏尺寸变化后，强制地图与编辑层按新容器重算 */
+function notifyEditorResize() {
+  if (!alive || !booted) return
+  const root = rootEl.value
+  if (!root) return
+  const w = root.clientWidth
+  const h = root.clientHeight
+  if (w <= 0 || h <= 0) return
+  const key = `${w}x${h}`
+  if (key === lastResizeKey) return
+  lastResizeKey = key
+
+  try {
+    const fh2 = getFh2Bridge()
+    const viewers = fh2?.cesiumViewer
+    if (viewers && typeof viewers === 'object') {
+      for (const viewer of Object.values(viewers)) {
+        viewer?.resize?.()
+        viewer?.cesiumWidget?.resize?.()
+        viewer?.scene?.requestRender?.()
+      }
+    }
+    void fh2?.mapAppState?.getMapAppUntilReady?.('global')?.then((map) => {
+      if (!alive || !map) return
+      try {
+        map.resize?.()
+        map.viewer?.resize?.()
+        map.viewer?.cesiumWidget?.resize?.()
+        map.viewer?.scene?.requestRender?.()
+      } catch {
+        // ignore
+      }
+    })
+  } catch {
+    // ignore
+  }
+}
+
+function scheduleEditorResize() {
+  if (!alive) return
+  if (resizeRaf) cancelAnimationFrame(resizeRaf)
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = 0
+    // 再等一帧，让 flex 布局把新宽高写进 DOM
+    requestAnimationFrame(() => {
+      if (alive) notifyEditorResize()
+    })
+  })
+}
+
+function bindResizeObservers() {
+  resizeObserver?.disconnect()
+  resizeObserver = new ResizeObserver(() => scheduleEditorResize())
+  if (rootEl.value) resizeObserver.observe(rootEl.value)
+  const main = document.querySelector<HTMLElement>('.layout > .el-main.main')
+  if (main) resizeObserver.observe(main)
+  window.addEventListener('resize', scheduleEditorResize)
+}
+
+function unbindResizeObservers() {
+  window.removeEventListener('resize', scheduleEditorResize)
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  if (resizeRaf) {
+    cancelAnimationFrame(resizeRaf)
+    resizeRaf = 0
+  }
+  lastResizeKey = ''
+}
 
 function labelOf(id: string, name?: string) {
   const n = name?.trim() || props.waylineName?.trim()
@@ -107,16 +211,7 @@ function defaultMapPosition() {
 
 /** centerPoint 只算默认飞行高度；地图视野需另行 recenter / defaultPosition */
 async function flyMapToDefaultCenter() {
-  const fh2 = (window as unknown as {
-    FH2?: {
-      mapAppState?: {
-        getMapAppUntilReady?: (key?: string) => Promise<{
-          recenterMap?: (positions: Array<{ longitude: number; latitude: number; height?: number }>, duration?: number) => Promise<unknown> | unknown
-          initView?: (positions: Array<{ longitude: number; latitude: number; height?: number }>) => boolean
-        } | null>
-      }
-    }
-  }).FH2
+  const fh2 = getFh2Bridge()
   const mapAppState = fh2?.mapAppState
   if (!mapAppState?.getMapAppUntilReady) return
 
@@ -171,13 +266,35 @@ async function rebuildMountDom() {
   return mountEl.value
 }
 
+/**
+ * 回写本地航线镜像。
+ * 有新名称则直写；无名称则不传 name，由后端从司空拉取，避免用 props 旧名覆盖。
+ */
 async function persistWayline(id: string, name?: string) {
-  if (!id) return
-  await upsertFh2Wayline({
+  if (!id) return null
+  const fresh = name?.trim()
+  const { data } = await upsertFh2Wayline({
     waylineUuid: id,
-    name: name?.trim() || props.waylineName || undefined,
+    name: fresh || undefined,
     folderId: props.folderId,
   })
+  const synced = data.data?.name?.trim() || fresh || ''
+  if (synced) lastSyncedName = synced
+  return data.data || null
+}
+
+async function syncRenameFromEditor(waylineUuid: string, name: string) {
+  if (!alive || !waylineUuid || !name.trim()) return
+  if (activeWaylineId.value && activeWaylineId.value !== waylineUuid) return
+  if (lastSyncedName === name.trim()) return
+  try {
+    const row = await persistWayline(waylineUuid, name)
+    if (!alive || !row) return
+    const synced = row.name?.trim() || name.trim()
+    emit('renamed', { waylineId: waylineUuid, name: synced })
+  } catch (e) {
+    console.warn('[WaylineEditor] rename local sync failed', e)
+  }
 }
 
 function onEditorError(e: unknown) {
@@ -207,13 +324,15 @@ function bindEditorEvents(instance: WaylineEditorInstance) {
       typeof payload === 'object' && payload
         ? payload.waylineId || payload.id || activeWaylineId.value
         : String(payload || activeWaylineId.value)
-    const name = typeof payload === 'object' ? payload?.name : undefined
+    // 官方事件多为纯 id 字符串，勿回退 props 旧名
+    const name = typeof payload === 'object' && payload ? payload.name : undefined
     activeWaylineId.value = id
     try {
-      await persistWayline(id, name)
-      statusText.value = t('waylineEditor.saved', { name: labelOf(id, name) })
+      const row = await persistWayline(id, name)
+      const syncedName = row?.name?.trim() || name?.trim() || lastSyncedName || props.waylineName
+      statusText.value = t('waylineEditor.saved', { name: labelOf(id, syncedName) })
       ElMessage.success(statusText.value)
-      emit('saved', { waylineId: id, name: labelOf(id, name) })
+      emit('saved', { waylineId: id, name: labelOf(id, syncedName) })
     } catch {
       ElMessage.warning(t('waylineEditor.savedLocalSyncFailed'))
     }
@@ -224,6 +343,10 @@ function bindEditorEvents(instance: WaylineEditorInstance) {
 async function recreateEditor() {
   const cfg = await load()
   if (!alive || !cfg?.enabled || !window.WaylineEditor) return false
+
+  // 驾驶舱/设备管理离开后可能残留 mapAppState 与游离 #map-app-global
+  await resetFh2SharedMapContext(rootEl.value)
+  if (!alive) return false
 
   const container = await rebuildMountDom()
   if (!alive || !container) return false
@@ -248,7 +371,10 @@ async function recreateEditor() {
   const mountTarget = mountEl.value || container
   instance.mount(mountTarget)
   booted = true
+  mapLoaded = false
   await ensureMap()
+  lastResizeKey = ''
+  scheduleEditorResize()
   return true
 }
 
@@ -295,12 +421,15 @@ async function enterEditMode(id: string, name?: string, withDefaultCenter = fals
   }
 
   activeWaylineId.value = id
+  lastSyncedName = name?.trim() || props.waylineName?.trim() || lastSyncedName
   editor.render('edit', {
     waylineId: id,
     ...(withDefaultCenter ? { defaultPosition: defaultMapPosition() } : {}),
   })
   if (!alive || session !== editSession) return
   statusText.value = t('waylineEditor.editing', { name: labelOf(id, name) })
+  lastResizeKey = ''
+  scheduleEditorResize()
 }
 
 async function startCreate() {
@@ -373,6 +502,10 @@ async function applyTarget() {
 
 async function boot() {
   const token = ++bootToken
+  // 先进驾驶舱再进航线库时，必须先卸掉共享地图；保留本面板内骨架节点
+  await resetFh2SharedMapContext(rootEl.value)
+  if (!alive || token !== bootToken) return
+
   const cfg = await load()
   if (!alive || token !== bootToken) return
   if (!cfg?.enabled) {
@@ -431,6 +564,14 @@ watch(
 
 onMounted(() => {
   alive = true
+  lastSyncedName = props.waylineName?.trim() || ''
+  uninstallRenameWatcher = installWaylineRenameWatcher(({ waylineUuid, name }) => {
+    if (renameSyncTimer) clearTimeout(renameSyncTimer)
+    renameSyncTimer = setTimeout(() => {
+      void syncRenameFromEditor(waylineUuid, name)
+    }, 80)
+  })
+  bindResizeObservers()
   boot().catch((e: unknown) => {
     if (!alive) return
     console.error(e)
@@ -443,7 +584,15 @@ onBeforeUnmount(() => {
   alive = false
   bootToken += 1
   editSession += 1
+  if (renameSyncTimer) {
+    clearTimeout(renameSyncTimer)
+    renameSyncTimer = null
+  }
+  uninstallRenameWatcher?.()
+  uninstallRenameWatcher = null
+  unbindResizeObservers()
   destroyEditor()
+  void resetFh2SharedMapContext()
 })
 
 defineExpose({ startCreate, enterEditMode })
@@ -548,5 +697,17 @@ defineExpose({ startCreate, enterEditMode })
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Cesium 默认 canvas 尺寸不会随 flex 容器变化，强制铺满后配合 resize() */
+#map-app-global,
+#map-app-global .cesium-viewer,
+#map-app-global .cesium-viewer-cesiumWidgetContainer,
+#map-app-global .cesium-widget,
+#map-app-global .cesium-widget canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
 }
 </style>

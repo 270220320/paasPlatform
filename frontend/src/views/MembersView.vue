@@ -15,7 +15,11 @@
       <el-table-column prop="roleName" label="角色" width="140" />
       <el-table-column prop="joinMethod" label="加入方式" width="140" />
       <el-table-column prop="joinedAt" label="加入时间" width="180" />
-      <el-table-column prop="status" label="状态" width="100" />
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ statusText(row.status) }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column v-if="canWrite" label="操作" width="180" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -62,8 +66,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="editForm.status" style="width: 100%">
-            <el-option label="active" value="active" />
-            <el-option label="disabled" value="disabled" />
+            <el-option label="正常" value="active" />
+            <el-option label="禁用" value="disabled" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -101,6 +105,10 @@ const editVisible = ref(false)
 const saving = ref(false)
 const createForm = reactive({ account: '', displayName: '', roleId: 4, password: '123456' })
 const editForm = reactive({ id: 0, account: '', displayName: '', roleId: 4, status: 'active' })
+
+function statusText(status: string) {
+  return status === 'active' ? '正常' : status === 'disabled' ? '禁用' : status
+}
 
 async function load() {
   const { data } = await fetchMembers({ ...query })

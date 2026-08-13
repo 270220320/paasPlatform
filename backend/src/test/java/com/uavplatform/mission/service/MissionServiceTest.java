@@ -60,6 +60,8 @@ class MissionServiceTest {
     private Fh2SdkClient fh2SdkClient;
     @Mock
     private MissionDispatchService missionDispatchService;
+    @Mock
+    private MissionReconstructService missionReconstructService;
 
     private MissionService missionService;
 
@@ -68,7 +70,8 @@ class MissionServiceTest {
         missionService = new MissionService(
                 missionPlanMapper, missionExecutionMapper, deviceMapper,
                 waylineService, waylineMapper, waylineContentMapper, algorithmMapper,
-                mediaAssetMapper, fh2SdkClient, missionDispatchService);
+                mediaAssetMapper, fh2SdkClient,
+                missionDispatchService, missionReconstructService);
         LoginUser user = new LoginUser();
         user.setUserId(1L);
         user.setWorkspaceId(1L);

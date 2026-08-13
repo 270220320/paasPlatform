@@ -23,6 +23,10 @@ uav:
   jwt:
     secret: UAVPlatformDevSecretKeyMustBeLongEnoughForHS256Algorithm
     expire-seconds: 86400
+  # 私有化默认：不展示公有云套餐假上限。若有真实对象存储容量可设 storage-total-bytes
+  quota:
+    mode: private
+    storage-total-bytes: 0
   fh2:
     enabled: true
     # paas.js 在 80 端口；API/WS 在 30812
@@ -34,6 +38,18 @@ uav:
     user-token: "eyJhbGciOiJIUzUxMiIsImtpZCI6IjU3YmQyNmEwLTYyMDktNGE5My1hNjg4LWY4NzUyYmU1ZDE5MSIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiZGVmYXVsdCIsImV4cCI6MTkyNDgxOTIwMCwibmJmIjoxNjA5NDU5MjAwLCJvcmdhbml6YXRpb25fdXVpZCI6IjVhNmY5ZDRiLTJhMzgtNGI0Yi04NmY5LTNhNjc4ZGEwYmY4OCIsInByb2plY3RfdXVpZCI6IiIsInN1YiI6ImZoMiIsInVzZXJfaWQiOiJkZWZhdWx0In0.psKQTfTOEVB9fn0OrBW4puoHzIV6C9pgnwk6JqEjpwoPE4D1DDiLAuCbMcH_hpnb8DUZrWvNI6d6X7hQTHzEnQ"
     # 与 token 内 organization_uuid 一致
     binding-uuid: "5a6f9d4b-2a38-4b4b-86f9-3a678da0bf4a"
+    # 项目 UUID：媒体 objectKey 首段；Terra/媒体文件夹挂在项目下。Token 内常为空，务必填写
+    # 例：d96fd7f3-9eb0-4b2c-a546-71d4efd239c1
+    project-uuid: ${FH2_PROJECT_UUID:d96fd7f3-9eb0-4b2c-a546-71d4efd239c1}
+    reconstruction-quality-level: high
+    reconstruction-wkt: EPSG:32650
+    reconstruction-sfm-method: GLOBAL
+    reconstruction-vertical-cs: EPSG:5737
+    reconstruction-mode: normal
+    reconstruction-simplified-factor: 0.8
+    # 手动指定媒体文件夹 UUID（与 demo ConfigManager.terraBuildFolderUuid 对齐）；
+    # 仅当自动获取不到 folderUuid 时生效。在司空控制台「媒体管理」中找到对应文件夹的 UUID 填入。
+    terra-build-folder-uuid: ${FH2_TERRA_FOLDER_UUID:}
     object-key-prefix: "5a6f9d4b-2a38-4b4b-86f9-3a678da0bf4a"
     sdk-address: http://192.168.41.185
     sdk-port: "30812"
@@ -58,6 +74,8 @@ server:
   port: 8080
 
 logging:
+  # 文件见 logback-spring.xml → logs/aiflow-backend.log、logs/aiflow-reconstruct.log
   level:
     com.uavplatform: info
     com.uavplatform.fh2: debug
+    aiflow.reconstruct: info

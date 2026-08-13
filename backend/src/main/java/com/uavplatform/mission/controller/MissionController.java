@@ -2,9 +2,12 @@ package com.uavplatform.mission.controller;
 
 import com.uavplatform.common.result.ApiResult;
 import com.uavplatform.common.result.PageResult;
+import com.uavplatform.media.dto.DownloadUrlVO;
+import com.uavplatform.media.dto.ReconstructJobVO;
 import com.uavplatform.mission.dto.CreateMissionCmd;
 import com.uavplatform.mission.dto.MissionPlanDetailVO;
 import com.uavplatform.mission.dto.MissionPlanVO;
+import com.uavplatform.mission.service.MissionReconstructService;
 import com.uavplatform.mission.service.MissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MissionController {
 
     private final MissionService missionService;
+    private final MissionReconstructService missionReconstructService;
 
     @GetMapping
     public ApiResult<PageResult<MissionPlanVO>> page(
@@ -67,6 +71,32 @@ public class MissionController {
     @DeleteMapping("/{id}")
     public ApiResult<Void> delete(@PathVariable Long id) {
         missionService.delete(id);
+        return ApiResult.ok(null);
+    }
+
+    /** 对某次执行发起三维重建（源图在司空侧） */
+    @PostMapping("/{planId}/executions/{executionId}/reconstruct")
+    public ApiResult<ReconstructJobVO> startReconstruct(
+            @PathVariable Long planId,
+            @PathVariable Long executionId) {
+        return ApiResult.ok(missionReconstructService.start(planId, executionId));
+    }
+
+    /** 获取已完成三维重建的模型 ZIP 下载地址 */
+    @GetMapping("/{planId}/executions/{executionId}/reconstruct/model-url")
+    public ApiResult<DownloadUrlVO> reconstructModelUrl(
+            @PathVariable Long planId,
+            @PathVariable Long executionId) {
+        return ApiResult.ok(missionReconstructService.resolveModelDownloadUrl(planId, executionId));
+    }
+
+    /** 删除某次执行下的采集媒体（司空 fileId 或本地媒体 ID） */
+    @DeleteMapping("/{planId}/executions/{executionId}/media/{mediaId}")
+    public ApiResult<Void> deleteExecutionMedia(
+            @PathVariable Long planId,
+            @PathVariable Long executionId,
+            @PathVariable Long mediaId) {
+        missionService.deleteExecutionMedia(planId, executionId, mediaId);
         return ApiResult.ok(null);
     }
 }

@@ -3,12 +3,13 @@ import type { ApiResult } from './http'
 
 export interface DashboardSummary {
   quota: {
+    mode?: 'private' | 'saas' | string
     storageTotalBytes: number
     storageUsedBytes: number
     mappingQuota: number
     mappingUsed: number
-    livestreamMinutesTotal: number
-    livestreamMinutesUsed: number
+    livestreamMinutesTotal: number | null
+    livestreamMinutesUsed: number | null
   }
   dockStatus: { idle: number; working: number; debugging: number; offline: number }
   aircraftCount: number

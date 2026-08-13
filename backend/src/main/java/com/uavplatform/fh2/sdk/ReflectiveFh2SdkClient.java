@@ -7,10 +7,13 @@ import com.uavplatform.fh2.dto.Fh2DeviceItemVO;
 import com.uavplatform.fh2.dto.Fh2FlightTaskDetailVO;
 import com.uavplatform.fh2.dto.Fh2MediaFileVO;
 import com.uavplatform.fh2.dto.Fh2MediaPageVO;
+import com.uavplatform.fh2.dto.Fh2TerraModelVO;
 import com.uavplatform.fh2.dto.Fh2WaylineItemVO;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -22,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +42,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 @RequiredArgsConstructor
 public class ReflectiveFh2SdkClient implements Fh2SdkClient {
+
+    /** 三维重建专用日志（落盘 logs/aiflow-reconstruct.log） */
+    private static final Logger RECON = LoggerFactory.getLogger("aiflow.reconstruct");
 
     /** 视为「在飞」的模式码（与 DroneModeCode 枚举名对齐） */
     private static final Set<String> FLYING_MODE_CODES = Set.of(
@@ -82,6 +89,11 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
     private volatile Object workspace;
     /** 多租户 session；getDroneInstance(sessionId, sn) 需要 */
     private volatile Long sessionId;
+    /** TerraBuildModule.listenReconstructionStatusChanged 返回的 listenId */
+    private volatile int reconstructionListenId = -1;
+
+    /** 缓存重建回调中的错误码（fileId → code），供 syncOne 查询 */
+    private final ConcurrentHashMap<Long, Integer> reconstructionErrorCodeMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -89,6 +101,7 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
     }
 
     public synchronized void refresh() {
+        cancelReconstructionStatusListener();
         ready = false;
         workspace = null;
         sessionId = null;
@@ -120,19 +133,33 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             invoke(sdkConfig, "setLogLevel", String.class, "info");
             invoke(sdkConfig, "setLogToConsole", boolean.class, true);
             invoke(sdkConfig, "setShowVersionInfo", boolean.class, true);
-            // 避免默认 ./logs 写到只读目录；WSL/容器下用 /tmp
-            invoke(sdkConfig, "setLogFilePath", String.class, System.getProperty("uav.fh2.sdk-log-dir", "/tmp/fh2-sdk-logs"));
+            String sdkLogPath = StringUtils.hasText(cfg.getSdkLogFilePath())
+                    ? cfg.getSdkLogFilePath().trim()
+                    : System.getProperty("uav.fh2.sdk-log-dir", "logs/fh2-sdk.log");
+            invoke(sdkConfig, "setLogFilePath", String.class, sdkLogPath);
+            long maxLogSize = cfg.getSdkLogMaxFileSize() > 0 ? cfg.getSdkLogMaxFileSize() : 4L * 1024 * 1024;
+            invoke(sdkConfig, "setLogMaxFileSize", long.class, maxLogSize);
+            int maxLogFiles = cfg.getSdkLogMaxFiles() > 0 ? cfg.getSdkLogMaxFiles() : 100;
+            invoke(sdkConfig, "setLogMaxFiles", int.class, maxLogFiles);
 
-            if (StringUtils.hasText(cfg.getExtraHttpHeaderKey())) {
-                Object header = newInstance("com.dji.flighthubsdk.bean.HeaderKeyValue",
-                        new Class[]{String.class, String.class},
-                        cfg.getExtraHttpHeaderKey(), cfg.getExtraHttpHeaderValue());
-                List<Object> headers = List.of(header);
-                Class<?> sdk = Class.forName("com.dji.flighthubsdk.FlightHubSDK");
-                Method setHttp = sdk.getMethod("setHttpHeaders", List.class);
-                Method setWs = sdk.getMethod("setWebSocketAuthHeaders", List.class);
-                setHttp.invoke(null, headers);
-                setWs.invoke(null, headers);
+            // 对齐 FlightHubSDKDemo：始终设置网关鉴权头，缺省时回退 demo 默认值 x-demo-uuid
+            String gwKey = StringUtils.hasText(cfg.getExtraHttpHeaderKey())
+                    ? cfg.getExtraHttpHeaderKey().trim()
+                    : "x-demo-uuid";
+            String gwVal = StringUtils.hasText(cfg.getExtraHttpHeaderKey())
+                    ? cfg.getExtraHttpHeaderValue()
+                    : "demo-test-uuid";
+            Object header = newInstance("com.dji.flighthubsdk.bean.HeaderKeyValue",
+                    new Class[]{String.class, String.class}, gwKey, gwVal);
+            List<Object> headers = List.of(header);
+            Class<?> sdk0 = Class.forName("com.dji.flighthubsdk.FlightHubSDK");
+            Object wsHeaderResult = sdk0.getMethod("setWebSocketAuthHeaders", List.class).invoke(null, headers);
+            Object httpHeaderResult = sdk0.getMethod("setHttpHeaders", List.class).invoke(null, headers);
+            log.info("[FH2] setWebSocketAuthHeaders={} setHttpHeaders={} header={}", wsHeaderResult, httpHeaderResult, gwKey);
+            if (!isSuccess(wsHeaderResult) || !isSuccess(httpHeaderResult)) {
+                error = "SDK 鉴权头设置失败 ws=" + wsHeaderResult + " http=" + httpHeaderResult;
+                log.error("[FH2] {}", error);
+                return;
             }
 
             Class<?> sdk = Class.forName("com.dji.flighthubsdk.FlightHubSDK");
@@ -145,15 +172,43 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 return;
             }
 
-            // 优先多租户 session
+            // 多租户：先用组织 binding 注册 session；若配置了 projectUuid，再切到项目 Workspace
+            //（Terra 媒体文件夹在项目下，仅用组织上下文时 folderIds 可能对不上）。
             Object sid = null;
             try {
                 Class<?> manager = Class.forName("com.dji.flighthubsdk.core.FlightHubSdkManager");
+                String binding = cfg.getBindingUuid().trim();
                 sid = manager.getMethod("registerWorkspaceToken", String.class, String.class)
-                        .invoke(null, cfg.getBindingUuid(), cfg.getUserToken());
+                        .invoke(null, binding, cfg.getUserToken());
                 if (sid instanceof Long && ((Long) sid) != 0L) {
                     sessionId = (Long) sid;
                     workspace = manager.getMethod("getWorkspaceInstance", long.class).invoke(null, sessionId);
+                    log.info("[FH2] registerWorkspaceToken ok binding={}", binding);
+                }
+                if (StringUtils.hasText(cfg.getProjectUuid())) {
+                    String project = cfg.getProjectUuid().trim();
+                    try {
+                        // 再注册项目 token，便于 Terra 在项目空间解析 folderIds
+                        Object psid = manager.getMethod("registerWorkspaceToken", String.class, String.class)
+                                .invoke(null, project, cfg.getUserToken());
+                        if (psid instanceof Long && ((Long) psid) != 0L) {
+                            sessionId = (Long) psid;
+                            workspace = manager.getMethod("getWorkspaceInstance", long.class)
+                                    .invoke(null, sessionId);
+                            log.info("[FH2] registerWorkspaceToken ok project={}", project);
+                        }
+                    } catch (Exception pex) {
+                        log.warn("[FH2] project workspace register skip: {}", pex.getMessage());
+                    }
+                    try {
+                        Object byName = manager.getMethod("getWorkspaceInstance", String.class).invoke(null, project);
+                        if (byName != null) {
+                            workspace = byName;
+                            log.info("[FH2] getWorkspaceInstance(project) ok project={}", project);
+                        }
+                    } catch (Exception pex) {
+                        log.debug("[FH2] getWorkspaceInstance(String) skip: {}", pex.getMessage());
+                    }
                 }
             } catch (Exception ex) {
                 log.debug("[FH2] registerWorkspaceToken 不可用，回退 getWorkspaceInstance(): {}", ex.getMessage());
@@ -166,9 +221,11 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 return;
             }
             ready = true;
-            log.info("[FH2] native SDK initialized, version={}, sessionId={}",
+            log.info("[FH2] native SDK initialized, version={}, sessionId={}, projectUuid={}",
                     safeInvokeStatic("com.dji.flighthubsdk.FlightHubSDK", "getVersion"),
-                    sessionId);
+                    sessionId,
+                    cfg.getProjectUuid());
+            ensureReconstructionStatusListener();
         } catch (Exception e) {
             error = "SDK init exception: " + e.getMessage();
             log.error("[FH2] init failed", e);
@@ -218,6 +275,12 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
         } catch (Exception e) {
             throw new IllegalStateException("listDevices failed: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<Fh2DeviceItemVO> listAircraft() {
+        ensureReady();
+        return resolveAircraftCandidates(List.of());
     }
 
     @Override
@@ -659,10 +722,16 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
 
     @Override
     public Fh2MediaPageVO listMediaFiles(long page, long pageSize, List<String> fileTypes, String keyword) {
+        return listMediaFilesByFlightId(null, page, pageSize, fileTypes, keyword);
+    }
+
+    @Override
+    public Fh2MediaPageVO listMediaFilesByFlightId(String flightId, long page, long pageSize,
+                                                   List<String> fileTypes, String keyword) {
         long p = page <= 0 ? 1 : page;
         int size = pageSize <= 0 ? 50 : (int) Math.min(pageSize, 200);
         int startIndex = (int) ((p - 1) * (long) size);
-        Fh2MediaPageVO result = listMediaFilesFromIndex(startIndex, size, fileTypes, keyword);
+        Fh2MediaPageVO result = listMediaFilesFromIndex(startIndex, size, fileTypes, keyword, flightId);
         result.setPage(p);
         result.setPageSize(size);
         return result;
@@ -670,6 +739,12 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
 
     @Override
     public Fh2MediaPageVO listMediaFilesFromIndex(long startIndex, long pageSize, List<String> fileTypes, String keyword) {
+        return listMediaFilesFromIndex(startIndex, pageSize, fileTypes, keyword, null);
+    }
+
+    @Override
+    public Fh2MediaPageVO listMediaFilesFromIndex(long startIndex, long pageSize, List<String> fileTypes,
+                                                  String keyword, String flightId) {
         ensureReady();
         int size = pageSize <= 0 ? 50 : (int) Math.min(pageSize, 200);
         int index = (int) Math.max(0, startIndex);
@@ -685,7 +760,7 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             }
 
             Object param = newInstance("com.dji.flighthubsdk.bean.GetMediaFilesListParams");
-            invoke(param, "setFlightId", String.class, "");
+            invoke(param, "setFlightId", String.class, StringUtils.hasText(flightId) ? flightId.trim() : "");
             invoke(param, "setStartIndex", int.class, index);
             invoke(param, "setPageSize", int.class, size);
             List<String> types = (fileTypes == null || fileTypes.isEmpty())
@@ -1004,6 +1079,547 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
         return module;
     }
 
+    private Object terraBuildModule() throws Exception {
+        Object module = workspace.getClass().getMethod("getTerraBuildModule").invoke(workspace);
+        if (module == null) {
+            throw new IllegalStateException("getTerraBuildModule 返回空（当前环境可能未部署建图服务）");
+        }
+        return module;
+    }
+
+    /** 文档建议：提交重建前注册状态推送；全局注册一次即可。 */
+    private synchronized void ensureReconstructionStatusListener() {
+        if (!ready || workspace == null || reconstructionListenId >= 0) {
+            return;
+        }
+        try {
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$TerraBuildReconstructionStatusChangedCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 1) {
+                    logReconstructionStatusPush(args[0]);
+                }
+                return null;
+            });
+            Object module = terraBuildModule();
+            Object listenIdObj = module.getClass()
+                    .getMethod("listenReconstructionStatusChanged", cbClass)
+                    .invoke(module, cb);
+            int listenId = listenIdObj instanceof Number n ? n.intValue() : -1;
+            if (listenId >= 0) {
+                reconstructionListenId = listenId;
+                RECON.info("[FH2] call method=TerraBuildModule.listenReconstructionStatusChanged ok listenId={}",
+                        listenId);
+            } else {
+                RECON.warn("[FH2] listenReconstructionStatusChanged returned invalid listenId={}", listenIdObj);
+            }
+        } catch (Exception e) {
+            RECON.warn("[FH2] listenReconstructionStatusChanged register failed: {}", rootMessage(e));
+        }
+    }
+
+    private synchronized void cancelReconstructionStatusListener() {
+        if (reconstructionListenId < 0 || workspace == null) {
+            reconstructionListenId = -1;
+            return;
+        }
+        int id = reconstructionListenId;
+        reconstructionListenId = -1;
+        try {
+            Object module = workspace.getClass().getMethod("getTerraBuildModule").invoke(workspace);
+            if (module != null) {
+                module.getClass().getMethod("cancelListenReconstructionStatusChanged", int.class)
+                        .invoke(module, id);
+                RECON.info("[FH2] call method=TerraBuildModule.cancelListenReconstructionStatusChanged listenId={}",
+                        id);
+            }
+        } catch (Exception e) {
+            RECON.debug("[FH2] cancelListenReconstructionStatusChanged skip listenId={}: {}", id, e.getMessage());
+        }
+    }
+
+    private void logReconstructionStatusPush(Object msg) {
+        if (msg == null) {
+            return;
+        }
+        try {
+            Long fileId = asLong(invoke(msg, "getId"));
+            String uuid = str(invoke(msg, "getUuid"));
+            String name = str(invoke(msg, "getName"));
+            Integer state = asInt(invoke(msg, "getState"));
+            Integer code = asInt(invoke(msg, "getCode"));
+            Long size = asLong(invoke(msg, "getSize"));
+            Integer fileType = asInt(invoke(msg, "getFileType"));
+            Integer subFileType = asInt(invoke(msg, "getSubFileType"));
+            String jobInfo = formatTerraBuildJobInfo(invoke(msg, "getJobInfo"));
+            String jobInfos = formatTerraBuildJobInfoList(invoke(msg, "getJobInfos"));
+            // 缓存错误码，供 syncOne 查询（code!=0 表示有异常）
+            if (fileId != null && code != null && code != 0) {
+                reconstructionErrorCodeMap.put(fileId, code);
+            }
+            RECON.info(
+                    "[FH2] reconstructionStatusChanged fileId={} uuid={} name={} state={} code={}"
+                            + " size={} fileType={} subFileType={} jobInfo={} jobInfos={}",
+                    fileId, uuid, name, state, code, size, fileType, subFileType, jobInfo, jobInfos);
+        } catch (Exception e) {
+            RECON.warn("[FH2] reconstructionStatusChanged parse failed: {} msg={}", e.getMessage(), msg);
+        }
+    }
+
+    private static String formatTerraBuildJobInfoList(Object listObj) {
+        if (!(listObj instanceof List<?> list) || list.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(formatTerraBuildJobInfo(list.get(i)));
+        }
+        return sb.append(']').toString();
+    }
+
+    private static String formatTerraBuildJobInfo(Object job) {
+        if (job == null) {
+            return "null";
+        }
+        try {
+            return "{type=" + asInt(invoke(job, "getType"))
+                    + ", uuid=" + str(invoke(job, "getUuid"))
+                    + ", jobStatus=" + asInt(invoke(job, "getJobStatus"))
+                    + ", percent=" + asInt(invoke(job, "getPercent"))
+                    + ", code=" + asInt(invoke(job, "getCode")) + "}";
+        } catch (Exception e) {
+            return String.valueOf(job);
+        }
+    }
+
+    @Override
+    public long createTerraReconstruction(String name, List<Integer> folderIds) {
+        return createTerraReconstruction(name, folderIds, List.of());
+    }
+
+    @Override
+    public long createTerraReconstruction(String name, List<Integer> folderIds, List<String> folderUuids) {
+        ensureReady();
+        ensureReconstructionStatusListener();
+        List<Integer> ids = new ArrayList<>();
+        if (folderIds != null) {
+            for (Integer id : folderIds) {
+                if (id != null && id > 0 && !ids.contains(id)) {
+                    ids.add(id);
+                }
+            }
+        }
+        List<String> uuids = new ArrayList<>();
+        if (folderUuids != null) {
+            for (String uuid : folderUuids) {
+                if (StringUtils.hasText(uuid) && !uuids.contains(uuid.trim())) {
+                    uuids.add(uuid.trim());
+                }
+            }
+        }
+        if (uuids.isEmpty() && ids.isEmpty()) {
+            throw new IllegalArgumentException("folderIds / folderUuids 无效");
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Long> idRef = new AtomicReference<>();
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Fh2Properties cfg = configHolder.effective();
+            Object params = buildDemo3dReconstructionParams(name, ids, uuids, cfg);
+
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$TerraBuildCreateReconstructionCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        Integer id = asInt(invoke(result, "getId"));
+                        if (id != null && id > 0) {
+                            idRef.set(id.longValue());
+                        }
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+
+            Object module = terraBuildModule();
+            Class<?> paramsClass = Class.forName("com.dji.flighthubsdk.bean.TerraBuildCreateReconstructionParams");
+            String modelName = blankTo(name, uuids.isEmpty() ? "aiflow-3d-" + ids.get(0) : "aiflow-3d-" + uuids.get(0));
+            int loggedQuality = mapQualityLevel(cfg.getReconstructionQualityLevel());
+            double loggedSimplify = cfg.getReconstructionSimplifiedFactor() == null ? 0.8 : cfg.getReconstructionSimplifiedFactor();
+            String loggedWkt = StringUtils.hasText(cfg.getReconstructionWkt()) ? cfg.getReconstructionWkt().trim() : "EPSG:32650";
+            RECON.info(
+                    "[FH2] call method=TerraBuildModule.createReconstruction (demo 3D)"
+                            + " params={{name={}, folderIds={}, folderUuids={}, reconstructionType=[3],"
+                            + " qualityLevel={}, wkt={}, simplifiedFactor={}, generateModelFormats=[1,2],"
+                            + " sfmMethod={}, useImagePosition=true, generateB3dm=true, generateOsgb=true}}",
+                    modelName, ids, uuids, loggedQuality, loggedWkt, loggedSimplify,
+                    blankTo(cfg.getReconstructionSfmMethod(), "GLOBAL"));
+            module.getClass().getMethod("createReconstruction", paramsClass, cbClass)
+                    .invoke(module, params, cb);
+            if (!latch.await(90, TimeUnit.SECONDS)) {
+                RECON.error("[FH2] method=TerraBuildModule.createReconstruction timeout name={} folderIds={} folderUuids={}",
+                        modelName, ids, uuids);
+                throw new IllegalStateException("createReconstruction timeout");
+            }
+            if (err.get() != null) {
+                RECON.error("[FH2] method=TerraBuildModule.createReconstruction sdkError name={} folderIds={} folderUuids={} err={}",
+                        modelName, ids, uuids, err.get());
+                throw new IllegalStateException("createReconstruction: " + err.get()
+                        + " folderIds=" + ids + " folderUuids=" + uuids);
+            }
+            if (idRef.get() == null) {
+                RECON.error("[FH2] method=TerraBuildModule.createReconstruction empty modelId name={} folderIds={} folderUuids={}",
+                        modelName, ids, uuids);
+                throw new IllegalStateException("createReconstruction 未返回模型 ID, folderIds=" + ids + " folderUuids=" + uuids);
+            }
+            RECON.info("[FH2] method=TerraBuildModule.createReconstruction ok modelId={} folderIds={} folderUuids={}",
+                    idRef.get(), ids, uuids);
+            return idRef.get();
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            RECON.error("[FH2] method=TerraBuildModule.createReconstruction failed name={} folderIds={} folderUuids={}: {}",
+                    name, folderIds, folderUuids, rootMessage(e));
+            throw new IllegalStateException("createTerraReconstruction failed: " + rootMessage(e), e);
+        }
+    }
+
+    /**
+     * 对齐 FlightHubSDKDemo.handleTerraBuildCreateReconstruction3D 的 bean 入参。
+     */
+    private Object buildDemo3dReconstructionParams(String name, List<Integer> folderIds, List<String> folderUuids,
+                                                     Fh2Properties cfg) throws Exception {
+        Object params = newInstance("com.dji.flighthubsdk.bean.TerraBuildCreateReconstructionParams");
+        invoke(params, "setName", String.class, blankTo(name, "aiflow-3d"));
+        invoke(params, "setReconstructionType", List.class, List.of(3));
+        if (!folderUuids.isEmpty()) {
+            invoke(params, "setFolderUuids", List.class, folderUuids);
+        } else {
+            invoke(params, "setFolderIds", List.class, folderIds);
+        }
+        // 对齐 demo：simplifiedFactor 默认 0.8
+        double simplify = cfg.getReconstructionSimplifiedFactor() == null
+                ? 0.8 : cfg.getReconstructionSimplifiedFactor();
+        invoke(params, "setSimplifiedFactor", double.class, simplify);
+        invoke(params, "setSimplifiedFactorSet", boolean.class, true);
+        // WKT 坐标系默认 EPSG:32650（UTM Zone 50N, 114°E~120°E）
+        String wkt = StringUtils.hasText(cfg.getReconstructionWkt())
+                ? cfg.getReconstructionWkt().trim() : "EPSG:32650";
+        invoke(params, "setWkt", String.class, wkt);
+        int quality = mapQualityLevel(cfg.getReconstructionQualityLevel());
+        invoke(params, "setQualityLevel", int.class, quality);
+        invoke(params, "setQualityLevelSet", boolean.class, true);
+        invoke(params, "setGenerateModelFormats", List.class, List.of(1, 2));
+
+        Object p3d = newInstance("com.dji.flighthubsdk.bean.TerraBuildParameter3D");
+        invoke(p3d, "setSfmMethod", String.class, blankTo(cfg.getReconstructionSfmMethod(), "GLOBAL"));
+        invoke(p3d, "setSfmFeatureQuantityLevel", int.class, 1);
+        invoke(p3d, "setSfmFeatureQuantityLevelSet", boolean.class, true);
+        invoke(p3d, "setUseImagePosition", boolean.class, true);
+        invoke(p3d, "setUseImagePositionSet", boolean.class, true);
+        invoke(p3d, "setOutputMesh", boolean.class, true);
+        invoke(p3d, "setOutputMeshSet", boolean.class, true);
+        invoke(p3d, "setQualityLevel", int.class, quality);
+        invoke(p3d, "setQualityLevelSet", boolean.class, true);
+        invoke(p3d, "setGenerateB3dm", boolean.class, true);
+        invoke(p3d, "setGenerateB3dmSet", boolean.class, true);
+        // 对齐 demo：补充 generateOsgb（当前代码缺失）
+        invoke(p3d, "setGenerateOsgb", boolean.class, true);
+        invoke(p3d, "setGenerateOsgbSet", boolean.class, true);
+
+        Class<?> geoClass = Class.forName("com.dji.flighthubsdk.bean.TerraBuildGeoDesc");
+        Constructor<?> geoCtor = geoClass.getConstructor(String.class, String.class, String.class, String.class,
+                List.class, String.class);
+        Object outGeo = geoCtor.newInstance("GEO_CS", wkt, "", "", null, "");
+        if (StringUtils.hasText(cfg.getReconstructionVerticalCs())) {
+            invoke(outGeo, "setOverrideVerticalCs", String.class, cfg.getReconstructionVerticalCs().trim());
+        }
+        invoke(p3d, "setOutputGeoDesc", geoClass, outGeo);
+
+        Class<?> p3dClass = Class.forName("com.dji.flighthubsdk.bean.TerraBuildParameter3D");
+        params.getClass().getMethod("setParameter3d", p3dClass).invoke(params, p3d);
+        return params;
+    }
+
+    @Override
+    public List<Fh2TerraModelVO> listTerraModels(int page, int pageSize) {
+        ensureReady();
+        int p = page <= 0 ? 1 : page;
+        int size = pageSize <= 0 ? 50 : Math.min(pageSize, 200);
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<List<Fh2TerraModelVO>> ref = new AtomicReference<>(List.of());
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$TerraBuildGetModelFileListCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        Object listObj = invoke(result, "getList");
+                        List<Fh2TerraModelVO> mapped = new ArrayList<>();
+                        if (listObj instanceof List<?> raw) {
+                            for (Object item : raw) {
+                                if (item == null) {
+                                    continue;
+                                }
+                                mapped.add(Fh2TerraModelVO.builder()
+                                        .id(asInt(invoke(item, "getId")))
+                                        .uuid(str(invoke(item, "getUuid")))
+                                        .name(str(invoke(item, "getName")))
+                                        .state(asInt(invoke(item, "getState")))
+                                        .thumbnailUrl(str(invoke(item, "getThumbnailUrl")))
+                                        .zipUrl(str(invoke(item, "getZipUrl")))
+                                        .build());
+                            }
+                        }
+                        ref.set(mapped);
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+            Object module = terraBuildModule();
+            RECON.debug("[FH2] call method=TerraBuildModule.getModelFileList params={{page={}, pageSize={}}}",
+                    p, size);
+            module.getClass().getMethod("getModelFileList", int.class, int.class, cbClass)
+                    .invoke(module, p, size, cb);
+            if (!latch.await(45, TimeUnit.SECONDS)) {
+                RECON.warn("[FH2] listTerraModels timeout page={} size={}", p, size);
+                throw new IllegalStateException("getModelFileList timeout");
+            }
+            if (err.get() != null) {
+                RECON.warn("[FH2] listTerraModels sdkError page={} size={} err={}", p, size, err.get());
+                throw new IllegalStateException("getModelFileList: " + err.get());
+            }
+            List<Fh2TerraModelVO> list = ref.get() == null ? List.of() : ref.get();
+            RECON.debug("[FH2] listTerraModels ok page={} size={} count={}", p, size, list.size());
+            return list;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            RECON.warn("[FH2] listTerraModels failed page={} size={}: {}", p, size, rootMessage(e));
+            throw new IllegalStateException("listTerraModels failed: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public java.util.Map<Integer, String> getTerraFolderUuidMap(String modelUuid) {
+        ensureReady();
+        if (!StringUtils.hasText(modelUuid)) {
+            return java.util.Map.of();
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<java.util.Map<Integer, String>> ref = new AtomicReference<>(java.util.Map.of());
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$TerraBuildGetReconstructionSettingsCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        Object folderList = invoke(result, "getFolderList");
+                        java.util.Map<Integer, String> map = new java.util.LinkedHashMap<>();
+                        if (folderList instanceof List<?> list) {
+                            for (Object fi : list) {
+                                if (fi != null) {
+                                    Integer fid = toInt(invoke(fi, "getFolderId"));
+                                    String fu = str(invoke(fi, "getFolderUuid"));
+                                    if (fid != null && StringUtils.hasText(fu)) {
+                                        map.put(fid, fu.trim());
+                                    }
+                                }
+                            }
+                        }
+                        // 诊断：记录服务端 mediaInputObjectKey 和 state
+                        String mediaKey = str(invoke(result, "getMediaInputObjectKey"));
+                        Integer resultState = asInt(invoke(result, "getState"));
+                        RECON.info("[FH2] getReconstructionSettings detail modelUuid={} state={} mediaInputObjectKey={} folderMap={}",
+                                modelUuid, resultState, mediaKey, map);
+                        ref.set(map);
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+            Object module = terraBuildModule();
+            RECON.debug("[FH2] call method=TerraBuildModule.getReconstructionSettings modelUuid={}", modelUuid);
+            module.getClass().getMethod("getReconstructionSettings", String.class, cbClass)
+                    .invoke(module, modelUuid.trim(), cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                RECON.warn("[FH2] getReconstructionSettings timeout modelUuid={}", modelUuid);
+                return java.util.Map.of();
+            }
+            if (err.get() != null) {
+                RECON.debug("[FH2] getReconstructionSettings sdkError modelUuid={} err={}", modelUuid, err.get());
+                return java.util.Map.of();
+            }
+            return ref.get();
+        } catch (Exception e) {
+            RECON.debug("[FH2] getReconstructionSettings failed modelUuid={}: {}", modelUuid, rootMessage(e));
+            return java.util.Map.of();
+        }
+    }
+
+    @Override
+    public String resolveTerraFolderUuidByFolderIds(java.util.Collection<Integer> targetFolderIds) {
+        if (!available() || targetFolderIds == null || targetFolderIds.isEmpty()) {
+            return null;
+        }
+        java.util.Set<Integer> targets = new java.util.HashSet<>(targetFolderIds);
+        try {
+            // 查最近 10 个模型，用 getReconstructionSettings 反查 folderId→folderUuid 映射
+            List<Fh2TerraModelVO> models = listTerraModels(1, 10);
+            for (Fh2TerraModelVO m : models) {
+                if (m == null || !StringUtils.hasText(m.getUuid())) {
+                    continue;
+                }
+                java.util.Map<Integer, String> folderMap = getTerraFolderUuidMap(m.getUuid());
+                for (java.util.Map.Entry<Integer, String> e : folderMap.entrySet()) {
+                    if (targets.contains(e.getKey())) {
+                        RECON.info("[FH2] resolved folderUuid={} (folderId={}) from model id={} uuid={}",
+                                e.getValue(), e.getKey(), m.getId(), m.getUuid());
+                        return e.getValue();
+                    }
+                }
+            }
+            RECON.info("[FH2] resolveTerraFolderUuidByFolderIds: no match for folderIds={} in recent models", targets);
+        } catch (Exception e) {
+            RECON.debug("[FH2] resolveTerraFolderUuidByFolderIds failed: {}", rootMessage(e));
+        }
+        return null;
+    }
+
+    @Override
+    public int getReconstructionErrorCode(long fileId) {
+        return reconstructionErrorCodeMap.getOrDefault(fileId, 0);
+    }
+
+    @Override
+    public int getReconstructionImageCount(String modelUuid) {
+        ensureReady();
+        if (!StringUtils.hasText(modelUuid)) {
+            return -1;
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Integer> countRef = new AtomicReference<>(-1);
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$TerraBuildGetReconstructionImagesCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        countRef.set(asInt(invoke(result, "getTotal")));
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+            Object module = terraBuildModule();
+            RECON.debug("[FH2] call method=TerraBuildModule.getReconstructionImages modelUuid={}", modelUuid);
+            module.getClass().getMethod("getReconstructionImages", String.class, cbClass)
+                    .invoke(module, modelUuid.trim(), cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                RECON.warn("[FH2] getReconstructionImages timeout modelUuid={}", modelUuid);
+                return -1;
+            }
+            if (err.get() != null) {
+                RECON.warn("[FH2] getReconstructionImages sdkError modelUuid={} err={}", modelUuid, err.get());
+                return -1;
+            }
+            int count = countRef.get() == null ? -1 : countRef.get();
+            RECON.info("[FH2] getReconstructionImages ok modelUuid={} imageCount={}", modelUuid, count);
+            return count;
+        } catch (Exception e) {
+            RECON.debug("[FH2] getReconstructionImages failed modelUuid={}: {}", modelUuid, rootMessage(e));
+            return -1;
+        }
+    }
+
+    @Override
+    public String getTerraModelFileUrl(int modelId, int type) {
+        ensureReady();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> urlRef = new AtomicReference<>();
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$TerraBuildGetModelFileUrlCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        urlRef.set(str(invoke(result, "getUrl")));
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+            Object module = terraBuildModule();
+            RECON.info("[FH2] call method=TerraBuildModule.getModelFileUrl params={{fileId={}, type={}}}",
+                    modelId, type);
+            module.getClass().getMethod("getModelFileUrl", int.class, int.class, cbClass)
+                    .invoke(module, modelId, type, cb);
+            if (!latch.await(45, TimeUnit.SECONDS)) {
+                RECON.warn("[FH2] getTerraModelFileUrl timeout modelId={} type={}", modelId, type);
+                throw new IllegalStateException("getModelFileUrl timeout");
+            }
+            if (err.get() != null) {
+                RECON.warn("[FH2] getTerraModelFileUrl sdkError modelId={} type={} err={}",
+                        modelId, type, err.get());
+                throw new IllegalStateException("getModelFileUrl: " + err.get());
+            }
+            String url = urlRef.get();
+            RECON.info("[FH2] getTerraModelFileUrl ok modelId={} type={} urlLen={}",
+                    modelId, type, url == null ? 0 : url.length());
+            return url;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            RECON.warn("[FH2] getTerraModelFileUrl failed modelId={} type={}: {}",
+                    modelId, type, rootMessage(e));
+            throw new IllegalStateException("getTerraModelFileUrl failed: " + rootMessage(e), e);
+        }
+    }
+
+    /**
+     * DJI TerraBuild 质量等级：1=高（最佳效果），2=中，3=低（最快）。
+     * 对齐 demo handleTerraBuildCreateReconstruction3D 的 setQualityLevel(1)。
+     */
+    private static int mapQualityLevel(String level) {
+        if (!StringUtils.hasText(level)) {
+            return 1;
+        }
+        return switch (level.trim().toLowerCase()) {
+            case "high" -> 1;
+            case "low" -> 3;
+            default -> 2;
+        };
+    }
+
     /** 若 SDK 后续版本提供 executeFlightTask，则创建后主动下发执行。 */
     private void tryExecuteFlightTaskIfPresent(Object module, String taskUuid) {
         try {
@@ -1292,6 +1908,19 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
 
     private static String str(Object o) {
         return o == null ? null : String.valueOf(o);
+    }
+
+    private static Integer toInt(Object o) {
+        if (o instanceof Number n) {
+            return n.intValue();
+        }
+        if (o instanceof String s && !s.isBlank()) {
+            try {
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
     }
 
     private static Long asLong(Object o) {

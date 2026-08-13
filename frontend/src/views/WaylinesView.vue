@@ -1,6 +1,6 @@
 <template>
   <div class="waylines-page">
-    <aside class="library-panel">
+    <aside class="library-panel" :style="{ width: `${libraryWidth}px` }">
       <div class="library-title">{{ t('waylines.libraryTitle') }}</div>
 
       <div class="library-body">
@@ -86,10 +86,6 @@
                   </el-dropdown>
                 </div>
               </div>
-              <div class="card-meta">
-                <el-icon><Promotion /></el-icon>
-                <span>{{ row.aircraftModel || '-' }}</span>
-              </div>
               <div class="card-time">
                 {{ t('waylines.updatedAt') }} {{ row.updatedAt || '-' }}
               </div>
@@ -108,6 +104,11 @@
           </div>
         </div>
       </div>
+      <div
+        class="library-resizer"
+        title="拖动调整宽度"
+        @mousedown.prevent="onResizeStart"
+      />
     </aside>
 
     <WaylineEditorPane
@@ -117,16 +118,17 @@
       :folder-id="selectedFolderId ?? undefined"
       @created="onEditorCreated"
       @saved="onEditorSaved"
+      @renamed="onEditorRenamed"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { EditPen, Folder, FolderAdd, MoreFilled, Plus, Promotion, Search } from '@element-plus/icons-vue'
+import { EditPen, Folder, FolderAdd, MoreFilled, Plus, Search } from '@element-plus/icons-vue'
 import WaylineEditorPane from '@/components/WaylineEditorPane.vue'
 import {
   createWaylineFolder,
@@ -144,6 +146,60 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const canWrite = computed(() => !!userStore.user?.permissions?.includes('wayline:write'))
+
+const LIBRARY_WIDTH_KEY = 'aiflow.waylines.libraryWidth'
+const LIBRARY_WIDTH_MIN = 240
+const LIBRARY_WIDTH_MAX = 560
+const LIBRARY_WIDTH_DEFAULT = 420
+
+function clampLibraryWidth(n: number) {
+  return Math.min(LIBRARY_WIDTH_MAX, Math.max(LIBRARY_WIDTH_MIN, Math.round(n)))
+}
+
+function readStoredLibraryWidth() {
+  try {
+    const raw = localStorage.getItem(LIBRARY_WIDTH_KEY)
+    const n = raw ? Number(raw) : NaN
+    if (Number.isFinite(n)) return clampLibraryWidth(n)
+  } catch {
+    // ignore
+  }
+  return LIBRARY_WIDTH_DEFAULT
+}
+
+const libraryWidth = ref(readStoredLibraryWidth())
+let resizing = false
+let resizeStartX = 0
+let resizeStartWidth = 0
+
+function onResizeStart(e: MouseEvent) {
+  resizing = true
+  resizeStartX = e.clientX
+  resizeStartWidth = libraryWidth.value
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onResizeMove)
+  window.addEventListener('mouseup', onResizeEnd)
+}
+
+function onResizeMove(e: MouseEvent) {
+  if (!resizing) return
+  libraryWidth.value = clampLibraryWidth(resizeStartWidth + (e.clientX - resizeStartX))
+}
+
+function onResizeEnd() {
+  if (!resizing) return
+  resizing = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  window.removeEventListener('mousemove', onResizeMove)
+  window.removeEventListener('mouseup', onResizeEnd)
+  try {
+    localStorage.setItem(LIBRARY_WIDTH_KEY, String(libraryWidth.value))
+  } catch {
+    // ignore
+  }
+}
 
 const folders = ref<WaylineFolderVO[]>([])
 const selectedFolderId = ref<number | null>(null)
@@ -301,7 +357,30 @@ async function onEditorCreated(payload: { waylineId: string; name: string }) {
   await reloadWaylines()
 }
 
-async function onEditorSaved() {
+async function onEditorSaved(payload: { waylineId: string; name: string }) {
+  if (payload?.waylineId) {
+    editorWaylineId.value = payload.waylineId
+    selectedKey.value = payload.waylineId
+  }
+  if (payload?.name) {
+    editorWaylineName.value = payload.name
+  }
+  await loadWaylines()
+}
+
+/** 编辑器内改名：司空已生效，立即刷新左侧列表本地名 */
+async function onEditorRenamed(payload: { waylineId: string; name: string }) {
+  if (payload?.waylineId) {
+    editorWaylineId.value = payload.waylineId
+    selectedKey.value = payload.waylineId
+  }
+  if (payload?.name) {
+    editorWaylineName.value = payload.name
+    const key = payload.waylineId
+    list.value = list.value.map((row) =>
+      row.fh2WaylineUuid === key || String(row.id) === key ? { ...row, name: payload.name } : row,
+    )
+  }
   await loadWaylines()
 }
 
@@ -329,6 +408,10 @@ onMounted(async () => {
   await applyRouteQuery()
   await loadWaylines()
 })
+
+onBeforeUnmount(() => {
+  onResizeEnd()
+})
 </script>
 
 <style scoped lang="scss">
@@ -341,13 +424,41 @@ onMounted(async () => {
 }
 
 .library-panel {
-  width: 420px;
+  position: relative;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #2b2b2c;
   background: #141414;
   min-height: 0;
+  min-width: 0;
+}
+
+.library-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  z-index: 4;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 2px;
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+
+  &:hover::after,
+  &:active::after {
+    background: #409eff;
+  }
 }
 
 .library-title {
@@ -364,15 +475,17 @@ onMounted(async () => {
   flex: 1;
   min-height: 0;
   display: flex;
+  overflow: hidden;
 }
 
 .folder-col {
-  width: 150px;
+  width: clamp(96px, 36%, 150px);
   flex-shrink: 0;
   border-right: 1px solid #2b2b2c;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 
 .wayline-col {
@@ -486,7 +599,6 @@ onMounted(async () => {
   opacity: 0.75;
 }
 
-.card-meta,
 .card-time {
   display: flex;
   align-items: center;
@@ -494,10 +606,6 @@ onMounted(async () => {
   font-size: 12px;
   color: #8b919a;
   line-height: 1.5;
-}
-
-.card-meta {
-  margin-bottom: 4px;
 }
 
 .pager {

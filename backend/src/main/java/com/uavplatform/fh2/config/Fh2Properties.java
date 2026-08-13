@@ -33,6 +33,43 @@ public class Fh2Properties {
     /** 工作空间 binding_uuid */
     private String bindingUuid = "";
 
+    /**
+     * OpenAPI 项目 UUID（X-Project-Uuid）。
+     * Token 内 project_uuid 常为空，私有化请在此或 t_fh2_config 配置。
+     */
+    private String projectUuid = "";
+
+    /** 三维重建默认质量：high / medium / low（对齐 demo setQualityLevel(1)=high） */
+    private String reconstructionQualityLevel = "high";
+
+    /** 三维重建坐标系 WKT / EPSG（EPSG:32650 = UTM Zone 50N, 覆盖 114°E~120°E） */
+    private String reconstructionWkt = "EPSG:32650";
+
+    /** 三维重建场景：normal / surround */
+    private String reconstructionMode = "normal";
+
+    /** 模型简化系数（对齐 demo 0.8） */
+    private Double reconstructionSimplifiedFactor = 0.8;
+
+    /** 三维重建 SfM 方法（demo 默认 GLOBAL） */
+    private String reconstructionSfmMethod = "GLOBAL";
+
+    /** 三维 outputGeoDesc 高程覆盖（demo 示例 EPSG:5737，空则不下发） */
+    private String reconstructionVerticalCs = "EPSG:5737";
+
+    /**
+     * 手动指定媒体文件夹 UUID（与 demo ConfigManager.terraBuildFolderUuid 对齐）。
+     * 自动获取不到时使用此值；空则仅依赖 folderIds。
+     */
+    private String terraBuildFolderUuid = "";
+
+    /** 原生 SDK 日志文件（相对后端工作目录） */
+    private String sdkLogFilePath = "logs/fh2-sdk.log";
+
+    private long sdkLogMaxFileSize = 4L * 1024 * 1024;
+
+    private int sdkLogMaxFiles = 100;
+
     /** Java SDK address（scheme+host，不含端口） */
     private String sdkAddress = "http://192.168.41.185";
 

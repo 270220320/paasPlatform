@@ -34,8 +34,6 @@
 
         <el-menu-item index="/">{{ t('nav.home') }}</el-menu-item>
 
-        <el-menu-item v-if="can('dashboard:read')" index="/dashboard">{{ t('nav.dashboard') }}</el-menu-item>
-
         <el-menu-item v-if="can('map:read')" index="/map">{{ t('nav.map') }}</el-menu-item>
 
         <el-menu-item v-if="can('map:read')" index="/airspace">{{ t('nav.airspace') }}</el-menu-item>
@@ -50,8 +48,6 @@
 
         <el-menu-item v-if="can('library:read')" index="/library">{{ t('nav.library') }}</el-menu-item>
 
-        <el-menu-item v-if="can('algorithm:read')" index="/algorithms">{{ t('nav.algorithms') }}</el-menu-item>
-
         <el-menu-item v-if="can('member:read')" index="/members">{{ t('nav.members') }}</el-menu-item>
 
         <el-menu-item v-if="can('role:manage')" index="/roles">{{ t('nav.roles') }}</el-menu-item>
@@ -60,9 +56,7 @@
 
       <div class="right">
 
-        <LocaleSwitcher />
-
-        <span class="user">{{ userStore.user?.displayName }}</span>
+        <span class="user" @click="goProfile">{{ userStore.user?.displayName }}</span>
 
         <el-button link type="primary" @click="onLogout">{{ t('nav.logout') }}</el-button>
 
@@ -96,8 +90,6 @@ import { logoutApi } from '@/api/auth'
 
 import { useUserStore } from '@/stores/user'
 
-import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
-
 
 
 const { t } = useI18n()
@@ -117,10 +109,8 @@ const active = computed(() => {
     '/cockpit',
     '/library',
     '/devices',
-    '/algorithms',
     '/members',
     '/roles',
-    '/dashboard',
     '/airspace',
     '/map',
   ]
@@ -152,6 +142,10 @@ function can(code: string) {
 }
 
 
+
+function goProfile() {
+  router.push({ name: 'profile' })
+}
 
 async function onLogout() {
 
@@ -268,6 +262,16 @@ async function onLogout() {
   color: #a3a6ad;
 
   font-size: 13px;
+
+  cursor: pointer;
+
+  transition: color 0.2s;
+
+}
+
+.user:hover {
+
+  color: #409eff;
 
 }
 

@@ -23,11 +23,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -212,14 +214,17 @@ public class MissionDispatchService {
         String dockSn = dockSn(device);
         String waylineUuid = wayline.getFh2WaylineUuid().trim();
 
-        // 对齐 Apifox 示例：只传必填 + 失控动作 + 返航高度，避免多余字段触发 200101
+        // 对齐 CreateTaskReq：精度 / 断点续飞 / 返航模式 一并下发
         Fh2CreateFlightTaskCmd.Fh2CreateFlightTaskCmdBuilder builder = Fh2CreateFlightTaskCmd.builder()
                 .name(plan.getName())
                 .sn(dockSn)
                 .timeZone("Asia/Shanghai")
                 .waylineUuid(waylineUuid)
                 .outOfControlActionInFlight("continue".equalsIgnoreCase(plan.getSignalLostAction()) ? 2 : 1)
-                .rthAltitude(resolveRthAltitude(plan));
+                .rthAltitude(resolveRthAltitude(plan))
+                .rthMode(resolveRthMode(plan))
+                .waylinePrecisionType(resolveWaylinePrecisionType(plan))
+                .breakPointResume(plan.getBreakpointResume() != null && plan.getBreakpointResume() == 1);
 
         if ("immediate".equals(plan.getStrategy())) {
             builder.taskType(1);
@@ -364,9 +369,19 @@ public class MissionDispatchService {
             }
         }
         if (statusCode == null && taskClient.configured()) {
-            Map<String, Object> detail = taskClient.getFlightTaskDetail(exec.getFh2TaskUuid());
+            // 分开 try-catch：getFlightTaskDetail 可能 404，需让 getTaskSubDetail 回退正常执行
+            Map<String, Object> detail = Map.of();
+            try {
+                detail = taskClient.getFlightTaskDetail(exec.getFh2TaskUuid());
+            } catch (Exception e) {
+                log.debug("[mission-sync] dji2 flighttask detail fail uuid={}: {}", exec.getFh2TaskUuid(), e.getMessage());
+            }
             if (detail.isEmpty()) {
-                detail = taskClient.getTaskSubDetail(exec.getFh2TaskUuid());
+                try {
+                    detail = taskClient.getTaskSubDetail(exec.getFh2TaskUuid());
+                } catch (Exception e) {
+                    log.debug("[mission-sync] dji2 task sub detail fail uuid={}: {}", exec.getFh2TaskUuid(), e.getMessage());
+                }
             }
             if (!detail.isEmpty()) {
                 statusCode = toInt(detail.get("status"));
@@ -380,13 +395,32 @@ public class MissionDispatchService {
         }
         String mapped = mapFh2Status(statusCode);
         if (mapped == null || mapped.equals(exec.getStatus())) {
+            boolean touched = false;
             if ("running".equals(exec.getStatus()) && exec.getActualStartAt() == null) {
                 LocalDateTime runAt = parseFlexibleDateTime(runAtRaw);
                 if (runAt != null) {
                     exec.setActualStartAt(runAt);
-                    missionExecutionMapper.updateById(exec);
-                    return true;
+                    touched = true;
                 }
+            }
+            if (exec.getActualEndAt() == null
+                    && ("completed".equals(exec.getStatus()) || "failed".equals(exec.getStatus())
+                    || "success".equals(exec.getStatus()))) {
+                LocalDateTime endAt = parseFlexibleDateTime(completedAtRaw);
+                if (endAt == null) {
+                    endAt = parseFlexibleDateTime(endAtRaw);
+                }
+                if (endAt != null) {
+                    exec.setActualEndAt(endAt);
+                    touched = true;
+                }
+            }
+            if (fillFlightDuration(exec)) {
+                touched = true;
+            }
+            if (touched) {
+                missionExecutionMapper.updateById(exec);
+                return true;
             }
             return false;
         }
@@ -406,7 +440,25 @@ public class MissionDispatchService {
                 exec.setFailReason(fh2StatusLabel(statusCode));
             }
         }
+        fillFlightDuration(exec);
         missionExecutionMapper.updateById(exec);
+        return true;
+    }
+
+    /** 用起止时间写入飞行时长（秒）；无轨迹里程，不计算 distance。 */
+    private static boolean fillFlightDuration(MissionExecutionEntity exec) {
+        if (exec.getActualStartAt() == null || exec.getActualEndAt() == null) {
+            return false;
+        }
+        long sec = ChronoUnit.SECONDS.between(exec.getActualStartAt(), exec.getActualEndAt());
+        if (sec < 0) {
+            sec = 0;
+        }
+        BigDecimal next = BigDecimal.valueOf(sec);
+        if (next.equals(exec.getFlightDurationSec())) {
+            return false;
+        }
+        exec.setFlightDurationSec(next);
         return true;
     }
 
@@ -460,6 +512,20 @@ public class MissionDispatchService {
             return plan.getMinFlightHeightM().doubleValue();
         }
         return DEFAULT_RTH_ALTITUDE_M;
+    }
+
+    /** 0=智能高度（smartRth） 1=设定高度 */
+    private static int resolveRthMode(MissionPlanEntity plan) {
+        return plan.getSmartRth() != null && plan.getSmartRth() == 1 ? 0 : 1;
+    }
+
+    /** 0=GPS/GNSS 1=RTK */
+    private static int resolveWaylinePrecisionType(MissionPlanEntity plan) {
+        String mode = plan.getAccuracyMode() == null ? "" : plan.getAccuracyMode().trim().toLowerCase();
+        if ("rtk".equals(mode) || "high".equals(mode)) {
+            return 1;
+        }
+        return 0;
     }
 
     private static String fh2StatusLabel(int code) {

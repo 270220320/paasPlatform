@@ -86,6 +86,7 @@ public class MissionService {
     private final MediaAssetMapper mediaAssetMapper;
     private final Fh2SdkClient fh2SdkClient;
     private final MissionDispatchService missionDispatchService;
+    private final MissionReconstructService missionReconstructService;
 
     public PageResult<MissionPlanVO> page(String status, Long deviceId, String keyword, long page, long pageSize) {
         PermissionChecker.require("mission:read");
@@ -117,6 +118,7 @@ public class MissionService {
                 .orderByAsc(MissionExecutionEntity::getId));
         List<MissionExecutionVO> executions = buildExecutionTimeline(plan, rows);
         attachExecutionMedia(executions);
+        missionReconstructService.attachReconstruct(executions);
         int pending = 0, running = 0, completed = 0, failed = 0, cancelled = 0;
         for (MissionExecutionVO item : executions) {
             String st = item.getStatus() == null ? "" : item.getStatus();
@@ -739,6 +741,52 @@ public class MissionService {
         }
     }
 
+    /**
+     * 删除执行记录下的采集媒体：优先按司空 fileId 删除；若为本平台落盘媒体则同步逻辑删除。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteExecutionMedia(Long planId, Long executionId, Long mediaId) {
+        PermissionChecker.require("mission:write");
+        if (planId == null || executionId == null || mediaId == null || mediaId <= 0) {
+            throw new BizException(ErrorCodes.BAD_REQUEST, "参数无效");
+        }
+        MissionPlanEntity plan = missionPlanMapper.selectById(planId);
+        if (plan == null || !workspaceId().equals(plan.getWorkspaceId())) {
+            throw new BizException(ErrorCodes.MISSION_NOT_FOUND, "飞行计划不存在");
+        }
+        MissionExecutionEntity exec = missionExecutionMapper.selectById(executionId);
+        if (exec == null || !planId.equals(exec.getPlanId())) {
+            throw new BizException(ErrorCodes.NOT_FOUND, "执行记录不存在");
+        }
+
+        // 本地媒体：挂在该执行上则标记回收
+        MediaAssetEntity local = mediaAssetMapper.selectById(mediaId);
+        if (local != null && workspaceId().equals(local.getWorkspaceId())
+                && executionId.equals(local.getMissionExecutionId())) {
+            local.setRecycleStatus("in_trash");
+            mediaAssetMapper.updateById(local);
+        }
+
+        // 司空侧：fileId 与列表项 id 一致时删除云端文件
+        if (fh2SdkClient.available()) {
+            try {
+                fh2SdkClient.deleteMediaFiles(List.of(mediaId));
+            } catch (Exception e) {
+                // 仅本地媒体、或司空侧已不存在时：本地已删则视为成功
+                if (local != null && executionId.equals(local.getMissionExecutionId())) {
+                    log.warn("[mission] FH2 delete media {} skipped: {}", mediaId, e.getMessage());
+                    return;
+                }
+                throw new BizException(ErrorCodes.MISSION_REMOTE_ERROR, "删除司空媒体失败：" + e.getMessage());
+            }
+            return;
+        }
+        if (local == null || !executionId.equals(local.getMissionExecutionId())) {
+            throw new BizException(ErrorCodes.FH2_SDK_UNAVAILABLE, "FlightHub SDK 未就绪，无法删除司空媒体");
+        }
+    }
+
+    /** 通过 FlightHub SDK 按 flightId 取司空媒体（私有化无 OpenAPI），翻页拉全。 */
     private Map<String, List<ExecutionMediaVO>> loadFh2MediaByFlightIds(List<MissionExecutionVO> executions) {
         Set<String> flightIds = executions.stream()
                 .map(MissionExecutionVO::getFh2TaskUuid)
@@ -748,27 +796,45 @@ public class MissionService {
         if (flightIds.isEmpty() || !fh2SdkClient.available()) {
             return Map.of();
         }
-        try {
-            Fh2MediaPageVO page = fh2SdkClient.listMediaFiles(1, 200, List.of("2", "3"), null);
-            Map<String, List<ExecutionMediaVO>> byFlight = new HashMap<>();
-            if (page == null || CollectionUtils.isEmpty(page.getList())) {
-                return byFlight;
-            }
-            for (Fh2MediaFileVO file : page.getList()) {
-                if (file == null || !StringUtils.hasText(file.getFlightId())) {
-                    continue;
+        Map<String, List<ExecutionMediaVO>> byFlight = new HashMap<>();
+        for (String flightId : flightIds) {
+            try {
+                List<ExecutionMediaVO> list = new ArrayList<>();
+                long pageNo = 1;
+                long pageSize = 200;
+                long total = Long.MAX_VALUE;
+                while ((pageNo - 1) * pageSize < total && pageNo <= 20) {
+                    Fh2MediaPageVO page = fh2SdkClient.listMediaFilesByFlightId(
+                            flightId, pageNo, pageSize, List.of("2", "3"), null);
+                    if (page == null || CollectionUtils.isEmpty(page.getList())) {
+                        break;
+                    }
+                    if (page.getTotal() > 0) {
+                        total = page.getTotal();
+                    }
+                    for (Fh2MediaFileVO file : page.getList()) {
+                        if (file == null) {
+                            continue;
+                        }
+                        if (StringUtils.hasText(file.getFlightId())
+                                && !flightId.equalsIgnoreCase(file.getFlightId().trim())) {
+                            continue;
+                        }
+                        list.add(toExecutionMediaFromFh2(file));
+                    }
+                    if (page.getList().size() < pageSize) {
+                        break;
+                    }
+                    pageNo++;
                 }
-                String flightId = file.getFlightId().trim();
-                if (!flightIds.contains(flightId)) {
-                    continue;
+                if (!list.isEmpty()) {
+                    byFlight.put(flightId, list);
                 }
-                byFlight.computeIfAbsent(flightId, k -> new ArrayList<>()).add(toExecutionMediaFromFh2(file));
+            } catch (Exception e) {
+                log.warn("[mission] SDK media by flight {} failed: {}", flightId, e.getMessage());
             }
-            return byFlight;
-        } catch (Exception e) {
-            log.warn("[mission] load FH2 media by flight failed: {}", e.getMessage());
-            return Map.of();
         }
+        return byFlight;
     }
 
     private ExecutionMediaVO toExecutionMedia(MediaAssetEntity asset) {
@@ -790,8 +856,14 @@ public class MissionService {
     }
 
     private static String mediaKey(ExecutionMediaVO m) {
+        if (StringUtils.hasText(m.getUuid())) {
+            return "uuid:" + m.getUuid().trim();
+        }
         if (m.getId() != null) {
             return "id:" + m.getId();
+        }
+        if (StringUtils.hasText(m.getPreviewUrl())) {
+            return "preview:" + m.getPreviewUrl().trim();
         }
         return "name:" + (m.getName() == null ? "" : m.getName());
     }
@@ -801,10 +873,14 @@ public class MissionService {
             return "other";
         }
         String t = mediaType.trim().toLowerCase();
-        if (t.contains("video")) {
+        if (t.startsWith(".")) {
+            t = t.substring(1);
+        }
+        if (t.contains("video") || t.contains("mp4") || t.contains("mov")) {
             return "video";
         }
-        if (t.contains("image") || t.contains("photo") || t.contains("jpg") || t.contains("png")) {
+        if (t.contains("image") || t.contains("photo") || t.contains("jpg")
+                || t.contains("jpeg") || t.contains("png") || t.contains("dng") || t.contains("tif")) {
             return "image";
         }
         return t;
