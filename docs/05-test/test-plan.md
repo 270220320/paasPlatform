@@ -46,7 +46,7 @@
 | 数据库 | MySQL 8.x（库名 UAVPlatform） | WSL 经网关访问 Windows 宿主 |
 | 后端 | Spring Boot 3.3 / Java 21 | 端口 8080，日志 `/tmp/aiflow-backend.log` |
 | 前端 | Vue3 + Vite | 端口 5173/5174 |
-| 司空 PaaS | DJI FlightHub 2（192.168.41.185:30812） | SDK + HTTP 网关 |
+| 司空 PaaS | DJI FlightHub 2（192.168.76.141:30812） | SDK + HTTP 网关 |
 | 浏览器 | Chrome 最新版 / Edge / Firefox | — |
 
 ---
@@ -97,7 +97,7 @@
 
 | 风险 | 影响 | 概率 | 应对措施 |
 |------|------|------|----------|
-| 司空 PaaS 环境不稳定（192.168.41.185） | 驾驶舱/媒体/任务下发受阻 | 中 | 准备 mock 数据；隔离 FH2 依赖用例 |
+| 司空 PaaS 环境不稳定（192.168.76.141） | 驾驶舱/媒体/任务下发受阻 | 中 | 准备 mock 数据；隔离 FH2 依赖用例 |
 | WSL2 网络抖动导致后端代理失败 | 测试中断 | 中 | 用固定 WSL IP 启动 Vite |
 | FH2 SDK JNI 仅 Linux 可用 | Windows 直跑后端功能缺失 | 高 | 后端统一在 WSL 启动 |
 | 飞行任务依赖真实机场/无人机 | 执行态难以全覆盖 | 高 | 状态机用 mock；真实联调单列 |

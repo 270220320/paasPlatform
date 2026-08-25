@@ -117,10 +117,6 @@ async function showWayline(waylineUuid: string) {
       statusText.value = t('waylineEditor.paasDisabled')
       return
     }
-    if (!cfg.userToken) {
-      statusText.value = t('waylineEditor.noUserToken')
-      return
-    }
 
     await loadPaasJs(cfg.frontHost)
     await waitForDom()

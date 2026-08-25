@@ -24,3 +24,13 @@ frontend/public/libs/
 # 运行时日志
 logs/
 backend/logs/
+
+# pnpm 内容寻址存储（数万小文件，禁止入库）
+.pnpm-store/
+
+# 本地地图瓦片（数万小文件；打包 zip 也超过 GitHub 100MB 限制，均不入库）
+tiles_tianjin/
+*.zip
+
+# 根目录游离的 javac 输出目录
+com/

@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS `t_fh2_config` (
   `id`                         BIGINT        NOT NULL AUTO_INCREMENT,
   `workspace_id`               BIGINT        NOT NULL DEFAULT 1,
   `enabled`                    TINYINT       NOT NULL DEFAULT 1 COMMENT '1启用 0关闭',
-  `front_host`                 VARCHAR(255)  NOT NULL COMMENT 'paas.js 所在站点，如 http://192.168.41.185',
-  `server_host`                VARCHAR(255)  NOT NULL COMMENT '后端 API，如 http://192.168.41.185:30812',
+  `front_host`                 VARCHAR(255)  NOT NULL COMMENT 'paas.js 所在站点，如 http://192.168.76.141',
+  `server_host`                VARCHAR(255)  NOT NULL COMMENT '后端 API，如 http://192.168.76.141:30812',
   `gateway_base`               VARCHAR(255)  NOT NULL COMMENT '网关 base，通常 server_host + /gateway',
   `wss_url`                    VARCHAR(512)  NOT NULL COMMENT '推送中心 WS',
   `user_token`                 VARCHAR(2048) DEFAULT NULL COMMENT 'X-User-Token（前端 paas / 后端 SDK 共用）',
@@ -59,14 +59,14 @@ INSERT INTO `t_fh2_config` (
   `wayline_sdk_css`, `wayline_sdk_js`, `device_sdk_css`, `device_sdk_js`
 ) VALUES (
   1, 1,
-  'http://192.168.41.185',
-  'http://192.168.41.185:30812',
-  'http://192.168.41.185:30812/gateway',
-  'ws://192.168.41.185:30812/openapi/v0.9/notification/ws/v1/notifications',
-  'http://192.168.41.185/paasjs-demo/wayline-edit-sdk/index.css',
-  'http://192.168.41.185/paasjs-demo/wayline-edit-sdk/index.js',
-  'http://192.168.41.185/paasjs-demo/device-manager-sdk/index.css',
-  'http://192.168.41.185/paasjs-demo/device-manager-sdk/index.js'
+  'http://192.168.76.141',
+  'http://192.168.76.141:30812',
+  'http://192.168.76.141:30812/gateway',
+  'ws://192.168.76.141:30812/openapi/v0.9/notification/ws/v1/notifications',
+  'http://192.168.76.141/paasjs-demo/wayline-edit-sdk/index.css',
+  'http://192.168.76.141/paasjs-demo/wayline-edit-sdk/index.js',
+  'http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.css',
+  'http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.js'
 ) ON DUPLICATE KEY UPDATE
   `front_host` = VALUES(`front_host`),
   `server_host` = VALUES(`server_host`),

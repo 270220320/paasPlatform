@@ -3,6 +3,7 @@
 | 文档版本 | 修改日期 | 修改内容 |
 |----------|----------|----------|
 | V1.0 | 2026-07-22 | 初稿 |
+| V2.0 | 2026-08-24 | **按实现校准**：存储实现为本地磁盘（接口形态保留 OSS 直传样式）；重建任务与任务级重建（U-086）共表，司空 Terra 为主通道；模型地址改 TEXT |
 
 **涉及表**：`t_media_*` `t_model_asset` `t_reconstruct_*` `t_workspace_quota`
 
@@ -92,17 +93,20 @@ trash → recycle_status=in_trash；purge → deleted=1 且对象存储删除（
 |------|------|------|------|
 | mediaIds | long[] | 是 | 源照片 |
 
-响应：jobId, status=pending
+响应：ReconstructJobVO（jobId, status=pending）
 
-#### 详情/列表 `GET /api/v1/reconstruct-jobs` `GET /api/v1/reconstruct-jobs/{id}`
+#### 详情/列表 `GET /api/v1/reconstruct-jobs`、`GET /api/v1/reconstruct-jobs/{id}`
 
-### 状态
+**ReconstructJobVO 增量字段（V2.0）**：missionPlanId, missionExecutionId, fh2TaskUuid, fh2ModelId, previewUrl, modelUrl
 
-pending → running → success|failed
+### 状态与实现（按实现校准）
 
-成功时写 `t_model_asset` 并回填 model_id；发 `ReconstructJobCompleted`。
+pending → running → success | failed
 
-Worker 异步执行；接口只负责任务编排。
+- 重建主通道为**司空 Terra**（任务级入口见 mission 分册 U-086：按执行发起，源图在司空侧，无需 mediaIds）。
+- `t_reconstruct_job` 同时服务两条入口：媒体选图重建（本地）与执行级重建（司空）；司空侧产物回填 fh2_model_id / preview_url / model_url（TEXT，签名 URL 可能超长）。
+- 任务详情打开时懒校准（attachReconstruct → syncOne）纠正历史状态。
+- 成功写入/关联 `t_model_asset`。
 
 ---
 

@@ -30,17 +30,17 @@ uav:
   fh2:
     enabled: true
     # paas.js 在 80 端口；API/WS 在 30812
-    front-host: http://192.168.41.185
-    server-host: http://192.168.41.185:30812
-    gateway-base: http://192.168.41.185:30812/gateway
-    wss-url: ws://192.168.41.185:30812/openapi/v0.9/notification/ws/v1/notifications
-    # 请填入司空下发的用户 Token 与 binding_uuid（也可用 t_fh2_config 覆盖）
-    user-token: "eyJhbGciOiJIUzUxMiIsImtpZCI6IjU3YmQyNmEwLTYyMDktNGE5My1hNjg4LWY4NzUyYmU1ZDE5MSIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiZGVmYXVsdCIsImV4cCI6MTkyNDgxOTIwMCwibmJmIjoxNjA5NDU5MjAwLCJvcmdhbml6YXRpb25fdXVpZCI6IjVhNmY5ZDRiLTJhMzgtNGI0Yi04NmY5LTNhNjc4ZGEwYmY4OCIsInByb2plY3RfdXVpZCI6IiIsInN1YiI6ImZoMiIsInVzZXJfaWQiOiJkZWZhdWx0In0.psKQTfTOEVB9fn0OrBW4puoHzIV6C9pgnwk6JqEjpwoPE4D1DDiLAuCbMcH_hpnb8DUZrWvNI6d6X7hQTHzEnQ"
-    # 与 token 内 organization_uuid 一致
-    binding-uuid: "5a6f9d4b-2a38-4b4b-86f9-3a678da0bf4a"
-    # 项目 UUID：媒体 objectKey 首段；Terra/媒体文件夹挂在项目下。Token 内常为空，务必填写
+    front-host: http://192.168.76.141
+    server-host: http://192.168.76.141:30812
+    gateway-base: http://192.168.76.141:30812/gateway
+    wss-url: ws://192.168.76.141:30812/openapi/v0.9/notification/ws/v1/notifications
+    # 请填入司空下发的用户 Token 与 binding_uuid（也可用 t_fh2_config 覆盖）；私有化部署无 user token，留空即可
+    user-token: ""
+    # 私有化无 token 时 binding_uuid/project_uuid 无法从 token 解析，手动指定
+    binding-uuid: ""
+    # 项目 UUID：媒体 objectKey 首段；Terra/媒体文件夹挂在项目下。私有化请按实际项目填写
     # 例：d96fd7f3-9eb0-4b2c-a546-71d4efd239c1
-    project-uuid: ${FH2_PROJECT_UUID:d96fd7f3-9eb0-4b2c-a546-71d4efd239c1}
+    project-uuid: ${FH2_PROJECT_UUID:}
     reconstruction-quality-level: high
     reconstruction-wkt: EPSG:32650
     reconstruction-sfm-method: GLOBAL
@@ -50,21 +50,22 @@ uav:
     # 手动指定媒体文件夹 UUID（与 demo ConfigManager.terraBuildFolderUuid 对齐）；
     # 仅当自动获取不到 folderUuid 时生效。在司空控制台「媒体管理」中找到对应文件夹的 UUID 填入。
     terra-build-folder-uuid: ${FH2_TERRA_FOLDER_UUID:}
-    object-key-prefix: "5a6f9d4b-2a38-4b4b-86f9-3a678da0bf4a"
-    sdk-address: http://192.168.41.185
+    object-key-prefix: ""
+    sdk-address: http://192.168.76.141
     sdk-port: "30812"
     sdk-native-enabled: true
-    wayline-sdk-css: http://192.168.41.185/paasjs-demo/wayline-edit-sdk/index.css
-    wayline-sdk-js: http://192.168.41.185/paasjs-demo/wayline-edit-sdk/index.js
-    device-sdk-css: http://192.168.41.185/paasjs-demo/device-manager-sdk/index.css
-    device-sdk-js: http://192.168.41.185/paasjs-demo/device-manager-sdk/index.js
-    replay-sdk-css: http://192.168.41.185/paasjs-demo/fly-data-sdk/index.css
-    replay-sdk-js: http://192.168.41.185/paasjs-demo/fly-data-sdk/index.js
+    wayline-sdk-css: http://192.168.76.141/paasjs-demo/wayline-edit-sdk/index.css
+    wayline-sdk-js: http://192.168.76.141/paasjs-demo/wayline-edit-sdk/index.js
+    device-sdk-css: http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.css
+    device-sdk-js: http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.js
+    replay-sdk-css: http://192.168.76.141/paasjs-demo/fly-data-sdk/index.css
+    replay-sdk-js: http://192.168.76.141/paasjs-demo/fly-data-sdk/index.js
     # dji2 后台（限飞区 /safety、飞行任务 /task|/flighttask）
-    route-api-base: http://192.168.41.185:56789
-    # 私有化网关额外头（可选，对照 FlightHubSDKDemo 的 x-demo-uuid）
-    extra-http-header-key: ${FH2_EXTRA_HEADER_KEY:}
-    extra-http-header-value: ${FH2_EXTRA_HEADER_VALUE:}
+    route-api-base: http://192.168.76.141:56789
+    # 私有化网关鉴权头：网关回调 ISV_WEBHOOK_URL 鉴权，开发期默认 webhook 放行全部，
+    # 约定头 user_id: paas_test（鉴权接入指南 2.4）；切换自建 Webhook 时改这两个值
+    extra-http-header-key: ${FH2_EXTRA_HEADER_KEY:user_id}
+    extra-http-header-value: ${FH2_EXTRA_HEADER_VALUE:paas_test}
 
   mission:
     dispatch-interval-ms: 30000

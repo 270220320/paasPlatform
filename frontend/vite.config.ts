@@ -7,9 +7,9 @@ import { execSync } from 'node:child_process'
 import type { Plugin } from 'vite'
 
 /** 司空私有化后端（真实地址，仅 Vite 代理目标） */
-const FH2_SERVER = 'http://192.168.41.185:30812'
+const FH2_SERVER = 'http://192.168.76.141:30812'
 /** dji2 route /safety 等后台 */
-const ROUTE_API = 'http://192.168.41.185:56789'
+const ROUTE_API = 'http://192.168.76.141:56789'
 
 /**
  * 后端若在 WSL2 运行，Windows 的 127.0.0.1 常转发失败（NAT / localhost proxy）。
@@ -122,14 +122,14 @@ export default defineConfig({
        * 避免与 /paas-api HTTP 代理互相干扰。
        */
       '/paas-ws': {
-        target: 'ws://192.168.41.185:30812',
+        target: 'ws://192.168.76.141:30812',
         changeOrigin: true,
         ws: true,
         rewrite: (p) => p.replace(/^\/paas-ws/, ''),
       },
       /** 可选：同源代理 frontHost 静态资源（paas.js / Cesium 等）；运行时 URL 仍以库表 frontHost 为准 */
       '/paas-front': {
-        target: 'http://192.168.41.185',
+        target: 'http://192.168.76.141',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/paas-front/, ''),
       },

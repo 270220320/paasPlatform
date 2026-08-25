@@ -1,9 +1,16 @@
 <!DOCTYPE html>
+<!--
+  ⚠ 历史原型（V0.1 · 2026-07-21）：仅作产品演进参考，不再随实现更新。
+  实际界面以 frontend/src/views/ 实现为准（UAVPlatform，2026-08 基线）：
+  - 页面清单与路由映射：docs/03-design/preliminary/feature-uid-list.md（V2.0）
+  - 与本原型的差异：作业台拆分为 地图标注/空域安全/航线/任务 独立页；新增 驾驶舱/回放/重建/个人中心；
+    航线编辑内嵌司空 WaylineEditor；算法页下线；数据管理并入媒体库。
+-->
 <html lang="zh-CN" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AiFlow 单作业空间 · 原型（Element Plus + 深色）</title>
+  <title>UAVPlatform 单作业空间 · 原型 V0.1（历史参考 · Element Plus 深色）</title>
   <style>
     :root, [data-theme="dark"] {
       --el-color-primary: #409eff;

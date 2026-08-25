@@ -24,10 +24,10 @@ public class InitTest {
       return;
     }
     FlightHubSdkConfig cfg = new FlightHubSdkConfig();
-    cfg.setAddress(args.length > 0 ? args[0] : "http://192.168.41.185");
+    cfg.setAddress(args.length > 0 ? args[0] : "http://192.168.76.141");
     cfg.setPort(args.length > 1 ? args[1] : "30812");
     cfg.setToken(args.length > 2 ? args[2] : "dummy");
-    cfg.setNotificationServerAddress(args.length > 3 ? args[3] : "ws://192.168.41.185:30812/openapi/v0.9/notification/ws/v1/notifications");
+    cfg.setNotificationServerAddress(args.length > 3 ? args[3] : "ws://192.168.76.141:30812/openapi/v0.9/notification/ws/v1/notifications");
     cfg.setLogLevel("info");
     cfg.setLogToConsole(true);
     cfg.setShowVersionInfo(true);
@@ -51,4 +51,4 @@ export JAVA_HOME="${JAVA_HOME:-$(dirname $(dirname $(readlink -f $(which java)))
 cd "$WORKDIR"
 javac -cp "$JAR" InitTest.java
 echo "=== run init test ==="
-java -cp ".:$JAR" InitTest "http://192.168.41.185" "30812" "test-token" "ws://192.168.41.185:30812/openapi/v0.9/notification/ws/v1/notifications" 2>&1 | tail -80
+java -cp ".:$JAR" InitTest "http://192.168.76.141" "30812" "test-token" "ws://192.168.76.141:30812/openapi/v0.9/notification/ws/v1/notifications" 2>&1 | tail -80

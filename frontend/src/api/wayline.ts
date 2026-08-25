@@ -43,6 +43,8 @@ export interface WaylineFolderVO {
   name: string
   parentId?: number
   createdAt?: string
+  /** 其下航线数，>0 时不可删除（前端隐藏删除按钮） */
+  waylineCount?: number
 }
 
 export function fetchWaylineFolders() {
@@ -51,4 +53,8 @@ export function fetchWaylineFolders() {
 
 export function createWaylineFolder(data: { name: string; parentId?: number }) {
   return http.post<ApiResult<{ id: number }>>('/wayline-folders', data)
+}
+
+export function deleteWaylineFolder(id: number) {
+  return http.delete<ApiResult<null>>(`/wayline-folders/${id}`)
 }

@@ -3,8 +3,7 @@
 | 文档版本 | 修改日期 | 修改内容 |
 |----------|----------|----------|
 | V1.0 | 2026-07-22 | 初稿 |
-
-**涉及表**：`t_device` `t_device_status` `t_bind_code` `t_device_issue_report`
+| V2.0 | 2026-08-24 | **按实现校准**：t_device 增加 gateway_sn/source 等镜像列；设备管理页内嵌司空 DeviceManager 组件；同步能力移至 fh2 分册（U-088） |
 
 **域错误码**
 
@@ -31,28 +30,31 @@
 | workStatus | string | 否 | |
 | page/pageSize | int | 否 | |
 
-**DeviceVO**
+**DeviceVO**（按实现）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | long | |
 | sn | string | |
+| gatewaySn | string | 网关/机场 SN（子设备时有值） |
 | name | string | |
-| deviceType | string | |
+| deviceType | string | dock/aircraft/other |
 | model | string | |
+| fh2DeviceModelKey | string | FH2 型号枚举键 |
+| source | string | local/fh2（镜像来源） |
 | firmwareVersion | string | |
-| firmwareUpgradeStatus | string | latest/upgradable |
-| flightSafetyDbVersion | string | |
 | workStatus | string | |
 | joinedAt | string | |
 | onlineAt | string | |
-| onlineState | string | 来自 status 表 |
+| fh2SyncedAt | string | 最近司空同步时间 |
 
-### 业务规则
+### 业务规则（按实现校准）
 
-1. 默认过滤 `deleted=0`。  
-2. Tab 切换仅改 `deviceType`，互斥列表。  
-3. 详情可复用同 VO；远程运维本期占位不开放写接口。  
+1. 默认过滤 `deleted=0`。
+2. Tab 切换仅改 `deviceType`，互斥列表。
+3. 设备列表页内嵌司空 DeviceManager（UranusDeviceManagerApp）组件：绑定/调试/固件等实时操作走司空；本地库为镜像（source=fh2），另有本地绑定设备（source=local）。
+4. 「同步司空设备」触发 `POST /api/v1/paas/devices/sync`（见 fh2 分册 U-088）；unmount 后还原全局主题变量避免其它页面被刷白。
+5. 固件版本/飞行安全库字段展示以司空侧为准，本地列为镜像快照。  
 
 ---
 

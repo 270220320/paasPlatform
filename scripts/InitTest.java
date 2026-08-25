@@ -15,13 +15,13 @@ public class InitTest {
             return;
         }
         FlightHubSdkConfig cfg = new FlightHubSdkConfig();
-        String address = args.length > 0 ? args[0] : "http://192.168.41.185";
+        String address = args.length > 0 ? args[0] : "http://192.168.76.141";
         String port = args.length > 1 ? args[1] : "30812";
         cfg.setAddress(address);
         cfg.setPort(port);
         cfg.setToken(args.length > 2 ? args[2] : "dummy");
         cfg.setNotificationServerAddress(args.length > 3 ? args[3]
-                : "ws://192.168.41.185:30812/openapi/v0.9/notification/ws/v1/notifications");
+                : "ws://192.168.76.141:30812/openapi/v0.9/notification/ws/v1/notifications");
         cfg.setLogLevel("info");
         cfg.setLogToConsole(true);
         cfg.setShowVersionInfo(true);

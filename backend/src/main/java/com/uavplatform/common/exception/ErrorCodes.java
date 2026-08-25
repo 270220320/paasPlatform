@@ -42,6 +42,8 @@ public final class ErrorCodes {
     public static final int WAYLINE_PARSE_FAIL = 40003;
     public static final int WAYLINE_IN_USE = 40004;
     public static final int WAYLINE_TYPE_UNSUPPORTED = 40005;
+    public static final int WAYLINE_FOLDER_NOT_FOUND = 40006;
+    public static final int WAYLINE_FOLDER_NOT_EMPTY = 40007;
 
     public static final int MISSION_NOT_FOUND = 50001;
     public static final int WAYLINE_UNAVAILABLE = 50002;

@@ -3,6 +3,7 @@
 | 文档版本 | 修改日期 | 修改内容 |
 |----------|----------|----------|
 | V1.0 | 2026-07-22 | 初稿 |
+| V2.0 | 2026-08-24 | **按实现校准**：地图引擎定为 Leaflet + 本地瓦片；安全 Tab 已落地为独立空域安全页（见 safety 分册）；补充首页叠加说明 |
 
 **涉及表**：`t_annotation` `t_annotation_folder` `t_sync_job` `t_sync_job_item`；协作 `t_device`
 
@@ -69,10 +70,10 @@ id, name, geomType, purpose, geometry, style, visible, syncStatus, folderId, upd
 
 **优先级**：P0 · **模块**：web
 
-### 规约
+### 规约（已实现）
 
-- **无后端接口**（本期）。  
-- 前端使用地图 SDK 测距/测面，结果仅 UI 展示。  
+- **无后端接口**。  
+- 前端 Leaflet 测距/测面，结果仅 UI 展示；本地瓦片（tiles_tianjin，XYZ）离线可用。  
 - 若需持久化为标注，走 U-020 创建接口。  
 
 ---
@@ -136,10 +137,12 @@ sequenceDiagram
   "tabs": [
     { "key": "annotation", "enabled": true },
     { "key": "elevation", "enabled": false, "reason": "P1 upcoming" },
-    { "key": "wayline", "enabled": true, "route": "workspace.waylines" },
-    { "key": "safety", "enabled": false, "reason": "P1 upcoming" }
+    { "key": "wayline", "enabled": true, "route": "waylines" },
+    { "key": "safety", "enabled": true, "route": "airspace" }
   ]
 }
 ```
 
 前端根据 `enabled` 展示或「即将推出」。
+
+> **V2.0 状态**：safety Tab 已落地为独立全屏页 `/airspace`（限飞区 + 作业区，详见 [`detail-safety.md`](./detail-safety.md)）；elevation 仍占位。首页地图亦叠加限飞区与标注图层（见 analytics 分册 U-014）。

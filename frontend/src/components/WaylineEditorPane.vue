@@ -400,7 +400,8 @@ async function remountEditSurface() {
   await nextTick()
 }
 
-async function enterEditMode(id: string, name?: string, withDefaultCenter = false) {
+/** 编辑已有航线；无航点时地图以写死的默认中心兜底（有航点仍由 SDK 定位到航线） */
+async function enterEditMode(id: string, name?: string) {
   if (!id) return
   const session = ++editSession
   const switching = Boolean(activeWaylineId.value && activeWaylineId.value !== id)
@@ -424,7 +425,7 @@ async function enterEditMode(id: string, name?: string, withDefaultCenter = fals
   lastSyncedName = name?.trim() || props.waylineName?.trim() || lastSyncedName
   editor.render('edit', {
     waylineId: id,
-    ...(withDefaultCenter ? { defaultPosition: defaultMapPosition() } : {}),
+    defaultPosition: defaultMapPosition(),
   })
   if (!alive || session !== editSession) return
   statusText.value = t('waylineEditor.editing', { name: labelOf(id, name) })
@@ -466,7 +467,7 @@ async function startCreate() {
       ElMessage.warning(t('waylineEditor.createdLocalSyncFailed'))
     }
     emit('created', { waylineId: id, name: labelOf(id, name) })
-    await enterEditMode(id, name, true)
+    await enterEditMode(id, name)
     await nextTick()
     await flyMapToDefaultCenter()
   } catch (e: unknown) {
@@ -510,11 +511,6 @@ async function boot() {
   if (!alive || token !== bootToken) return
   if (!cfg?.enabled) {
     statusText.value = t('waylineEditor.paasDisabled')
-    return
-  }
-  if (!cfg.userToken) {
-    statusText.value = t('waylineEditor.noUserToken')
-    ElMessage.error(statusText.value)
     return
   }
 

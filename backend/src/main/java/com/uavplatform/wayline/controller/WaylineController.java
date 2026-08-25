@@ -45,6 +45,12 @@ public class WaylineController {
         return ApiResult.ok(waylineService.createFolder(request));
     }
 
+    @DeleteMapping("/wayline-folders/{id}")
+    public ApiResult<Void> deleteFolder(@PathVariable Long id) {
+        waylineService.deleteFolder(id);
+        return ApiResult.ok(null);
+    }
+
     @GetMapping("/waylines")
     public ApiResult<PageResult<WaylineListVO>> page(
             @RequestParam(required = false) Long folderId,

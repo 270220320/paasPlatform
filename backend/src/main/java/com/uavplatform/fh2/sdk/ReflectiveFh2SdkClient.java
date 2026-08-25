@@ -111,8 +111,11 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             error = "FH2 native SDK disabled";
             return;
         }
-        if (!StringUtils.hasText(cfg.getUserToken()) || !StringUtils.hasText(cfg.getBindingUuid())) {
-            error = "userToken / bindingUuid 未配置，跳过原生 SDK 初始化";
+        // 鉴权接入指南：KOC3 起 setToken 已废弃，网关校验依赖 setHttpHeaders/setWebSocketAuthHeaders
+        // 注入的自定义头（私有化默认 webhook 下 user_id: paas_test 即可放行，见指南 2.4）；
+        // 仅当 token 与网关鉴权头均缺失时才跳过初始化。
+        if (!StringUtils.hasText(cfg.getUserToken()) && !StringUtils.hasText(cfg.getExtraHttpHeaderKey())) {
+            error = "userToken 与网关鉴权头均未配置，跳过原生 SDK 初始化";
             log.warn("[FH2] {}", error);
             return;
         }
@@ -128,7 +131,10 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             Object sdkConfig = newInstance("com.dji.flighthubsdk.bean.FlightHubSdkConfig");
             invoke(sdkConfig, "setAddress", String.class, blankTo(cfg.getSdkAddress(), stripPort(cfg.getServerHost())));
             invoke(sdkConfig, "setPort", String.class, blankTo(cfg.getSdkPort(), extractPort(cfg.getServerHost(), "30812")));
-            invoke(sdkConfig, "setToken", String.class, cfg.getUserToken());
+            // setToken 在 KOC3 已废弃；有 token 时仍注入兼容旧网关，无 token 走网关鉴权头
+            if (StringUtils.hasText(cfg.getUserToken())) {
+                invoke(sdkConfig, "setToken", String.class, cfg.getUserToken());
+            }
             invoke(sdkConfig, "setNotificationServerAddress", String.class, cfg.resolvedNotificationServer());
             invoke(sdkConfig, "setLogLevel", String.class, "info");
             invoke(sdkConfig, "setLogToConsole", boolean.class, true);
@@ -146,8 +152,8 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             String gwKey = StringUtils.hasText(cfg.getExtraHttpHeaderKey())
                     ? cfg.getExtraHttpHeaderKey().trim()
                     : "x-demo-uuid";
-            String gwVal = StringUtils.hasText(cfg.getExtraHttpHeaderKey())
-                    ? cfg.getExtraHttpHeaderValue()
+            String gwVal = StringUtils.hasText(cfg.getExtraHttpHeaderValue())
+                    ? cfg.getExtraHttpHeaderValue().trim()
                     : "demo-test-uuid";
             Object header = newInstance("com.dji.flighthubsdk.bean.HeaderKeyValue",
                     new Class[]{String.class, String.class}, gwKey, gwVal);
@@ -177,28 +183,36 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             Object sid = null;
             try {
                 Class<?> manager = Class.forName("com.dji.flighthubsdk.core.FlightHubSdkManager");
-                String binding = cfg.getBindingUuid().trim();
-                sid = manager.getMethod("registerWorkspaceToken", String.class, String.class)
-                        .invoke(null, binding, cfg.getUserToken());
-                if (sid instanceof Long && ((Long) sid) != 0L) {
-                    sessionId = (Long) sid;
-                    workspace = manager.getMethod("getWorkspaceInstance", long.class).invoke(null, sessionId);
-                    log.info("[FH2] registerWorkspaceToken ok binding={}", binding);
+                // 多租户 registerWorkspaceToken 需要有效 JWT；私有化网关头模式无 token，
+                // 跳过注册，回退默认 Workspace（getWorkspaceInstance()）。
+                if (StringUtils.hasText(cfg.getBindingUuid()) && StringUtils.hasText(cfg.getUserToken())) {
+                    String binding = cfg.getBindingUuid().trim();
+                    sid = manager.getMethod("registerWorkspaceToken", String.class, String.class)
+                            .invoke(null, binding, cfg.getUserToken());
+                    if (sid instanceof Long && ((Long) sid) != 0L) {
+                        sessionId = (Long) sid;
+                        workspace = manager.getMethod("getWorkspaceInstance", long.class).invoke(null, sessionId);
+                        log.info("[FH2] registerWorkspaceToken ok binding={}", binding);
+                    }
+                } else {
+                    log.info("[FH2] no binding/token, skip registerWorkspaceToken (gateway-header mode)");
                 }
                 if (StringUtils.hasText(cfg.getProjectUuid())) {
                     String project = cfg.getProjectUuid().trim();
-                    try {
-                        // 再注册项目 token，便于 Terra 在项目空间解析 folderIds
-                        Object psid = manager.getMethod("registerWorkspaceToken", String.class, String.class)
-                                .invoke(null, project, cfg.getUserToken());
-                        if (psid instanceof Long && ((Long) psid) != 0L) {
-                            sessionId = (Long) psid;
-                            workspace = manager.getMethod("getWorkspaceInstance", long.class)
-                                    .invoke(null, sessionId);
-                            log.info("[FH2] registerWorkspaceToken ok project={}", project);
+                    if (StringUtils.hasText(cfg.getUserToken())) {
+                        try {
+                            // 再注册项目 token，便于 Terra 在项目空间解析 folderIds
+                            Object psid = manager.getMethod("registerWorkspaceToken", String.class, String.class)
+                                    .invoke(null, project, cfg.getUserToken());
+                            if (psid instanceof Long && ((Long) psid) != 0L) {
+                                sessionId = (Long) psid;
+                                workspace = manager.getMethod("getWorkspaceInstance", long.class)
+                                        .invoke(null, sessionId);
+                                log.info("[FH2] registerWorkspaceToken ok project={}", project);
+                            }
+                        } catch (Exception pex) {
+                            log.warn("[FH2] project workspace register skip: {}", pex.getMessage());
                         }
-                    } catch (Exception pex) {
-                        log.warn("[FH2] project workspace register skip: {}", pex.getMessage());
                     }
                     try {
                         Object byName = manager.getMethod("getWorkspaceInstance", String.class).invoke(null, project);
@@ -221,10 +235,11 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 return;
             }
             ready = true;
-            log.info("[FH2] native SDK initialized, version={}, sessionId={}, projectUuid={}",
+            log.info("[FH2] native SDK initialized, version={}, sessionId={}, projectUuid={}, authMode={}",
                     safeInvokeStatic("com.dji.flighthubsdk.FlightHubSDK", "getVersion"),
                     sessionId,
-                    cfg.getProjectUuid());
+                    cfg.getProjectUuid(),
+                    StringUtils.hasText(cfg.getUserToken()) ? "token" : "gateway-header:" + gwKey);
             ensureReconstructionStatusListener();
         } catch (Exception e) {
             error = "SDK init exception: " + e.getMessage();

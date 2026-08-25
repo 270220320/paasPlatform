@@ -110,11 +110,6 @@ async function boot() {
     status.value = t('cockpit.paasDisabled')
     return
   }
-  if (!cfg.userToken) {
-    status.value = t('cockpit.noUserToken')
-    ElMessage.error(status.value)
-    return
-  }
 
   status.value = t('cockpit.loadingSdk')
   await loadPaasJs(cfg.frontHost)
@@ -140,7 +135,7 @@ async function boot() {
     serverUrl: cfg.gatewayBase,
     wssUrl: cfg.wssUrl,
     hostUrl: cfg.frontHost,
-    projectToken: cfg.userToken,
+    projectToken: cfg.userToken || '',
     ...(prjId ? { prjId } : {}),
   })
   fh2.initNotifyCenter(cfg.wssUrl, auth)

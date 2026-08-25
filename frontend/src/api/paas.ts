@@ -189,12 +189,16 @@ export function mapCockpitDevices(payload: RemoteDevicePayload): DeviceVO[] {
 }
 
 /**
- * 直接查询司空设备管理接口；Vite/网关将 /paas-api 转发到 192.168.41.185:30812。
+ * 直接查询司空设备管理接口；Vite/网关将 /paas-api 转发到 192.168.76.141:30812。
  */
 export async function fetchCockpitDevices(): Promise<DeviceVO[]> {
   const response = await fetch('/paas-api/gateway/device/api/v1/manager/devices', {
     headers: {
+      // 网关据此挑选并转发鉴权凭据；缺失时会直接返回 401。
+      auth_keys: 'user_id',
       'X-User-Token': localStorage.getItem('x-user-token') || '',
+      // 私有化司空无 user token，靠 user_id 鉴权（与 setupDeviceManager auth 一致）
+      user_id: localStorage.getItem('paas-user-id') || 'paas_test',
     },
   })
   if (!response.ok) {

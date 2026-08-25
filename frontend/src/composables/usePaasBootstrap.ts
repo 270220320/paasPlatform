@@ -42,14 +42,18 @@ export function usePaasBootstrap() {
   }
 
   /**
-   * 官方 IAuth：authKeys + headers 函数。
-   * Apifox 示例只用 X-User-Token（api.auth / ws.auth 共用同一对象）。
+   * 官方 IAuth：authKeys + headers 函数，两者 key 必须一一对应（鉴权接入指南硬约束）。
+   * 上云 API 2 网关自身不鉴权，而是回调 ISV_WEBHOOK_URL 指向的自建 Webhook 判定；
+   * 开发期服务器默认 webhook（pf-gateway-service:8080/gateway/test/webhook-auth）
+   * 放行全部请求，约定头 user_id: paas_test（官方文档 2.4）。
+   * X-User-Token 保留透传，供后续切换自建 Webhook 时复用（无值时为空串）。
    */
   function authConfig(cfg: PaasBootstrap) {
     return {
-      authKeys: ['X-User-Token'],
+      authKeys: ['X-User-Token', 'user_id'],
       headers: () => ({
         'X-User-Token': localStorage.getItem('x-user-token') || cfg.userToken || '',
+        user_id: localStorage.getItem('paas-user-id') || 'paas_test',
       }),
     }
   }

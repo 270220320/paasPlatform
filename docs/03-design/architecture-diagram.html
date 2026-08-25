@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>UAVPlatform 无人机作业平台 · 系统架构图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background: #f4f7fb;
+    padding: 28px;
+    width: 1680px;
+  }
+  .canvas { width: 100%; }
+  .title-bar { text-align: center; margin-bottom: 6px; }
+  .title-bar h1 { font-size: 30px; color: #16325c; letter-spacing: 2px; }
+  .title-bar p { font-size: 14px; color: #6b7a90; margin-top: 6px; }
+
+  .layer {
+    border: 1.5px solid #c9d6e8;
+    border-radius: 10px;
+    background: #ffffff;
+    margin: 0 0 0 0;
+    padding: 14px 18px 16px 18px;
+    position: relative;
+  }
+  .layer-tag {
+    position: absolute; top: -1.5px; left: 18px;
+    background: #16325c; color: #fff;
+    font-size: 14px; font-weight: bold;
+    padding: 4px 14px; border-radius: 0 0 8px 8px;
+    letter-spacing: 1px;
+  }
+  .layer-sub { color: #8896aa; font-size: 12px; margin: 26px 0 10px 2px; }
+
+  .grid { display: grid; gap: 10px; }
+  .node {
+    background: #f2f6fc; border: 1px solid #c9d6e8; border-radius: 8px;
+    padding: 9px 10px; text-align: center;
+  }
+  .node b { display: block; font-size: 14.5px; color: #1d3a63; margin-bottom: 3px; }
+  .node span { font-size: 11.5px; color: #71809a; line-height: 1.5; display: block; }
+
+  .node.hl { background: #e8f1ff; border-color: #7fa8e0; }
+  .node.navy { background: #e8f0fb; border-color: #16325c; border-width: 1.5px; }
+  .node.navy b { color: #16325c; }
+  .node.navy span { color: #4a6da0; }
+  .node.green { background: #eef8f0; border-color: #9bcfa8; }
+  .node.green b { color: #21663a; }
+  .node.orange { background: #fdf3e7; border-color: #e0b98a; }
+  .node.orange b { color: #8a5518; }
+  .node.purple { background: #f3effc; border-color: #b3a3e4; }
+  .node.purple b { color: #4a3585; }
+
+  .arrow-row {
+    display: flex; justify-content: center; align-items: center;
+    height: 46px; gap: 10px;
+  }
+  .arrow {
+    width: 0; height: 0; position: relative;
+    border-left: 9px solid transparent; border-right: 9px solid transparent;
+    border-top: 14px solid #16325c;
+  }
+  .arrow-stem {
+    width: 3px; height: 26px; background: #16325c; margin-bottom: -4px;
+  }
+  .arrow-wrap { display: flex; flex-direction: column; align-items: center; }
+  .arrow-label {
+    font-size: 12.5px; color: #33507c; background: #e8f0fb;
+    border: 1px solid #b9cde8; border-radius: 12px; padding: 3px 14px;
+  }
+
+  .flow-box {
+    border: 1.5px dashed #b3a3e4; border-radius: 10px;
+    background: #fbfaff; padding: 12px 16px; margin-top: 14px;
+  }
+  .flow-title { font-size: 13.5px; font-weight: bold; color: #4a3585; margin-bottom: 10px; letter-spacing: 1px; }
+  .flow-chain { display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; }
+  .flow-step {
+    background: #ffffff; border: 1px solid #b3a3e4; color: #3c2d6b;
+    border-radius: 6px; padding: 7px 10px; font-size: 12.5px; text-align: center;
+    flex: 1; line-height: 1.45;
+  }
+  .flow-arrow { color: #7a68b8; font-size: 16px; padding: 0 6px; flex: 0 0 auto; font-weight: bold; }
+
+  .legend { display: flex; gap: 22px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+  .legend-item { font-size: 12px; color: #6b7a90; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; border: 1px solid #999; }
+
+  .footer { text-align: center; font-size: 12px; color: #93a1b5; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="title-bar">
+    <h1>UAVPlatform 无人机作业平台 · 系统架构图</h1>
+    <p>单作业空间 · 模块化单体 · 深度集成 DJI 司空（FlightHub）生态 &nbsp;|&nbsp; V1.0 &nbsp;2026-08</p>
+  </div>
+
+  <!-- 用户层 -->
+  <div class="layer" style="background:#eef3fa; border-color:#16325c;">
+    <div class="layer-tag">用户接入层</div>
+    <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 20px;">
+      <div class="node navy"><b>管理人员</b><span>看板总览 · 人员角色权限</span></div>
+      <div class="node navy"><b>作业人员</b><span>地图标注 · 航线规划 · 任务计划</span></div>
+      <div class="node navy"><b>设备运维人员</b><span>设备管理 · 绑定 · 定损</span></div>
+      <div class="node navy"><b>数据人员</b><span>媒体库 · 三维模型 · 重建任务</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-row"><div class="arrow-wrap"><div class="arrow-stem"></div><div class="arrow"></div></div><div class="arrow-label">HTTPS · Chrome 浏览器</div></div>
+
+  <!-- 前端层 -->
+  <div class="layer">
+    <div class="layer-tag">前端应用层</div>
+    <div class="layer-sub">Vue 3 + Vite + TypeScript + Element Plus + Pinia + UnoCSS</div>
+    <div class="grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="node"><b>统一看板</b><span>资产/设备概览 · 飞行统计图表</span></div>
+      <div class="node"><b>作业地图</b><span>离线瓦片底图 · 标注量测 · 高程</span></div>
+      <div class="node"><b>航线管理</b><span>航线库/文件夹 · 航线编辑器 · 导入导出</span></div>
+      <div class="node"><b>任务计划</b><span>计划创建 · 状态机管理 · 飞行回放</span></div>
+      <div class="node"><b>空域安全</b><span>作业区 · 安全区 · 禁飞区管理</span></div>
+      <div class="node"><b>资源库</b><span>媒体库 · 三维模型 · 重建任务 · 回收站</span></div>
+      <div class="node"><b>设备管理</b><span>设备列表 · 绑定码 · 设备拓扑管理</span></div>
+      <div class="node"><b>飞行驾驶舱</b><span>实时直播 · 飞行监控 · 相机控制</span></div>
+      <div class="node"><b>算法中心</b><span>算法启停 · AI 告警记录</span></div>
+      <div class="node"><b>系统管理</b><span>成员管理 · 角色权限 · 个人中心</span></div>
+    </div>
+    <div class="layer-sub">司空前端组件（paas.js / 上云 API 2.0）</div>
+    <div class="grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="node hl"><b>WaylineEditor</b><span>航线可视化创建 / 编辑 / 拼接</span></div>
+      <div class="node hl"><b>UranusDeviceManagerApp</b><span>设备管理应用（拓扑 / OSD / HMS）</span></div>
+      <div class="node hl"><b>Cockpit 驾驶舱</b><span>直播大屏 · 飞行控制 · DRC 指令</span></div>
+      <div class="node hl"><b>DJILivePlayer</b><span>多路直播播放 · 视频流解码</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-wrap"><div class="arrow-stem"></div><div class="arrow"></div></div>
+    <div class="arrow-label">REST /api/v1 · JSON · JWT Bearer 鉴权</div>
+    <div class="arrow-wrap"><div class="arrow" style="transform: rotate(180deg); margin-bottom:-4px;"></div><div class="arrow-stem"></div></div>
+    <div class="arrow-label">Bootstrap 配置下发 / WebSocket 事件推送</div>
+  </div>
+
+  <!-- 应用层 -->
+  <div class="layer">
+    <div class="layer-tag">应用服务层</div>
+    <div class="layer-sub">Spring Boot 3.3 模块化单体（Controller / Service / Mapper 三层）</div>
+    <div class="grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="node"><b>iam 身份权限</b><span>登录认证 · RBAC · 会话管理</span></div>
+      <div class="node"><b>wayline 航线</b><span>航线/文件夹 · 同步 · 导入导出</span></div>
+      <div class="node"><b>mission 任务</b><span>计划 · 调度 · 执行状态 · 回放</span></div>
+      <div class="node"><b>media 资源</b><span>媒体元数据 · 重建任务 · 回收站</span></div>
+      <div class="node"><b>device 设备</b><span>设备台账 · 绑定码 · 定损</span></div>
+      <div class="node"><b>map 地图</b><span>标注 CRUD · 量测 · 设备同步</span></div>
+      <div class="node"><b>workarea 作业区</b><span>作业区边界 · 参数配置</span></div>
+      <div class="node"><b>safety 空域安全</b><span>安全区/禁飞区 · FH2 飞行区域</span></div>
+      <div class="node"><b>analytics 看板</b><span>指标聚合 · 读模型查询</span></div>
+      <div class="node"><b>algorithm 算法</b><span>算法配置 · AI 告警</span></div>
+    </div>
+    <div class="layer-sub">公共支撑（common）</div>
+    <div class="grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="node green"><b>JWT 鉴权</b><span>Token 签发校验 · 拦截器</span></div>
+      <div class="node green"><b>RBAC 权限</b><span>权限注解 · 权限点校验</span></div>
+      <div class="node green"><b>统一响应</b><span>ApiResult · 错误码体系</span></div>
+      <div class="node green"><b>全局异常</b><span>异常翻译 · 链路 requestId</span></div>
+      <div class="node green"><b>任务调度</b><span>定时/异步 Worker</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-wrap"><div class="arrow-stem"></div><div class="arrow"></div></div>
+    <div class="arrow-label">SDK 调用（反射 + JNI）· Webhook 回调接收</div>
+  </div>
+
+  <!-- 集成层 -->
+  <div class="layer" style="background:#fdf9f3; border-color:#e0c9a6;">
+    <div class="layer-tag" style="background:#8a5518;">DJI 生态集成层（fh2）</div>
+    <div class="layer-sub" style="color:#8a5518;">FlightHub Java SDK 封装（Fh2SdkClient · 反射调用 · JNI 本地库）</div>
+    <div class="grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="node orange"><b>设备同步</b><span>设备/航线列表拉取落库</span></div>
+      <div class="node orange"><b>任务下发</b><span>航线任务创建 · 立即/计划执行</span></div>
+      <div class="node orange"><b>媒体 Webhook</b><span>媒体回传回调 · 落库归档</span></div>
+      <div class="node orange"><b>直播/遥测</b><span>直播地址 · OSD/HMS 订阅</span></div>
+      <div class="node orange"><b>Bootstrap API</b><span>/api/v1/paas/bootstrap 配置</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow-wrap"><div class="arrow-stem"></div><div class="arrow"></div></div>
+    <div class="arrow-label">HTTPS / MQTT / RTMP·WebRTC</div>
+  </div>
+
+  <!-- 数据 + 外部系统层 -->
+  <div style="display:grid; grid-template-columns: 1fr 1.35fr; gap: 14px;">
+    <div class="layer" style="margin-bottom:0;">
+      <div class="layer-tag">数据持久层</div>
+      <div class="grid" style="grid-template-columns: 1fr; margin-top: 26px;">
+        <div class="node purple"><b>MySQL 8 业务库</b><span>用户/角色 · 设备 · 航线 · 任务 · 媒体 · 安全区 · 看板快照（MyBatis-Plus ORM）</span></div>
+        <div class="node purple"><b>文件存储</b><span>媒体文件 · 三维模型 · KMZ 航线文件</span></div>
+        <div class="node purple"><b>离线地图瓦片</b><span>XYZ 瓦片（本地静态服务）· 覆盖作业区域</span></div>
+      </div>
+    </div>
+
+    <div class="layer" style="margin-bottom:0; background:#f7faf8; border-color:#9bcfa8;">
+      <div class="layer-tag" style="background:#21663a;">外部系统 · DJI 司空生态</div>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 26px;">
+        <div class="node green"><b>司空2 私有化平台</b><span>FlightHub Server · 设备接入 · 任务引擎 · 媒体中心</span></div>
+        <div class="node green"><b>机场 / 无人机</b><span>DJI Dock 机场 · 自动起降 · 航线执行 · 媒体回传</span></div>
+        <div class="node green"><b>DJI Terra</b><span>三维重建引擎 · 可见光/红外照片处理</span></div>
+      </div>
+      <div class="layer-sub" style="color:#21663a;">部署形态：Docker 容器化（后端 Linux 容器，端口 8080 · 前端 Vite 构建静态部署）</div>
+    </div>
+  </div>
+
+  <!-- 核心链路 -->
+  <div class="flow-box">
+    <div class="flow-title">核心业务链路 · 任务下发到三维成果</div>
+    <div class="flow-chain">
+      <div class="flow-step">规划航线<br/>WaylineEditor</div><div class="flow-arrow">→</div>
+      <div class="flow-step">创建任务计划<br/>mission 模块</div><div class="flow-arrow">→</div>
+      <div class="flow-step">fh2 集成层<br/>SDK 下发</div><div class="flow-arrow">→</div>
+      <div class="flow-step">司空平台<br/>任务调度</div><div class="flow-arrow">→</div>
+      <div class="flow-step">机场/无人机<br/>自动执行</div><div class="flow-arrow">→</div>
+      <div class="flow-step">媒体回传<br/>Webhook 回调</div><div class="flow-arrow">→</div>
+      <div class="flow-step">资源库归档<br/>红外清理</div><div class="flow-arrow">→</div>
+      <div class="flow-step">三维重建<br/>DJI Terra</div><div class="flow-arrow">→</div>
+      <div class="flow-step">模型成果<br/>地图浏览</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="dot" style="background:#e8f0fb; border-color:#16325c;"></span>用户接入</div>
+    <div class="legend-item"><span class="dot" style="background:#f2f6fc;"></span>自研前端/后端模块</div>
+    <div class="legend-item"><span class="dot" style="background:#e8f1ff;"></span>司空前端组件</div>
+    <div class="legend-item"><span class="dot" style="background:#eef8f0;"></span>公共支撑/外部生态</div>
+    <div class="legend-item"><span class="dot" style="background:#fdf3e7;"></span>DJI SDK 集成</div>
+    <div class="legend-item"><span class="dot" style="background:#f3effc;"></span>数据存储</div>
+  </div>
+
+  <div class="footer">UAVPlatform · 无人机航测作业与三维重建平台 · 架构版本 V1.0</div>
+</div>
+</body>
+</html>

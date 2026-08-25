@@ -26,6 +26,15 @@
             >
               <el-icon class="folder-icon"><Folder /></el-icon>
               <span class="folder-name" :title="folder.name">{{ folder.name }}</span>
+              <el-button
+                v-if="canWrite && !folder.waylineCount"
+                link
+                type="danger"
+                class="folder-delete"
+                :icon="Delete"
+                :title="t('waylines.deleteFolder')"
+                @click.stop="onDeleteFolder(folder)"
+              />
             </div>
             <el-empty v-if="!folders.length" :description="t('waylines.noFolders')" :image-size="48" />
           </el-scrollbar>
@@ -128,12 +137,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { EditPen, Folder, FolderAdd, MoreFilled, Plus, Search } from '@element-plus/icons-vue'
+import { Delete, EditPen, Folder, FolderAdd, MoreFilled, Plus, Search } from '@element-plus/icons-vue'
 import WaylineEditorPane from '@/components/WaylineEditorPane.vue'
 import {
   createWaylineFolder,
   deleteWayline,
   deleteWaylineByUuid,
+  deleteWaylineFolder,
   fetchWaylineFolders,
   fetchWaylines,
   type WaylineFolderVO,
@@ -276,11 +286,12 @@ function toggleSearch() {
 async function loadFolders() {
   const { data } = await fetchWaylineFolders()
   folders.value = data.data || []
-  if (
-    folders.value.length &&
-    (selectedFolderId.value == null || !folders.value.some((f) => f.id === selectedFolderId.value))
-  ) {
-    selectedFolderId.value = folders.value[0].id
+  if (folders.value.length) {
+    if (selectedFolderId.value == null || !folders.value.some((f) => f.id === selectedFolderId.value)) {
+      selectedFolderId.value = folders.value[0].id
+    }
+  } else {
+    selectedFolderId.value = null
   }
 }
 
@@ -328,6 +339,24 @@ async function onCreateFolder() {
   }
 }
 
+/**
+ * 删除文件夹：仅有航线的文件夹不显示删除按钮；后端同样拦截（40007）双保险。
+ */
+async function onDeleteFolder(folder: WaylineFolderVO) {
+  await ElMessageBox.confirm(
+    t('waylines.deleteFolderConfirm', { name: folder.name }),
+    t('common.confirmTitle'),
+  )
+  const prevSelected = selectedFolderId.value
+  await deleteWaylineFolder(folder.id)
+  ElMessage.success(t('waylines.folderDeleted'))
+  await loadFolders()
+  // 当前选中文件夹被删时 loadFolders 会切到首个文件夹，需重拉列表
+  if (selectedFolderId.value !== prevSelected) {
+    await reloadWaylines()
+  }
+}
+
 async function onCardCommand(cmd: string, row: WaylineVO) {
   if (cmd !== 'delete') return
   await ElMessageBox.confirm(t('waylines.deleteConfirm', { name: displayName(row) }), t('common.confirmTitle'))
@@ -346,7 +375,8 @@ async function onCardCommand(cmd: string, row: WaylineVO) {
     selectedKey.value = ''
   }
   ElMessage.success(t('waylines.deleted'))
-  await loadWaylines()
+  // 删光文件夹内航线后需同步刷新 waylineCount，让删除按钮及时出现
+  await Promise.all([loadFolders(), loadWaylines()])
 }
 
 async function onEditorCreated(payload: { waylineId: string; name: string }) {
@@ -354,7 +384,8 @@ async function onEditorCreated(payload: { waylineId: string; name: string }) {
   editorWaylineName.value = payload.name
   editorMode.value = 'edit'
   selectedKey.value = payload.waylineId
-  await reloadWaylines()
+  // 新建航线入夹后 waylineCount 变化，需隐藏文件夹删除按钮
+  await Promise.all([loadFolders(), reloadWaylines()])
 }
 
 async function onEditorSaved(payload: { waylineId: string; name: string }) {
@@ -365,7 +396,8 @@ async function onEditorSaved(payload: { waylineId: string; name: string }) {
   if (payload?.name) {
     editorWaylineName.value = payload.name
   }
-  await loadWaylines()
+  // 保存可能向当前文件夹新插入航线镜像，同步刷新 waylineCount
+  await Promise.all([loadFolders(), loadWaylines()])
 }
 
 /** 编辑器内改名：司空已生效，立即刷新左侧列表本地名 */
@@ -407,6 +439,11 @@ onMounted(async () => {
   await loadFolders()
   await applyRouteQuery()
   await loadWaylines()
+  // 初始化时默认选中第一条可编辑航线；路由已指定 create/edit 时不抢目标
+  if (editorMode.value === 'idle' && !selectedKey.value) {
+    const first = list.value.find((row) => row.fh2WaylineUuid)
+    if (first) onSelect(first)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -548,6 +585,17 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
+}
+
+.folder-delete {
+  margin-left: auto;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.folder-item:hover .folder-delete,
+.folder-delete:hover {
+  opacity: 1;
 }
 
 .wayline-card {

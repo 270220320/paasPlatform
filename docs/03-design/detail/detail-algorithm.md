@@ -3,6 +3,7 @@
 | 文档版本 | 修改日期 | 修改内容 |
 |----------|----------|----------|
 | V1.0 | 2026-07-22 | 初稿 |
+| V2.0 | 2026-08-24 | **按实现校准**：后端 API 已实现；前端独立页面下线（/algorithms 重定向首页），能力保留供任务多模态校验与看板计数 |
 
 **涉及表**：`t_algorithm` `t_algorithm_alarm`
 
@@ -45,6 +46,8 @@
 ### 规则
 
 启停后发事件刷新看板 algorithmCount。本期可以种子数据预置两条 detection + 一条 multimodal not_opened。
+
+> **V2.0 前端状态**：`/algorithms` 路由已下线（重定向首页）。算法能力以 API 形态存在：`capabilities` 供任务创建时多模态开关校验（U-044），`algorithmCount`/`aiAlarmCount` 供看板（U-011）。后续如需管理页可复用既有 API 重建页面。
 
 ---
 

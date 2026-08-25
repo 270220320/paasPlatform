@@ -1,6 +1,7 @@
 package com.uavplatform.wayline.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.uavplatform.common.exception.BizException;
 import com.uavplatform.common.exception.ErrorCodes;
@@ -39,6 +40,7 @@ import java.security.MessageDigest;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,6 +50,7 @@ import java.util.stream.Collectors;
 public class WaylineService {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String DEFAULT_FOLDER_NAME = "默认文件夹";
     private static final Set<String> ALLOWED_TYPES = Set.of("waypoint", "grid_2d");
     private static final Set<String> BLOCKING_MISSION_STATUS = Set.of("pending", "running", "paused");
 
@@ -60,11 +63,18 @@ public class WaylineService {
 
     public List<WaylineFolderVO> listFolders() {
         PermissionChecker.require("wayline:read");
-        ensureDefaultFolder();
+        // 一次查出各文件夹航线数，避免逐文件夹 count 的 N+1 查询
+        Map<Long, Long> waylineCounts = waylineMapper.selectList(new LambdaQueryWrapper<WaylineEntity>()
+                        .eq(WaylineEntity::getWorkspaceId, workspaceId())
+                        .select(WaylineEntity::getFolderId))
+                .stream()
+                .filter(w -> w.getFolderId() != null)
+                .collect(Collectors.groupingBy(WaylineEntity::getFolderId, Collectors.counting()));
         return waylineFolderMapper.selectList(new LambdaQueryWrapper<WaylineFolderEntity>()
                         .eq(WaylineFolderEntity::getWorkspaceId, workspaceId())
                         .orderByAsc(WaylineFolderEntity::getName))
-                .stream().map(this::toFolderVO).collect(Collectors.toList());
+                .stream().map(f -> toFolderVO(f, waylineCounts.getOrDefault(f.getId(), 0L)))
+                .collect(Collectors.toList());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -79,12 +89,37 @@ public class WaylineService {
     }
 
     /**
+     * 删除文件夹（含最后一个）：有航线的文件夹不可删（需先删除或移出航线）；
+     * 删除后不自动重建任何文件夹，子文件夹挂回根级。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteFolder(Long id) {
+        PermissionChecker.require("wayline:write");
+        WaylineFolderEntity folder = waylineFolderMapper.selectById(id);
+        if (folder == null || !workspaceId().equals(folder.getWorkspaceId())) {
+            throw new BizException(ErrorCodes.WAYLINE_FOLDER_NOT_FOUND, "文件夹不存在");
+        }
+        Long waylineCount = waylineMapper.selectCount(new LambdaQueryWrapper<WaylineEntity>()
+                .eq(WaylineEntity::getFolderId, id)
+                .eq(WaylineEntity::getWorkspaceId, workspaceId()));
+        if (waylineCount != null && waylineCount > 0) {
+            throw new BizException(ErrorCodes.WAYLINE_FOLDER_NOT_EMPTY,
+                    "文件夹下有 " + waylineCount + " 条航线，请先删除或移出后再删除文件夹");
+        }
+        // 子文件夹挂回根级，避免悬空引用（set(null) 才能真正置空，entity patch 会跳过 null 字段）
+        waylineFolderMapper.update(null, new LambdaUpdateWrapper<WaylineFolderEntity>()
+                .set(WaylineFolderEntity::getParentId, null)
+                .eq(WaylineFolderEntity::getParentId, id)
+                .eq(WaylineFolderEntity::getWorkspaceId, workspaceId()));
+        waylineFolderMapper.deleteById(id);
+    }
+
+    /**
      * 航线列表读本地库（按文件夹 / 名称 / 状态过滤），未删除记录；司空侧由编辑器 paas.js 保存。
      */
     public PageResult<WaylineListVO> page(Long folderId, String aircraftModel, String status,
                                           String keyword, long page, long pageSize) {
         PermissionChecker.require("wayline:read");
-        ensureDefaultFolder();
         long p = page <= 0 ? 1 : page;
         long size = pageSize <= 0 ? 50 : Math.min(pageSize, 200);
         LambdaQueryWrapper<WaylineEntity> qw = new LambdaQueryWrapper<WaylineEntity>()
@@ -107,13 +142,13 @@ public class WaylineService {
         return PageResult.of(list, result.getTotal(), p, size);
     }
 
-    /** 确保工作空间至少有一个「默认文件夹」，并把无归属航线挂到该文件夹下。 */
+    /** 仅在创建航线等必须归属时兜底：取默认文件夹，无则取最早文件夹，都没有则新建默认文件夹。 */
     @Transactional(rollbackFor = Exception.class)
     public Long ensureDefaultFolder() {
         Long ws = workspaceId();
         WaylineFolderEntity exist = waylineFolderMapper.selectOne(new LambdaQueryWrapper<WaylineFolderEntity>()
                 .eq(WaylineFolderEntity::getWorkspaceId, ws)
-                .eq(WaylineFolderEntity::getName, "默认文件夹")
+                .eq(WaylineFolderEntity::getName, DEFAULT_FOLDER_NAME)
                 .last("LIMIT 1"));
         Long folderId;
         if (exist != null) {
@@ -130,7 +165,7 @@ public class WaylineService {
             } else {
                 WaylineFolderEntity folder = new WaylineFolderEntity();
                 folder.setWorkspaceId(ws);
-                folder.setName("默认文件夹");
+                folder.setName(DEFAULT_FOLDER_NAME);
                 waylineFolderMapper.insert(folder);
                 folderId = folder.getId();
             }
@@ -254,17 +289,42 @@ public class WaylineService {
                 throw new BizException(ErrorCodes.WAYLINE_IN_USE, "航线被任务引用，禁止删除");
             }
         }
-        requireFh2Sdk();
+        // SDK 未就绪（如私有化未配置 userToken/bindingUuid）：当前部署不连司空，降级为仅删本地镜像
+        if (!fh2SdkClient.available()) {
+            if (local == null) {
+                throw new BizException(ErrorCodes.FH2_SDK_UNAVAILABLE,
+                        "无法连接航线服务，且本地无该航线镜像：" + waylineUuid);
+            }
+            log.warn("[wayline] FH2 SDK 未就绪，仅删除本地镜像 uuid={}", waylineUuid);
+            deleteLocalMirror(local);
+            return;
+        }
         try {
             fh2SdkClient.deleteWaylines(List.of(waylineUuid));
         } catch (Exception e) {
             log.error("[wayline] FH2 delete failed uuid={}: {}", waylineUuid, e.getMessage(), e);
+            // 远端航线已不存在（旧环境同步过来的残留数据）时放行本地清理
+            if (local != null && isRemoteWaylineMissing(e)) {
+                log.warn("[wayline] 远端航线不存在，清理本地镜像 uuid={}", waylineUuid);
+                deleteLocalMirror(local);
+                return;
+            }
             throw new BizException(ErrorCodes.FH2_SDK_UNAVAILABLE, "删除航线失败：" + e.getMessage());
         }
         if (local != null) {
-            waylineContentMapper.deleteById(local.getId());
-            waylineMapper.deleteById(local.getId());
+            deleteLocalMirror(local);
         }
+    }
+
+    private void deleteLocalMirror(WaylineEntity local) {
+        waylineContentMapper.deleteById(local.getId());
+        waylineMapper.deleteById(local.getId());
+    }
+
+    /** 宽松识别司空侧“航线不存在”类错误，避免残留镜像无法删除 */
+    private boolean isRemoteWaylineMissing(Exception e) {
+        String msg = String.valueOf(e.getMessage()).toLowerCase();
+        return msg.contains("not exist") || msg.contains("not found") || msg.contains("不存在");
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -365,12 +425,13 @@ public class WaylineService {
         }
     }
 
-    private WaylineFolderVO toFolderVO(WaylineFolderEntity f) {
+    private WaylineFolderVO toFolderVO(WaylineFolderEntity f, long waylineCount) {
         return WaylineFolderVO.builder()
                 .id(f.getId())
                 .name(f.getName())
                 .parentId(f.getParentId())
                 .createdAt(f.getCreatedAt() == null ? null : f.getCreatedAt().format(FMT))
+                .waylineCount(waylineCount)
                 .build();
     }
 
@@ -386,13 +447,6 @@ public class WaylineService {
                 .folderId(e.getFolderId())
                 .updatedAt(e.getUpdatedAt() == null ? null : e.getUpdatedAt().format(FMT))
                 .build();
-    }
-
-    private void requireFh2Sdk() {
-        if (!fh2SdkClient.available()) {
-            throw new BizException(ErrorCodes.FH2_SDK_UNAVAILABLE,
-                    "无法连接航线服务：" + fh2SdkClient.initError().orElse("SDK 不可用"));
-        }
     }
 
     private WaylineDetailVO toDetailVO(WaylineEntity e, WaylineContentEntity c) {

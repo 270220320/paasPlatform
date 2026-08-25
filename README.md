@@ -23,11 +23,11 @@ AiFlow/
 
 | 项 | 值 |
 |----|-----|
-| frontHost（paas.js） | `http://192.168.41.185` |
-| 真实 serverHost | `http://192.168.41.185:30812` |
+| frontHost（paas.js） | `http://192.168.76.141` |
+| 真实 serverHost | `http://192.168.76.141:30812` |
 | 浏览器侧 serverUrl（设备） | `${origin}/paas-api` |
 | 浏览器侧 apiBaseUrl（航线） | `${origin}/paas-api/gateway` |
-| Vite 代理 | `/paas-api` → `http://192.168.41.185:30812` |
+| Vite 代理 | `/paas-api` → `http://192.168.76.141:30812` |
 
 - **前端**：`WaylineEditor`（航线创建/编辑）、`UranusDeviceManagerApp` / `FH2.loadDevice`（设备管理）
 - **后端**：反射调用 FlightHub Java SDK（`getDeviceList` / `getWaylineList` 等）并同步到本地库
