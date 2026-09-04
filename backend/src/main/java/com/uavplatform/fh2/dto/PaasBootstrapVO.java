@@ -28,5 +28,8 @@ public class PaasBootstrapVO {
     private String deviceSdkJs;
     private String replaySdkCss;
     private String replaySdkJs;
+    /** 直播大屏（DJILivePlayer）SDK 资源 */
+    private String liveSdkCss;
+    private String liveSdkJs;
     private String authHeaderName;
 }

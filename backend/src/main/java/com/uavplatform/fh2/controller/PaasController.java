@@ -1,5 +1,6 @@
 package com.uavplatform.fh2.controller;
 
+import com.uavplatform.chat.control.DroneControlGateway;
 import com.uavplatform.common.result.ApiResult;
 import com.uavplatform.common.result.PageResult;
 import com.uavplatform.device.dto.DeviceVO;
@@ -11,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +27,7 @@ import java.util.Map;
 public class PaasController {
 
     private final Fh2IntegrationService fh2IntegrationService;
+    private final DroneControlGateway droneControlGateway;
 
     /** 前端加载 paas.js / WaylineEditor / DeviceManager 所需配置与 token */
     @GetMapping("/bootstrap")
@@ -52,6 +55,21 @@ public class PaasController {
     @GetMapping("/devices/remote")
     public ApiResult<PageResult<DeviceVO>> remoteDevices() {
         return ApiResult.ok(fh2IntegrationService.previewRemoteDevices());
+    }
+
+    /**
+     * 机场远程开机（进调试模式→开舱盖→飞行器上电）；直播大屏对关机飞行器拉流前调用。
+     * 第一步同步等待快速失败（机场离线/占用），机械动作后台执行。
+     */
+    @PostMapping("/devices/{sn}/power-on")
+    public ApiResult<Map<String, Object>> devicePowerOn(@PathVariable("sn") String sn) {
+        return ApiResult.ok(droneControlGateway.dockPowerOn(sn));
+    }
+
+    /** 机场远程关机（飞行器断电→关舱盖→退出调试模式） */
+    @PostMapping("/devices/{sn}/power-off")
+    public ApiResult<Map<String, Object>> devicePowerOff(@PathVariable("sn") String sn) {
+        return ApiResult.ok(droneControlGateway.dockPowerOff(sn));
     }
 
     /** 在飞飞行器实时位置（首页地图标注） */

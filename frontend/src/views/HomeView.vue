@@ -60,6 +60,9 @@
             <div ref="missionResultEl" class="chart bar-chart" />
           </div>
         </section>
+
+        <!-- 司空设备小窗：地图 + 无人机直播浮层，下拉框切换设备 -->
+        <DeviceWindowPane class="glass panel device-window-host" />
       </aside>
     </div>
   </div>
@@ -94,6 +97,7 @@ import { annotationVoToRecord, fetchAnnotations } from '@/api/map'
 import type { AnnotationRecord } from '@/utils/annotationStorage'
 import { meApi } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import DeviceWindowPane from '@/components/DeviceWindowPane.vue'
 
 echarts.use([
   PieChart,
@@ -723,7 +727,9 @@ onBeforeUnmount(() => {
   z-index: 2;
   pointer-events: none;
   display: grid;
-  grid-template-columns: minmax(300px, 360px) 1fr minmax(320px, 400px);
+  /* 右列（任务 + 设备小窗）：SDK 小窗浮层设计宽约 400px，
+     需再加面板内边距 28px、边框 2px、滚动条 6px 及余量，给足 448px */
+  grid-template-columns: minmax(300px, 360px) 1fr 448px;
   grid-template-rows: 1fr;
   gap: 12px;
   padding: 12px 14px 16px;
@@ -743,6 +749,26 @@ onBeforeUnmount(() => {
 
   &.right {
     grid-column: 3;
+    /* 任务 + 设备小窗总高超视口时可滚动；开启 auto 让滚轮生效，
+       地图缩放控件层级更高（leaflet-control z-index:5）不受影响 */
+    pointer-events: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 
   .panel {
@@ -772,6 +798,13 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
   }
+}
+
+/* 设备小窗：固定 360px 高，内部自行管理小窗浮层 */
+.device-window-host {
+  flex: 0 0 360px;
+  height: 360px;
+  overflow: hidden;
 }
 
 .panel-hd {

@@ -84,18 +84,47 @@ describe('mapCockpitDevices', () => {
     expect(dock.model).toBe('DJI Dock 3')
   })
 
-  it('onlineState：飞行器离线(0)→offline，机场在线(true)→online，飞行器优先', () => {
+  /**
+   * 回归（2026-09-03 实际故障）：机场在线（device_online_status=true）、
+   * 飞行器舱内未开机（sub_device.device_online_status=0）是 Dock 常态，
+   * 旧逻辑“机场在线时飞行器优先”把机场误报为离线。修复后机场状态以主记录为准。
+   */
+  it('onlineState：机场在线 + 飞行器未开机(0) → 机场判在线（回归）', () => {
     const [dock] = mapCockpitDevices(dockPayload())
-    // sub_device.device_online_status=0 先命中 → offline
-    expect(dock.onlineState).toBe('offline')
+    expect(dock.onlineState).toBe('online')
   })
 
-  it('onlineState：飞行器在线时取 online', () => {
+  it('onlineState：机场在线时飞行器在线(1)→online', () => {
     const payload = dockPayload({})
     ;((payload.data.list[0] as Record<string, unknown>).device_state as Record<string, unknown>)
       .sub_device = { device_sn: 'DRONE1', device_online_status: 1 }
     const [dock] = mapCockpitDevices(payload)
     expect(dock.onlineState).toBe('online')
+  })
+
+  /**
+   * 回归（2026-08-28 实际故障）：机场离线一周（device_online_status=false），
+   * 但 device_state 是最后一次 OSD 快照，sub_device.device_online_status 残留 1，
+   * 旧逻辑“飞行器优先”误报在线。修复后机场主记录优先，离线必判离线。
+   */
+  it('onlineState：机场离线时 sub_device 快照残留 1 不得误报在线（回归）', () => {
+    const payload = dockPayload({
+      device_online_status: false,
+      device_state: {
+        sub_device: {
+          device_sn: '1581F8HGX252500A009X',
+          device_online_status: 1,
+          device_paired: 1,
+        },
+      },
+      associate_drone_device_info: {
+        device_sn: '1581F8HGX252500A009X',
+        device_model: { key: '0-100-1', name: 'Matrice 4TD', class: 'drone' },
+        device_online_status: false,
+      },
+    })
+    const [dock] = mapCockpitDevices(payload)
+    expect(dock.onlineState).toBe('offline')
   })
 
   it('接口 code 非 0 时 data 仍会被解析（上层 fetchCockpitDevices 负责抛错）', () => {

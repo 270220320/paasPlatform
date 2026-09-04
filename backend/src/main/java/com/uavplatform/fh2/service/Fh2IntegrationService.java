@@ -44,6 +44,10 @@ import java.util.stream.Collectors;
 public class Fh2IntegrationService {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    /** 司空 WaylineModelType：1 = 面状航线（Area） */
+    private static final int FH2_WAYLINE_TYPE_AREA = 1;
+    /** 本地面状航线类型（t_wayline.wayline_type） */
+    private static final String LOCAL_WAYLINE_TYPE_AREA = "grid_2d";
 
     private final Fh2RuntimeConfigHolder configHolder;
     private final ReflectiveFh2SdkClient sdkClient;
@@ -78,6 +82,8 @@ public class Fh2IntegrationService {
                 .deviceSdkJs(cfg.getDeviceSdkJs())
                 .replaySdkCss(cfg.getReplaySdkCss())
                 .replaySdkJs(cfg.getReplaySdkJs())
+                .liveSdkCss(cfg.getLiveSdkCss())
+                .liveSdkJs(cfg.getLiveSdkJs())
                 .authHeaderName("X-User-Token")
                 .build();
     }
@@ -179,6 +185,7 @@ public class Fh2IntegrationService {
             if (!StringUtils.hasText(item.getWaylineUuid())) {
                 continue;
             }
+            String remoteType = toLocalWaylineType(item.getWaylineTypes());
             WaylineEntity exist = waylineMapper.selectOne(new LambdaQueryWrapper<WaylineEntity>()
                     .eq(WaylineEntity::getFh2WaylineUuid, item.getWaylineUuid()).last("LIMIT 1"));
             if (exist == null) {
@@ -187,7 +194,7 @@ public class Fh2IntegrationService {
                 w.setFolderId(ensureDefaultFolderId());
                 w.setName(blank(item.getWaylineName(), "未命名航线"));
                 w.setAircraftModel(blank(item.getDroneType(), "unknown"));
-                w.setWaylineType("waypoint");
+                w.setWaylineType(remoteType != null ? remoteType : "waypoint");
                 w.setStatus("published");
                 w.setFh2WaylineUuid(item.getWaylineUuid());
                 w.setSource("fh2");
@@ -202,6 +209,11 @@ public class Fh2IntegrationService {
                     exist.setName("未命名航线");
                 }
                 exist.setAircraftModel(blank(item.getDroneType(), exist.getAircraftModel()));
+                // 司空确认面状时校准本地占位类型；司空返回航点/拿不到类型时不覆盖本地显式值
+                if (LOCAL_WAYLINE_TYPE_AREA.equals(remoteType)
+                        && !LOCAL_WAYLINE_TYPE_AREA.equals(exist.getWaylineType())) {
+                    exist.setWaylineType(LOCAL_WAYLINE_TYPE_AREA);
+                }
                 exist.setSource("fh2");
                 exist.setUpdatedAt(toLdt(item.getUpdatedAt(), now));
                 waylineMapper.updateById(exist);
@@ -213,7 +225,8 @@ public class Fh2IntegrationService {
 
     /**
      * 前端 WaylineEditor 保存/改名后回写本地镜像。
-     * <p>name 为空时从司空侧拉取最新名称，避免编辑器改名后本地仍写旧名。
+     * <p>name 为空时从司空侧拉取最新名称，避免编辑器改名后本地仍写旧名；
+     * 同时按司空 waylineTypes 校准本地面状类型（编辑器回调不携带类型）。
      */
     @Transactional(rollbackFor = Exception.class)
     public WaylineListVO upsertWaylineFromEditor(String waylineUuid, String name, Long folderId) {
@@ -221,17 +234,21 @@ public class Fh2IntegrationService {
         if (!StringUtils.hasText(waylineUuid)) {
             throw new BizException(ErrorCodes.BAD_REQUEST, "waylineUuid 必填");
         }
-        String resolvedName = StringUtils.hasText(name) ? name.trim() : resolveRemoteWaylineName(waylineUuid);
+        RemoteWaylineMeta meta = StringUtils.hasText(name)
+                ? RemoteWaylineMeta.of(name.trim())
+                : resolveRemoteWaylineMeta(waylineUuid);
+        String resolvedName = meta.name();
         LocalDateTime now = LocalDateTime.now();
         WaylineEntity exist = waylineMapper.selectOne(new LambdaQueryWrapper<WaylineEntity>()
                 .eq(WaylineEntity::getFh2WaylineUuid, waylineUuid).last("LIMIT 1"));
+        String remoteType = toLocalWaylineType(meta.waylineTypes());
         if (exist == null) {
             exist = new WaylineEntity();
             exist.setWorkspaceId(1L);
             exist.setFolderId(folderId != null ? folderId : ensureDefaultFolderId());
             exist.setName(blank(resolvedName, "未命名航线"));
             exist.setAircraftModel("unknown");
-            exist.setWaylineType("waypoint");
+            exist.setWaylineType(remoteType != null ? remoteType : "waypoint");
             exist.setStatus("published");
             exist.setFh2WaylineUuid(waylineUuid);
             exist.setSource("fh2");
@@ -247,6 +264,11 @@ public class Fh2IntegrationService {
                 exist.setFolderId(folderId);
             } else if (exist.getFolderId() == null) {
                 exist.setFolderId(ensureDefaultFolderId());
+            }
+            // 司空确认面状时校准本地占位类型，其余不覆盖本地显式值
+            if (LOCAL_WAYLINE_TYPE_AREA.equals(remoteType)
+                    && !LOCAL_WAYLINE_TYPE_AREA.equals(exist.getWaylineType())) {
+                exist.setWaylineType(LOCAL_WAYLINE_TYPE_AREA);
             }
             exist.setSource("fh2");
             exist.setUpdatedAt(now);
@@ -265,26 +287,41 @@ public class Fh2IntegrationService {
                 .build();
     }
 
-    /** 从司空航线列表取指定 uuid 的最新名称；SDK 不可用或未找到时返回 null。 */
-    private String resolveRemoteWaylineName(String waylineUuid) {
+    private record RemoteWaylineMeta(String name, List<Integer> waylineTypes) {
+        static RemoteWaylineMeta of(String name) {
+            return new RemoteWaylineMeta(name, null);
+        }
+    }
+
+    /** 从司空航线列表取指定 uuid 的名称与航线类型；SDK 不可用或未找到时返回空 meta。 */
+    private RemoteWaylineMeta resolveRemoteWaylineMeta(String waylineUuid) {
         if (!sdkClient.available()) {
-            return null;
+            return new RemoteWaylineMeta(null, null);
         }
         try {
             List<Fh2WaylineItemVO> remote = sdkClient.listWaylines(0, 200);
             if (remote == null) {
-                return null;
+                return new RemoteWaylineMeta(null, null);
             }
             for (Fh2WaylineItemVO item : remote) {
-                if (item != null && waylineUuid.equals(item.getWaylineUuid())
-                        && StringUtils.hasText(item.getWaylineName())) {
-                    return item.getWaylineName().trim();
+                if (item != null && waylineUuid.equals(item.getWaylineUuid())) {
+                    return new RemoteWaylineMeta(
+                            StringUtils.hasText(item.getWaylineName()) ? item.getWaylineName().trim() : null,
+                            item.getWaylineTypes());
                 }
             }
         } catch (Exception e) {
-            log.warn("[fh2] resolveRemoteWaylineName {} failed: {}", waylineUuid, e.getMessage());
+            log.warn("[fh2] resolveRemoteWaylineMeta {} failed: {}", waylineUuid, e.getMessage());
         }
-        return null;
+        return new RemoteWaylineMeta(null, null);
+    }
+
+    /** 司空航线类型 → 本地类型：面状(1)=grid_2d；拿不到类型返回 null 不动本地值；其余=waypoint */
+    private static String toLocalWaylineType(List<Integer> waylineTypes) {
+        if (waylineTypes == null) {
+            return null;
+        }
+        return waylineTypes.contains(FH2_WAYLINE_TYPE_AREA) ? LOCAL_WAYLINE_TYPE_AREA : "waypoint";
     }
 
     public PageResult<DeviceVO> previewRemoteDevices() {

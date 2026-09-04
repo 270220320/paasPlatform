@@ -21,6 +21,9 @@ export interface PaasBootstrap {
   deviceSdkJs: string
   replaySdkCss?: string
   replaySdkJs?: string
+  /** 直播大屏（DJILivePlayer）SDK 资源，独立于 paas.js */
+  liveSdkCss?: string
+  liveSdkJs?: string
   authHeaderName: string
 }
 
@@ -46,6 +49,20 @@ export function upsertFh2Wayline(data: { waylineUuid: string; name?: string; fol
 
 export function fetchRemoteFh2Devices() {
   return http.get<ApiResult<PageResult<DeviceVO>>>('/paas/devices/remote')
+}
+
+/** 机场远程开机（调试模式→开舱盖→飞行器上电）；第一步同步快速失败，机械动作后台执行 */
+export function powerOnFh2Device(dockSn: string) {
+  return http.post<ApiResult<{ accepted: boolean; message: string }>>(
+    `/paas/devices/${encodeURIComponent(dockSn)}/power-on`,
+  )
+}
+
+/** 机场远程关机（飞行器断电→关舱盖→退出调试模式） */
+export function powerOffFh2Device(dockSn: string) {
+  return http.post<ApiResult<{ accepted: boolean; message: string }>>(
+    `/paas/devices/${encodeURIComponent(dockSn)}/power-off`,
+  )
 }
 
 export interface AircraftLocationVO {
@@ -167,6 +184,8 @@ export function mapCockpitDevices(payload: RemoteDevicePayload): DeviceVO[] {
       if (v === false || v === 0) return 'offline'
       return String(v ?? '').trim()
     }
+    const dockState = onlineFrom(dockOnline)
+    const droneState = onlineFrom(droneOnline)
     return {
       id: Number(raw.id ?? 0),
       sn,
@@ -181,8 +200,13 @@ export function mapCockpitDevices(payload: RemoteDevicePayload): DeviceVO[] {
       onlineState: firstNonEmpty(
         raw.onlineState,
         raw.online_state,
-        onlineFrom(droneOnline),
-        onlineFrom(dockOnline),
+        // 列表每行是机场，在线状态以机场主记录为准：
+        // - 机场离线 → 必判离线（device_state.sub_device 是最后一次 OSD 快照，
+        //   机场离线后残留历史值，不可采信）；
+        // - 机场在线 → 判在线。飞行器常处舱内未开机（sub_device=0）属正常状态，
+        //   不能用它拉低机场状态（曾导致驾驶舱误报机场离线）。
+        dockState,
+        droneState,
       ),
     }
   })

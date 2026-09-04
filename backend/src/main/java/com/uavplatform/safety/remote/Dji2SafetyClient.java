@@ -7,6 +7,7 @@ import com.uavplatform.common.exception.BizException;
 import com.uavplatform.common.exception.ErrorCodes;
 import com.uavplatform.fh2.config.Fh2Properties;
 import com.uavplatform.fh2.sdk.Fh2RuntimeConfigHolder;
+import com.uavplatform.fh2.sdk.Fh2SdkClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 对接 dji2 /safety REST（与 paasVue routeApiBaseUrl 一致），用于限飞区 upsert / 下发机场。
+ * 限飞区推送司空：优先走 FlightHub SDK SafetyServiceModule（复用 gateway-header:user_id 鉴权），
+ * SDK 不可用且旧 dji2 后台（route-api-base + X-User-Token）已配置时回退 HTTP 直连。
+ * 私有化 76.141 无 56789 服务也无 user token，仅 SDK 通道可用。
  */
 @Slf4j
 @Component
@@ -38,14 +41,21 @@ public class Dji2SafetyClient {
             .build();
 
     private final Fh2RuntimeConfigHolder configHolder;
+    private final Fh2SdkClient sdkClient;
 
     public boolean configured() {
+        if (sdkClient.available()) {
+            return true;
+        }
         Fh2Properties cfg = configHolder.effective();
         return StringUtils.hasText(cfg.getRouteApiBase()) && StringUtils.hasText(cfg.getUserToken());
     }
 
     /** 创建限飞区，返回司空 flightAreaId */
     public String createArea(String name, Map<String, Object> content) {
+        if (sdkClient.available()) {
+            return sdkClient.createFlightArea(name, "nfz", content);
+        }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("name", name);
         body.put("type", "nfz");
@@ -64,6 +74,10 @@ public class Dji2SafetyClient {
 
     /** 更新限飞区 */
     public void updateArea(String flightAreaId, String name, Map<String, Object> content) {
+        if (sdkClient.available()) {
+            sdkClient.updateFlightArea(flightAreaId, name, content);
+            return;
+        }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("flightAreaId", flightAreaId);
         body.put("name", name);
@@ -77,6 +91,10 @@ public class Dji2SafetyClient {
         if (!StringUtils.hasText(flightAreaId)) {
             return;
         }
+        if (sdkClient.available()) {
+            sdkClient.deleteFlightArea(flightAreaId);
+            return;
+        }
         get("/safety/delete.rest/" + encode(flightAreaId));
     }
 
@@ -84,6 +102,9 @@ public class Dji2SafetyClient {
     public List<Map<String, Object>> syncToDevices(List<String> deviceSns) {
         if (deviceSns == null || deviceSns.isEmpty()) {
             return List.of();
+        }
+        if (sdkClient.available()) {
+            return sdkClient.syncFlightAreas(deviceSns);
         }
         StringBuilder q = new StringBuilder();
         for (String sn : deviceSns) {
@@ -103,6 +124,9 @@ public class Dji2SafetyClient {
     public List<Map<String, Object>> syncStatus(List<String> deviceSns) {
         if (deviceSns == null || deviceSns.isEmpty()) {
             return List.of();
+        }
+        if (sdkClient.available()) {
+            return sdkClient.getFlightAreasSyncStatus(deviceSns);
         }
         StringBuilder q = new StringBuilder();
         for (String sn : deviceSns) {

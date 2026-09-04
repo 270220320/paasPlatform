@@ -10,6 +10,7 @@ import com.uavplatform.common.security.PermissionChecker;
 import com.uavplatform.common.security.UserContext;
 import com.uavplatform.fh2.config.Fh2Properties;
 import com.uavplatform.fh2.dto.Fh2TerraModelVO;
+import com.uavplatform.fh2.dto.Fh2WaylineItemVO;
 import com.uavplatform.fh2.sdk.Fh2RuntimeConfigHolder;
 import com.uavplatform.fh2.sdk.Fh2SdkClient;
 import com.uavplatform.media.domain.ModelAssetEntity;
@@ -25,6 +26,8 @@ import com.uavplatform.mission.dto.MissionExecutionVO;
 import com.uavplatform.mission.mapper.MissionExecutionMapper;
 import com.uavplatform.mission.mapper.MissionPlanMapper;
 import com.uavplatform.mission.remote.Dji2TaskClient;
+import com.uavplatform.wayline.domain.WaylineEntity;
+import com.uavplatform.wayline.mapper.WaylineMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**
@@ -53,20 +58,36 @@ public class MissionReconstructService {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final Set<String> ACTIVE = Set.of("pending", "running");
+    /** 司空 WaylineModelType：1 = 面状航线（Area） */
+    private static final int FH2_WAYLINE_TYPE_AREA = 1;
+    /** 本地面状航线类型（t_wayline.wayline_type，与 WaylineService 允许值对齐） */
+    private static final String LOCAL_WAYLINE_TYPE_AREA = "grid_2d";
+    /** 详情页约 5s 轮询，航线类型进程内缓存 5 分钟，避免反复拉司空列表 */
+    private static final long WAYLINE_TYPES_CACHE_MS = 5 * 60 * 1000L;
+    /** 拉取失败短冷却，防止司空不可用时被轮询打爆 */
+    private static final long WAYLINE_TYPES_FAIL_COOL_DOWN_MS = 60 * 1000L;
 
     private final MissionPlanMapper missionPlanMapper;
     private final MissionExecutionMapper missionExecutionMapper;
     private final ReconstructJobMapper reconstructJobMapper;
     private final ModelAssetMapper modelAssetMapper;
     private final WorkspaceQuotaMapper workspaceQuotaMapper;
+    private final WaylineMapper waylineMapper;
     private final Fh2SdkClient fh2SdkClient;
     private final Dji2TaskClient dji2TaskClient;
     private final Fh2RuntimeConfigHolder fh2ConfigHolder;
 
-    public void attachReconstruct(List<MissionExecutionVO> executions) {
+    private final ConcurrentMap<String, CachedWaylineTypes> waylineTypesCache = new ConcurrentHashMap<>();
+
+    private record CachedWaylineTypes(List<Integer> types, boolean fetchFailed, long cachedAt) {
+    }
+
+    public void attachReconstruct(MissionPlanEntity plan, List<MissionExecutionVO> executions) {
         if (CollectionUtils.isEmpty(executions)) {
             return;
         }
+        // 计划维度一次判定：面状航线才允许发起三维重建；详情页 5s 轮询，内部带缓存避免反复打司空
+        boolean areaWayline = isAreaWayline(plan);
         List<Long> execIds = executions.stream()
                 .map(MissionExecutionVO::getId)
                 .filter(Objects::nonNull)
@@ -88,15 +109,18 @@ public class MissionReconstructService {
                     log.debug("[mission-reconstruct] reconcile on attach skip: {}", e.getMessage());
                 }
             }
-            boolean available = canShowButton(item, job);
+            String unavailableReason = unavailableReason(item, job, areaWayline);
+            boolean available = unavailableReason == null;
             if (job == null) {
                 item.setReconstruct(ExecutionReconstructVO.builder()
                         .available(available)
+                        .unavailableReason(unavailableReason)
                         .build());
                 continue;
             }
             item.setReconstruct(ExecutionReconstructVO.builder()
-                    .available(available || "failed".equalsIgnoreCase(job.getStatus()))
+                    .available(available)
+                    .unavailableReason(unavailableReason)
                     .jobId(job.getId())
                     .status(job.getStatus())
                     .fh2ModelId(job.getFh2ModelId())
@@ -130,6 +154,10 @@ public class MissionReconstructService {
         if (!StringUtils.hasText(exec.getFh2TaskUuid())) {
             throw new BizException(ErrorCodes.MISSION_PARAM_MISSING, "该任务未关联司空飞行任务，无法重建");
         }
+        // 与列表按钮同一口径：仅面状航线支持三维重建
+        if (!isAreaWayline(plan)) {
+            throw new BizException(ErrorCodes.MISSION_PARAM_MISSING, "仅面状航线支持三维重建，该计划关联的航线不是面状航线");
+        }
 
         ReconstructJobEntity active = findActiveJob(executionId);
         if (active != null) {
@@ -151,6 +179,10 @@ public class MissionReconstructService {
                     purged, taskUuid);
             imageCount = countFlightImages(taskUuid);
             visibleCount = countVisibleLightImages(taskUuid);
+        }
+        if (imageCount <= 0 && visibleCount <= 0) {
+            throw new BizException(ErrorCodes.MISSION_REMOTE_ERROR,
+                    "该架次暂无司空采集照片，无法发起三维重建");
         }
         if (visibleCount > 0 && visibleCount < 3) {
             throw new BizException(ErrorCodes.MISSION_REMOTE_ERROR,
@@ -993,17 +1025,104 @@ public class MissionReconstructService {
                 .last("LIMIT 1"));
     }
 
-    private boolean canShowButton(MissionExecutionVO item, ReconstructJobEntity latest) {
+    /** 可发起重建的前置校验；返回 null 表示可发起，否则返回不可发起原因（前端 tooltip 用） */
+    private String unavailableReason(MissionExecutionVO item, ReconstructJobEntity latest, boolean areaWayline) {
         if (item == null || item.getId() == null || !"execution".equals(item.getRecordType())) {
-            return false;
+            return "no_task";
         }
         if (!StringUtils.hasText(item.getFh2TaskUuid())) {
-            return false;
+            return "no_task";
+        }
+        if (CollectionUtils.isEmpty(item.getMedia())) {
+            return "no_media";
+        }
+        if (!areaWayline) {
+            return "not_area_wayline";
         }
         if (latest != null && ACTIVE.contains(normalize(latest.getStatus()))) {
+            return "active_job";
+        }
+        return null;
+    }
+
+    /** 是否面状航线：本地已标记面状直接认定；否则查司空航线类型（懒校准回写本地），查询失败按非面状处理。供 detail 组装 plan VO 复用。 */
+    public boolean isAreaWayline(MissionPlanEntity plan) {
+        if (plan == null || plan.getWaylineId() == null) {
             return false;
         }
+        WaylineEntity wayline = waylineMapper.selectById(plan.getWaylineId());
+        if (wayline == null) {
+            return false;
+        }
+        if (LOCAL_WAYLINE_TYPE_AREA.equals(wayline.getWaylineType())) {
+            return true;
+        }
+        String fh2Uuid = wayline.getFh2WaylineUuid();
+        if (!StringUtils.hasText(fh2Uuid)) {
+            return false;
+        }
+        List<Integer> types = cachedWaylineTypes(fh2Uuid.trim());
+        if (types == null || !types.contains(FH2_WAYLINE_TYPE_AREA)) {
+            return false;
+        }
+        // 懒校准：把司空侧识别出的面状航线回写本地，后续短路且列表页可见
+        try {
+            wayline.setWaylineType(LOCAL_WAYLINE_TYPE_AREA);
+            waylineMapper.updateById(wayline);
+            log.info("[mission-reconstruct] calibrated wayline {} to {} by FH2 waylineTypes",
+                    fh2Uuid, LOCAL_WAYLINE_TYPE_AREA);
+        } catch (Exception e) {
+            log.debug("[mission-reconstruct] persist area wayline type skip: {}", e.getMessage());
+        }
         return true;
+    }
+
+    /** 优先读缓存；未命中翻司空航线列表（整页入缓存供其他计划复用），失败短冷却防轮询打爆 */
+    private List<Integer> cachedWaylineTypes(String fh2Uuid) {
+        CachedWaylineTypes cached = waylineTypesCache.get(fh2Uuid);
+        long now = System.currentTimeMillis();
+        if (cached != null) {
+            long ttl = cached.fetchFailed() ? WAYLINE_TYPES_FAIL_COOL_DOWN_MS : WAYLINE_TYPES_CACHE_MS;
+            if (now - cached.cachedAt() < ttl) {
+                return cached.types();
+            }
+        }
+        if (!fh2SdkClient.available()) {
+            return cached != null ? cached.types() : null;
+        }
+        try {
+            List<Integer> result = null;
+            for (int page = 0; page <= 4; page++) {
+                List<Fh2WaylineItemVO> items = fh2SdkClient.listWaylines(page, 200);
+                if (CollectionUtils.isEmpty(items)) {
+                    break;
+                }
+                for (Fh2WaylineItemVO w : items) {
+                    if (w == null || !StringUtils.hasText(w.getWaylineUuid())) {
+                        continue;
+                    }
+                    List<Integer> t = w.getWaylineTypes() == null ? List.of() : w.getWaylineTypes();
+                    waylineTypesCache.put(w.getWaylineUuid().trim(),
+                            new CachedWaylineTypes(t, false, now));
+                    if (fh2Uuid.equals(w.getWaylineUuid().trim())) {
+                        result = t;
+                    }
+                }
+                if (items.size() < 200) {
+                    break;
+                }
+            }
+            if (result == null) {
+                // 司空列表里已无此航线：按非面状缓存
+                result = List.of();
+                waylineTypesCache.put(fh2Uuid, new CachedWaylineTypes(result, false, now));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("[mission-reconstruct] list wayline types for {} failed: {}", fh2Uuid, e.getMessage());
+            waylineTypesCache.put(fh2Uuid, new CachedWaylineTypes(null, true, now));
+            return null;
+        }
     }
 
     private void bumpMappingQuota(Long workspaceId) {

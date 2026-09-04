@@ -67,7 +67,20 @@ public final class ErrorCodes {
 
     public static final int ALGORITHM_NOT_FOUND = 80001;
     public static final int ALGORITHM_NOT_OPENED = 80002;
-
+    
+    /** 对话控制模块：Ollama 不可达/调用失败 */
+    public static final int CHAT_LLM_ERROR = 90001;
+    /** 对话控制模块：会话不存在 */
+    public static final int CHAT_SESSION_NOT_FOUND = 90002;
+    /** 对话控制模块：功能未开启 */
+    public static final int CHAT_DISABLED = 90003;
+    /** 对话控制模块：待确认动作不存在或已过期 */
+    public static final int CHAT_ACTION_NOT_FOUND = 90004;
+    /** 对话控制模块：超过安全等级上限 */
+    public static final int CHAT_SECURITY_LEVEL_EXCEEDED = 90005;
+    /** 对话控制模块：飞控执行失败 */
+    public static final int CHAT_CONTROL_ERROR = 90006;
+    
     private ErrorCodes() {
     }
 }

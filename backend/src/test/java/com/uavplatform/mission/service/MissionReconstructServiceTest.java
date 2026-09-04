@@ -14,7 +14,8 @@ class MissionReconstructServiceTest {
     void folderCandidates_includesLeafAndTaskFolder() {
         var c = MissionReconstructService.folderCandidatesFromFilePath("83/84/85");
         assertEquals(85L, c.primaryId());
-        assertEquals(List.of(85, 84), c.folderIds());
+        // 传入全部路径段（含顶层文件夹），确保 SDK 能递归扫描到完整照片集
+        assertEquals(List.of(85, 84, 83), c.folderIds());
     }
 
     @Test

@@ -28,7 +28,7 @@ import { ElMessage } from 'element-plus'
 import { upsertFh2Wayline } from '@/api/paas'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs, loadScript, loadStylesheet } from '@/utils/loadScript'
-import { purgeOrphanSdkContainers, purgeWaylineSdkOverlays, resetFh2SharedMapContext } from '@/utils/sdkContainers'
+import { purgeFh2DepScripts, purgeOrphanSdkContainers, resetFh2SharedMapContext, teardownSdkOnRouteLeave } from '@/utils/sdkContainers'
 import { installWaylineRenameWatcher } from '@/utils/waylineNameSync'
 
 declare global {
@@ -352,6 +352,9 @@ async function recreateEditor() {
   if (!alive || !container) return false
 
   purgeOrphanSdkContainers(rootEl.value)
+  // fly-data-sdk 与本 SDK 依赖表相同，其 data-fh2-dep 查重只比路径不比 src：
+  // 回放页残留的失败依赖标签同样会让编辑器依赖加载永挂，重建前先清空
+  purgeFh2DepScripts()
 
   const auth = authConfig(cfg)
   const instance = new window.WaylineEditor({
@@ -588,7 +591,8 @@ onBeforeUnmount(() => {
   uninstallRenameWatcher = null
   unbindResizeObservers()
   destroyEditor()
-  void resetFh2SharedMapContext()
+  // 卸载同步阶段清理：purge 若迟到（等 destroy 链后）会误删已挂载的设备管理容器，页面空白
+  teardownSdkOnRouteLeave()
 })
 
 defineExpose({ startCreate, enterEditMode })

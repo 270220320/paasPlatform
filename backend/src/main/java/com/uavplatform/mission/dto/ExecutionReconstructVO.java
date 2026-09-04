@@ -8,9 +8,12 @@ import lombok.Data;
 @Builder
 public class ExecutionReconstructVO {
 
-    /** 是否可发起（有司空飞行任务即可；发起时再校验资源） */
+    /** 是否可发起（有司空飞行任务 + 已采集媒体 + 面状航线；发起时再校验资源） */
     @JsonProperty("available")
     private boolean available;
+    /** 不可发起原因：no_task / no_media / not_area_wayline / active_job，前端据此展示 tooltip */
+    @JsonProperty("unavailableReason")
+    private String unavailableReason;
     private Long jobId;
     /** pending / running / success / failed */
     private String status;

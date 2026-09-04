@@ -15,7 +15,11 @@ dist/
 backend/src/main/resources/application-local.yml
 
 # FlightHub SDK jar ~180MB，超过 GitHub 100MB 单文件限制；本地放到 backend/libs/
+# *.bak：SDK 旧版 jar 留档（曾以 .bak 后缀绕过 *.jar 规则误入库，190MB）
 backend/libs/*.jar
+backend/libs/*.bak
+*.bak
+*.bin
 !backend/libs/README.md
 
 # Vite 启动时从 node_modules/zywlgis 复制，勿入库（体积大易导致 push 断连）

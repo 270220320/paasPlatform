@@ -75,7 +75,7 @@
 | strategy | 通道 | 说明 |
 |----------|------|------|
 | immediate / once | FlightHub Java SDK `FlightTaskModule.createFlightTask` | 事务提交后立即下发 |
-| recurring / continuous | dji2 REST `/task/create.rest` | 需 `uav.fh2.route-api-base` + userToken，携带 schedule_config |
+| recurring / continuous | dji2 REST `/task/create.rest`；**未配置 `route-api-base`/userToken 时降级本地调度**（executions 到期逐次走 SDK 单次下发，taskType=1） | 私有化无 dji2 route 后台（56789 未部署）与 userToken，默认即降级 |
 | manual | 不下发 | 本地记录 |
 
 ### 状态回查映射（FH2 TaskDetail.status → 本地 execution.status）
@@ -114,7 +114,7 @@ sequenceDiagram
 
 ### 失败处理
 
-- SDK 未初始化 / dji2 未配置 → `50008`（提示补 `route-api-base`/userToken）。
+- SDK 未初始化 → `50008`；周期任务 dji2 未配置 → **降级本地调度**（不报错，计划保持 pending，调度器到期逐次下发）；dji2 已配置但下发异常 → `50008`。
 - 下发异常不回滚计划创建（保留 pending 可重试）。
 
 ---
@@ -185,10 +185,27 @@ stateDiagram-v2
 1. 校验执行存在且已关联 `fh2_task_uuid`。
 2. 在司空任务资源文件夹（`fh2_task_folder_id`，取自配置 `terra-build-folder-uuid` 或任务详情）发起 Terra 重建。
 3. `t_reconstruct_job` 落库：mission_plan_id + mission_execution_id + fh2_task_uuid + fh2_model_id。
-4. 状态同步：详情打开时 `attachReconstruct` 懒校准（司空已失败/无产物却标 success 的历史数据触发 `syncOne` 重查）。
+4. 状态同步：详情打开时 `attachReconstruct(plan, executions)` 懒校准（司空已失败/无产物却标 success 的历史数据触发 `syncOne` 重查）。
 5. 完成后 `preview_url`/`model_url`（TEXT）供前端 ModelPreviewDialog 预览与 ZIP 下载。
 
 状态：pending → running → success | failed（与 media 分册 U-052 共表共状态）。
+
+### 发起/按钮显示条件（V2.1）
+
+仅当同时满足以下条件才显示可点击的三维重建（含失败后的重新重建）按钮，后端 `ExecutionReconstructVO.available` 下发，`unavailableReason` 携带首个不满足原因（no_task / no_media / not_area_wayline / active_job）：
+
+1. 真实执行记录（recordType=execution）且已关联 `fh2_task_uuid`；
+2. 该执行**已采集媒体**（本地 t_media_asset + 司空媒体合并后非空）；
+3. 计划关联的是**面状航线**：本地 `t_wayline.wayline_type=grid_2d` 直接认定；否则按司空 `listWaylines.waylineTypes`（WaylineModelType，1=面状 Area）判定，命中后懒校准回写本地；类型进程内缓存 5 分钟（拉取失败冷却 60s）防详情页 5s 轮询打爆司空；
+4. 无进行中的重建 job。
+
+### 展示规则（V2.2）
+
+- 详情接口 `MissionPlanVO.areaWayline` 下发计划级面状标志（detail 内复用 attachReconstruct 懒校准后的本地类型与缓存）；
+- **航点/非面状航线**：执行列表不渲染三维重建列（v-if 整列隐藏）；
+- **面状航线**：显示该列；其中无采集媒体（unavailableReason=no_media）的执行行按钮置灰（disabled + tooltip 提示），有采集媒体为可点击按钮；重建中/排队/已完成/失败状态展示不变。
+
+发起接口同步同口径校验：非面状航线 → 50005；架次无司空采集照片 → 50008。司空镜像同步（syncWaylines）与编辑器保存回写（upsertWaylineFromEditor）也按 waylineTypes 校准本地类型。
 
 ---
 

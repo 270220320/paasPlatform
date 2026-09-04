@@ -14,6 +14,8 @@ public class MissionPlanVO {
     private String taskType;
     private Long waylineId;
     private Long waylineSnapshotId;
+    /** 关联航线是否面状（仅面状显示三维重建入口；detail 接口下发） */
+    private Boolean areaWayline;
     private Long deviceId;
     private String deviceName;
     private String waylineName;

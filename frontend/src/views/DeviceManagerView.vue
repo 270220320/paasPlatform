@@ -97,6 +97,15 @@ function restoreGlobalTheme(sdk: DeviceSdk | undefined) {
   themeSnapshot = null
 }
 
+/**
+ * setupDeviceManager 为幂等初始化：二次进入设备管理时不会重放 theme: 'light'，
+ * 而离开时的 restoreGlobalTheme 已清掉根元素上的 light 变量，html.dark 会把组件刷黑。
+ * 挂载时手动把 light 主题变量写到根元素，确保从空域安全等暗色页面切换过来仍是白底。
+ */
+function forceLightTheme(sdk: DeviceSdk) {
+  sdk.applyTheme?.(document.documentElement, 'light')
+}
+
 function getMainEl() {
   return document.querySelector<HTMLElement>('.layout > .el-main.main')
 }
@@ -175,10 +184,14 @@ async function bootSdkMode(cfg: NonNullable<Awaited<ReturnType<typeof load>>>) {
       },
     },
   })
+  // 幂等初始化不重放 theme: 'light'，手动写入根元素，避免二次进入被刷黑
+  forceLightTheme(sdk)
   deviceListHandle = sdk.mountDeviceList({
     container: '#uranus-device-manager-app',
     props: { deviceType: 'airport' },
   })
+  // 挂载过程可能按 SDK 内部 dark 状态重写主题变量，补一次确保白底
+  forceLightTheme(sdk)
   sdkMounted = true
   bindObservers()
   await nextTick()

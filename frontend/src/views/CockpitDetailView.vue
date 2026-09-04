@@ -36,7 +36,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs } from '@/utils/loadScript'
-import { resetFh2SharedMapContext } from '@/utils/sdkContainers'
+import { resetFh2SharedMapContext, teardownSdkOnRouteLeave } from '@/utils/sdkContainers'
 
 interface CockpitFh2Api {
   initConfig: (config: {
@@ -69,15 +69,19 @@ let alive = true
 let bootToken = 0
 
 async function goBack() {
-  await teardown()
+  teardown()
   router.push({ name: 'cockpit' })
 }
 
-/** 切页前必须卸驾驶舱+地图，并清掉游离全局容器，否则航线库地图会挂到 0 尺寸节点 */
-async function teardown() {
+/**
+ * 切页前必须卸驾驶舱+地图，并清掉游离全局容器，否则航线库地图会挂到 0 尺寸节点。
+ * DOM 清理在同步阶段完成：purge 若排在 destroy 链之后迟到执行，
+ * 会误删下一页（如设备管理）已挂载的容器导致空白。
+ */
+function teardown() {
   alive = false
   bootToken += 1
-  await resetFh2SharedMapContext()
+  teardownSdkOnRouteLeave()
 }
 
 /**
@@ -141,7 +145,7 @@ async function boot() {
   fh2.initNotifyCenter(cfg.wssUrl, auth)
   await Promise.resolve(fh2.loadMap(cfg.serverHost, auth))
   if (!alive || token !== bootToken) {
-    await resetFh2SharedMapContext()
+    teardownSdkOnRouteLeave()
     return
   }
   fh2.loadCockpit('cockpit-app-container', {
@@ -162,7 +166,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  void teardown()
+  teardown()
 })
 </script>
 

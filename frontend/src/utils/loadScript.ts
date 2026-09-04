@@ -121,6 +121,32 @@ export function loadScript(src: string, attrs: Record<string, string> = {}): Pro
 }
 
 /**
+ * 强制重新加载并执行脚本（绕过 loaded/inflight 去重）。
+ * 用于 SDK 自愈：司空 SDK 的 UMD 重执行会重置其模块级单例（如 fly-data-sdk
+ * 的运行时依赖 Promise），配合 data-fh2-dep 标签清理可恢复被死标签卡死的加载流程。
+ */
+export async function reloadScript(src: string, attrs: Record<string, string> = {}): Promise<void> {
+  if (!src) throw new Error('script src empty')
+  Array.from(document.querySelectorAll('script')).forEach((el) => {
+    const s = el.getAttribute('src') || ''
+    if (s === src || s.split('?')[0] === src) el.parentNode?.removeChild(el)
+  })
+  loaded.delete(src)
+  inflight.delete(src)
+  const bust = `${src}${src.includes('?') ? '&' : '?'}_reload=${Date.now()}`
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = bust
+    Object.entries(attrs).forEach(([k, v]) => script.setAttribute(k, v))
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error(`script reload failed: ${src}`))
+    document.head.appendChild(script)
+  })
+  // bust 重执行后全局类已重新定义，原 URL 也标记为可用
+  loaded.add(src)
+}
+
+/**
  * 从 paas.js 源码解析 paas-core 路径。
  * 线上打包形如："/paas-core.".concat("febdb9036aa846861ceb",".js")
  * 不能只匹配连续的 paas-core.xxx.js。

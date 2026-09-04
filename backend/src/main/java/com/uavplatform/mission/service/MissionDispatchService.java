@@ -94,8 +94,10 @@ public class MissionDispatchService {
                 dispatchSdkFlightTask(plan, pending.get(0));
             } else if ("recurring".equals(strategy) || "continuous".equals(strategy)) {
                 if (!taskClient.configured()) {
-                    throw new BizException(ErrorCodes.MISSION_REMOTE_ERROR,
-                            "周期任务需配置 uav.fh2.route-api-base / userToken");
+                    // 私有化无 dji2 route 后台（56789 未部署）且无 userToken：降级为本地调度，
+                    // executions 已按周期预生成，由 dispatchDueExecutions 到期逐次走 SDK 单次下发
+                    log.info("[mission-dispatch] planId={} dji2 未配置，周期计划转本地调度", planId);
+                    return;
                 }
                 dispatchCyclePlan(plan);
             }
@@ -110,7 +112,7 @@ public class MissionDispatchService {
         }
     }
 
-    /** 调度扫描：到期且尚未下发的 pending 执行 */
+/** 调度扫描：到期且尚未下发的 pending 执行（immediate/once 兜底 + 周期本地调度） */
     public void dispatchDueExecutions() {
         LocalDateTime now = LocalDateTime.now();
         List<MissionExecutionEntity> due = missionExecutionMapper.selectList(new LambdaQueryWrapper<MissionExecutionEntity>()
@@ -127,9 +129,8 @@ public class MissionDispatchService {
             if (!needsRemote(plan.getTaskType())) {
                 continue;
             }
-            if (!"immediate".equals(plan.getStrategy()) && !"once".equals(plan.getStrategy())) {
-                continue;
-            }
+            // 周期/连续：dji2 周期计划模式下子任务已绑定 fh2TaskUuid（下方 isNull 条件天然排除），
+            // 本地调度模式（dji2 未配置）则到期逐次 SDK 下发
             if (!fh2SdkClient.available()) {
                 continue;
             }
@@ -226,7 +227,10 @@ public class MissionDispatchService {
                 .waylinePrecisionType(resolveWaylinePrecisionType(plan))
                 .breakPointResume(plan.getBreakpointResume() != null && plan.getBreakpointResume() == 1);
 
-        if ("immediate".equals(plan.getStrategy())) {
+        // 到期触发（含 immediate、周期本地调度、once 兜底重试）用 taskType=1 立即执行；
+        // 未到期槽位（once 预下发）保持 taskType=2 条件窗口
+        boolean dueNow = exec.getPlannedAt() == null || !exec.getPlannedAt().isAfter(LocalDateTime.now());
+        if ("immediate".equals(plan.getStrategy()) || dueNow) {
             builder.taskType(1);
         } else {
             builder.taskType(2);

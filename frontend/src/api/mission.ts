@@ -12,6 +12,8 @@ export interface MissionVO {
   deviceName?: string
   waylineId?: number
   waylineName?: string
+  /** 关联航线是否面状（仅面状显示三维重建入口） */
+  areaWayline?: boolean
   accuracyMode?: string
   scheduleAt?: string
   cronExpr?: string
@@ -33,6 +35,8 @@ export interface ExecutionMediaVO {
 
 export interface ExecutionReconstructVO {
   available?: boolean
+  /** 不可发起原因：no_task / no_media / not_area_wayline / active_job */
+  unavailableReason?: string
   jobId?: number
   status?: string
   fh2ModelId?: number

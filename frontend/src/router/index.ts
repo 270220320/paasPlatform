@@ -24,6 +24,12 @@ const router = createRouter({
           redirect: '/',
         },
         {
+          path: 'live',
+          name: 'live-screen',
+          component: () => import('@/views/LiveScreenView.vue'),
+          meta: { fullscreen: true },
+        },
+        {
           path: 'map',
           name: 'map',
           component: () => import('@/views/MapView.vue'),

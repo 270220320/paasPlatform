@@ -25,6 +25,7 @@ export const FH2_GLOBAL_CONTAINER_IDS = [
   'cockpit-app-container',
   'cockpit-header-container',
   'fly-data-app-container',
+  'real-time-app-container',
 ] as const
 
 /**
@@ -51,36 +52,42 @@ type Fh2ResetApi = {
   destroyDevice?: () => Promise<unknown> | unknown
 }
 
+/** 依次拆除 FH2 共享上下文（驾驶舱/地图/项目视图/设备视图），幂等且失败忽略 */
+export async function destroyFh2Contexts(): Promise<void> {
+  const fh2 = (window as unknown as { FH2?: Fh2ResetApi }).FH2
+  if (!fh2) return
+  // 默认 false：卸载驾驶舱 + 地图 + 项目视图（司空文档要求切页这样调）
+  try {
+    await Promise.resolve(fh2.destroyCockpit?.())
+  } catch {
+    // ignore
+  }
+  try {
+    await Promise.resolve(fh2.destroyPaasView?.())
+  } catch {
+    // ignore
+  }
+  try {
+    await Promise.resolve(fh2.destroyMap?.())
+  } catch {
+    // ignore
+  }
+  try {
+    await Promise.resolve(fh2.destroyDevice?.())
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * 离开驾驶舱/设备管理等页面后，重置 FH2 共享地图上下文。
  * 不传 keepWithin 时会清掉所有同名全局容器，避免下一页 getElementById 命中 0 尺寸游离节点。
+ * 仅限挂载流程中 await 使用；onBeforeUnmount 场景必须改用 teardownSdkOnRouteLeave，
+ * 否则 purge 排在 destroy 链之后迟到执行，会误删下一页已挂载的容器（如设备管理空白）。
  */
 export async function resetFh2SharedMapContext(keepWithin?: HTMLElement | null): Promise<void> {
   if (typeof window === 'undefined') return
-  const fh2 = (window as unknown as { FH2?: Fh2ResetApi }).FH2
-  if (fh2) {
-    try {
-      // 默认 false：卸载驾驶舱 + 地图 + 项目视图（司空文档要求切页这样调）
-      await Promise.resolve(fh2.destroyCockpit?.())
-    } catch {
-      // ignore
-    }
-    try {
-      await Promise.resolve(fh2.destroyPaasView?.())
-    } catch {
-      // ignore
-    }
-    try {
-      await Promise.resolve(fh2.destroyMap?.())
-    } catch {
-      // ignore
-    }
-    try {
-      await Promise.resolve(fh2.destroyDevice?.())
-    } catch {
-      // ignore
-    }
-  }
+  await destroyFh2Contexts()
   purgeOrphanSdkContainers(keepWithin)
   purgeWaylineSdkOverlays()
 }
@@ -123,4 +130,33 @@ export function purgeWaylineSdkOverlays(): void {
       node.parentNode?.removeChild(node)
     }
   })
+}
+
+/**
+ * 司空系 SDK（wayline-edit-sdk / fly-data-sdk）加载 WASM 运行时依赖（libppe/libwpmz 等）
+ * 时用 data-fh2-dep 属性查重，且只比对相对路径、不比对 src/basePath。
+ * 两个 SDK 的依赖表完全相同（wasm-v06.00.00.124/...），先离开的页面若留下
+ * 「加载失败或未完成」的依赖标签，下一页同路径依赖会命中死标签——
+ * load/error 事件已错过，等待永不 settle → loadMap 永挂
+ * （回放页表现为一直「正在加载回放组件…」且无任何报错）。
+ * 进入任一 SDK 页面前先移除全部 data-fh2-dep 标签，强制按本页 basePath 重载。
+ */
+export function purgeFh2DepScripts(): void {
+  if (typeof document === 'undefined') return
+  document.querySelectorAll('script[data-fh2-dep]').forEach((node) => {
+    node.parentNode?.removeChild(node)
+  })
+}
+
+/**
+ * 路由离开（onBeforeUnmount）专用清理：DOM purge 在卸载的同步阶段完成，destroy 链异步兑底。
+ * Vue 先卸载旧页面再挂载新页面，同步 purge 时下一页容器必然还不存在，不会误删；
+ * 若沿用 resetFh2SharedMapContext 的“先 await destroy、后 purge”顺序，fire-and-forget
+ * 调用会在下一页（如设备管理）挂载好 #uranus-device-manager-app 之后才 purge，
+ * 把新页面挂载点当游离节点删掉，表现为“先进航线/驾驶舱、再进设备管理就空白”。
+ */
+export function teardownSdkOnRouteLeave(): void {
+  purgeOrphanSdkContainers()
+  purgeWaylineSdkOverlays()
+  void destroyFh2Contexts()
 }

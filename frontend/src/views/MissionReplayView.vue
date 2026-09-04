@@ -1,5 +1,5 @@
 <template>
-  <div class="replay-page">
+  <div ref="replayPageEl" class="replay-page">
     <div class="replay-toolbar">
       <el-button @click="goBack">{{ t('missions.replayBack') }}</el-button>
       <strong>{{ t('missions.replayTitle') }}</strong>
@@ -31,11 +31,18 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
-import { loadPaasJs, loadScript, loadStylesheet } from '@/utils/loadScript'
+import { loadScript, loadStylesheet, reloadScript } from '@/utils/loadScript'
+import {
+  purgeFh2DepScripts,
+  resetFh2SharedMapContext,
+  teardownSdkOnRouteLeave,
+} from '@/utils/sdkContainers'
 
 declare global {
   interface Window {
     FlyDataReplay?: new (opts: Record<string, unknown>) => FlyDataReplayInstance
+    CESIUM_BASE_URL?: string
+    process?: { env: Record<string, string> }
   }
 }
 
@@ -54,10 +61,24 @@ const { load, authConfig } = usePaasBootstrap()
 const statusText = ref(t('missions.replayLoading'))
 const errorText = ref('')
 const mountEl = ref<HTMLElement | null>(null)
+const replayPageEl = ref<HTMLElement | null>(null)
 const domKey = ref(0)
 let player: FlyDataReplayInstance | null = null
 let alive = true
 let initSeq = 0
+/** loadMap 超时：SDK 依赖加载（data-fh2-dep 死标签）可能永挂且无报错，需外层兑底 */
+const LOAD_MAP_TIMEOUT_MS = 45_000
+/** 会话级自愈标记：SDK 重载只做一次，避免循环 */
+let sdkSelfHealed = false
+
+function loadMapWithTimeout(instance: FlyDataReplayInstance): Promise<void> {
+  return Promise.race([
+    instance.loadMap(),
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error('loadMap timeout')), LOAD_MAP_TIMEOUT_MS)
+    }),
+  ])
+}
 
 function taskIdOf(): string {
   const q = String(route.query.taskId || '').trim()
@@ -109,6 +130,8 @@ async function initialize() {
     return
   }
 
+  let sdkJsUrl = ''
+  let instance: FlyDataReplayInstance | null = null
   try {
     const cfg = await load()
     if (!alive || seq !== initSeq) return
@@ -119,13 +142,30 @@ async function initialize() {
       throw new Error('frontHost 未配置')
     }
 
-    await loadPaasJs(cfg.frontHost)
+    // 新版 FlyDataReplay 自包含（internal 模式自建 Cesium），不依赖 paas.js。
+    // 但先经航线/驾驶舱页时，window.FH2.mapAppState 会残留已 destroy 置空的 'global'
+    // map 实例，SDK 自建地图命中该空条目即报 "map instance is null"，挂载前先拆净共享上下文。
+    await resetFh2SharedMapContext(replayPageEl.value)
     if (!alive || seq !== initSeq) return
 
-    const css = cfg.replaySdkCss || `${cfg.frontHost.replace(/\/+$/, '')}/paasjs-demo/fly-data-sdk/index.css`
-    const js = cfg.replaySdkJs || `${cfg.frontHost.replace(/\/+$/, '')}/paasjs-demo/fly-data-sdk/index.js`
+    // wayline-edit-sdk 与本 SDK 的依赖表完全相同，其 data-fh2-dep 查重只比路径不比 src：
+    // 航线页残留的失败/未完成依赖标签会让本页依赖加载永挂（loadMap 无超时），进入前先清空
+    purgeFh2DepScripts()
+
+    const base = cfg.frontHost.replace(/\/+$/, '')
+    const runtimeBase = `${base}/paasjs-demo/sdk-runtime`
+    // 新版 fly-data-sdk 自包含架构：SDK 启动时读取 window.Cesium，
+    // 必须先加载 Cesium 并设置 CESIUM_BASE_URL，否则 loadMap() 抛 6002（MAP_INIT_ERROR）
+    window.CESIUM_BASE_URL = `${runtimeBase}/cesium/`
+    window.process = window.process || { env: { NODE_ENV: 'production' } }
+    await loadStylesheet(`${runtimeBase}/cesium/Widgets/widgets.css`, 'fh2-cesium-widgets-css')
+    await loadScript(`${runtimeBase}/cesium/Cesium.js`)
+    if (!alive || seq !== initSeq) return
+
+    sdkJsUrl = cfg.replaySdkJs || `${base}/paasjs-demo/fly-data-sdk/index.js`
+    const css = cfg.replaySdkCss || `${base}/paasjs-demo/fly-data-sdk/index.css`
     await loadStylesheet(css, 'fh2-replay-sdk-css')
-    await loadScript(js)
+    await loadScript(sdkJsUrl)
     if (!alive || seq !== initSeq) return
     if (!window.FlyDataReplay) {
       throw new Error(t('missions.replaySdkMissing'))
@@ -137,10 +177,20 @@ async function initialize() {
       throw new Error(t('missions.replayDomMissing'))
     }
 
-    const instance = new window.FlyDataReplay({
+    instance = new window.FlyDataReplay({
       taskId,
-      hostUrl: cfg.frontHost,
       api: { baseUrl: cfg.gatewayBase, auth: authConfig(cfg) },
+      // hostUrl 已废弃：改用 runtimeDepsBasePath + map.env.cesiumBaseUrl（新版 SDK 规范）
+      runtimeDepsBasePath: runtimeBase,
+      map: {
+        mode: 'internal',
+        container: '#map-app-global',
+        env: {
+          cesiumBaseUrl: `${runtimeBase}/cesium/`,
+          terrainKey: '',
+          featureGateway: [],
+        },
+      },
       locale: { language: 'zh' },
       features: {
         playerBarBtn: { params: true, media: true, sdr: false, fov: true, wayline: true },
@@ -155,7 +205,7 @@ async function initialize() {
       goBack()
     })
 
-    await instance.loadMap()
+    await loadMapWithTimeout(instance)
     if (!alive || seq !== initSeq) {
       try {
         instance.destroy()
@@ -168,6 +218,25 @@ async function initialize() {
     player = instance
     statusText.value = t('missions.replayReady')
   } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    // loadMap 永挂自愈：SDK 依赖 Promise 是模块级单例，一旦挂起后续实例全部复用挂起态。
+    // 重载 SDK（UMD 重执行重置模块级单例）+ 清理死标签后重试一次即可恢复
+    if (msg.includes('loadMap timeout') && sdkJsUrl && !sdkSelfHealed) {
+      sdkSelfHealed = true
+      try {
+        instance?.destroy()
+      } catch {
+        // ignore
+      }
+      try {
+        purgeFh2DepScripts()
+        await reloadScript(sdkJsUrl)
+      } catch {
+        // 重载失败走正常错误提示
+      }
+      if (alive && seq === initSeq) void initialize()
+      return
+    }
     if (!alive || seq !== initSeq) return
     errorText.value = e instanceof Error ? e.message : t('missions.replayLoadFailed')
     statusText.value = ''
@@ -190,6 +259,8 @@ onBeforeUnmount(() => {
   alive = false
   initSeq += 1
   destroyPlayer()
+  // 与航线页/驾驶舱页对齐：同步清游离容器、异步拆 FH2 共享上下文，避免污染下一页
+  teardownSdkOnRouteLeave()
 })
 </script>
 

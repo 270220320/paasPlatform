@@ -101,7 +101,7 @@
               <span v-else class="muted">{{ t('missions.noMedia') }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="t('missions.reconstruct')" width="120" fixed="right">
+          <el-table-column v-if="detail?.plan?.areaWayline" :label="t('missions.reconstruct')" width="120" fixed="right">
             <template #default="{ row }">
               <div v-if="row.recordType === 'execution' && row.id" class="recon-cell">
                 <template v-if="row.reconstruct?.status === 'success'">
@@ -140,6 +140,7 @@
                     <el-tag size="small" type="danger">{{ t('missions.reconstructStatusFailed') }}</el-tag>
                   </el-tooltip>
                   <el-button
+                    v-if="row.reconstruct?.available"
                     link
                     type="primary"
                     :loading="reconstructingId === row.id"
@@ -157,7 +158,17 @@
                 >
                   {{ t('missions.reconstruct') }}
                 </el-button>
-                <el-tooltip v-else :content="t('missions.reconstructNeedMedia')" placement="top">
+                <!-- 面状但无采集媒体：置灰按钮，采集后自动恢复 -->
+                <el-tooltip
+                  v-else-if="row.reconstruct?.unavailableReason === 'no_media'"
+                  :content="t('missions.reconstructNoMedia')"
+                  placement="top"
+                >
+                  <span>
+                    <el-button link type="primary" disabled>{{ t('missions.reconstruct') }}</el-button>
+                  </span>
+                </el-tooltip>
+                <el-tooltip v-else :content="reconstructDisabledTip(row.reconstruct?.unavailableReason)" placement="top">
                   <span class="muted">-</span>
                 </el-tooltip>
               </div>
@@ -435,6 +446,17 @@ function openReplay(row: MissionExecutionVO) {
     params: { planId, executionId: row.id },
     query: { taskId: row.fh2TaskUuid },
   })
+}
+
+/** 重建按钮不可用原因 → tooltip 文案（后端 unavailableReason 口径） */
+function reconstructDisabledTip(reason?: string) {
+  const map: Record<string, string> = {
+    no_task: t('missions.reconstructNeedTask'),
+    no_media: t('missions.reconstructNoMedia'),
+    not_area_wayline: t('missions.reconstructNeedArea'),
+    active_job: t('missions.reconstructActiveJob'),
+  }
+  return (reason && map[reason]) || t('missions.reconstructNeedMedia')
 }
 
 async function startReconstruct(row: MissionExecutionVO) {

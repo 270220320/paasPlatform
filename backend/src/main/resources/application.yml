@@ -60,6 +60,9 @@ uav:
     device-sdk-js: http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.js
     replay-sdk-css: http://192.168.76.141/paasjs-demo/fly-data-sdk/index.css
     replay-sdk-js: http://192.168.76.141/paasjs-demo/fly-data-sdk/index.js
+    # 直播大屏（DJILivePlayer）SDK；完全独立、不依赖 paas.js
+    live-sdk-css: http://192.168.76.141/paasjs-demo/multi-stream-cdn/sdk/style.css
+    live-sdk-js: http://192.168.76.141/paasjs-demo/multi-stream-cdn/sdk/sdk.umd.js
     # dji2 后台（限飞区 /safety、飞行任务 /task|/flighttask）
     route-api-base: http://192.168.76.141:56789
     # 私有化网关鉴权头：网关回调 ISV_WEBHOOK_URL 鉴权，开发期默认 webhook 放行全部，
@@ -70,6 +73,23 @@ uav:
   mission:
     dispatch-interval-ms: 30000
     sync-interval-ms: 20000
+
+  # 对话控制模块（本地 Ollama + qwen）。
+  # 后端在 WSL/Docker 内时，先在 Windows 设置 OLLAMA_HOST=0.0.0.0 并放行 11434，
+  # 再导出 OLLAMA_BASE_URL=http://<宿主机IP>:11434 后启动后端。
+  chat:
+    enabled: true
+    base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+    # 留空自动选 /api/tags 中第一个含 qwen 的模型（当前：qwen3.5-4b:latest）
+    model: ""
+    temperature: 0.6
+    think-enabled: false
+    max-turns: 6
+    request-timeout-seconds: 120
+    # 1=只读 2=常规控制（生产推荐） 3=含起飞/急停（演示）
+    max-security-level: 3
+    pending-action-ttl-minutes: 5
+    history-window: 20
 
 server:
   port: 8080

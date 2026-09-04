@@ -34,6 +34,8 @@
 
         <el-menu-item index="/">{{ t('nav.home') }}</el-menu-item>
 
+        <el-menu-item v-if="can('device:read')" index="/live">{{ t('nav.live') }}</el-menu-item>
+
         <el-menu-item v-if="can('map:read')" index="/map">{{ t('nav.map') }}</el-menu-item>
 
         <el-menu-item v-if="can('map:read')" index="/airspace">{{ t('nav.airspace') }}</el-menu-item>
@@ -72,13 +74,20 @@
 
   </el-container>
 
+  <!-- 对话控制悬浮球 -->
+  <button class="chat-fab" :title="t('chat.open')" @click="chatOpen = true">
+    <el-icon :size="22"><ChatDotRound /></el-icon>
+  </button>
+
+  <ChatControlDrawer v-model="chatOpen" />
+
 </template>
 
 
 
 <script setup lang="ts">
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
 
@@ -86,9 +95,13 @@ import { useI18n } from 'vue-i18n'
 
 import { ElMessage } from 'element-plus'
 
+import { ChatDotRound } from '@element-plus/icons-vue'
+
 import { logoutApi } from '@/api/auth'
 
 import { useUserStore } from '@/stores/user'
+
+import ChatControlDrawer from '@/components/ChatControlDrawer.vue'
 
 
 
@@ -99,6 +112,8 @@ const route = useRoute()
 const router = useRouter()
 
 const userStore = useUserStore()
+
+const chatOpen = ref(false)
 
 const active = computed(() => {
   const path = route.path
@@ -130,7 +145,8 @@ const isBleedPage = computed(
     route.name === 'mission-create' ||
     route.name === 'mission-replay' ||
     route.name === 'cockpit-detail' ||
-    route.name === 'wayline-editor',
+    route.name === 'wayline-editor' ||
+    route.name === 'live-screen',
 )
 
 
@@ -314,6 +330,50 @@ async function onLogout() {
   flex: 1;
 
   border-bottom: none;
+
+}
+
+
+
+.chat-fab {
+
+  position: fixed;
+
+  right: 24px;
+
+  bottom: 32px;
+
+  width: 48px;
+
+  height: 48px;
+
+  border: none;
+
+  border-radius: 50%;
+
+  display: grid;
+
+  place-items: center;
+
+  cursor: pointer;
+
+  color: #fff;
+
+  background: linear-gradient(135deg, #409eff, #337ecc);
+
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+
+  z-index: 100;
+
+  transition: transform 0.2s;
+
+}
+
+
+
+.chat-fab:hover {
+
+  transform: scale(1.08);
 
 }
 

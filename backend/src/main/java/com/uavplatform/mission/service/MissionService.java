@@ -118,7 +118,10 @@ public class MissionService {
                 .orderByAsc(MissionExecutionEntity::getId));
         List<MissionExecutionVO> executions = buildExecutionTimeline(plan, rows);
         attachExecutionMedia(executions);
-        missionReconstructService.attachReconstruct(executions);
+        missionReconstructService.attachReconstruct(plan, executions);
+        // 非面状（航点/手动）不显示重建入口：置于 attachReconstruct 之后，复用懒校准回写后的本地类型与缓存
+        MissionPlanVO planVO = toVO(plan);
+        planVO.setAreaWayline(missionReconstructService.isAreaWayline(plan));
         int pending = 0, running = 0, completed = 0, failed = 0, cancelled = 0;
         for (MissionExecutionVO item : executions) {
             String st = item.getStatus() == null ? "" : item.getStatus();
@@ -133,7 +136,7 @@ public class MissionService {
             }
         }
         return MissionPlanDetailVO.builder()
-                .plan(toVO(plan))
+                .plan(planVO)
                 .executions(executions)
                 .totalCount(executions.size())
                 .pendingCount(pending)
@@ -565,6 +568,55 @@ public class MissionService {
             exec.setActualStartAt(LocalDateTime.now());
         }
         missionExecutionMapper.insert(exec);
+    }
+
+    /**
+     * 对话控制（chat flight_task_create）创建的司空飞行任务补落本地档案：plan + execution 各一条。
+     * 落库后由 MissionScheduler.syncOpenRemoteStatuses 按 fh2TaskUuid 跟进状态，
+     * 详情页媒体按 flightId=fh2TaskUuid 自动挂接。异步线程无 UserContext，需显式传 userId。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public MissionExecutionEntity recordChatFlightTask(String taskName, String dockSn,
+                                                       String waylineUuid, String taskUuid, Long userId) {
+        DeviceEntity device = deviceMapper.selectOne(new LambdaQueryWrapper<DeviceEntity>()
+                .and(w -> w.eq(DeviceEntity::getSn, dockSn).or().eq(DeviceEntity::getGatewaySn, dockSn))
+                .last("LIMIT 1"));
+        Long workspaceId = device != null && device.getWorkspaceId() != null ? device.getWorkspaceId() : 1L;
+
+        MissionPlanEntity plan = new MissionPlanEntity();
+        plan.setWorkspaceId(workspaceId);
+        plan.setName(taskName);
+        plan.setTaskType("normal");
+        plan.setStrategy("immediate");
+        plan.setStatus("running");
+        if (device != null) {
+            plan.setDeviceId(device.getId());
+        }
+        if (StringUtils.hasText(waylineUuid)) {
+            WaylineEntity wayline = waylineMapper.selectOne(new LambdaQueryWrapper<WaylineEntity>()
+                    .eq(WaylineEntity::getFh2WaylineUuid, waylineUuid.trim())
+                    .last("LIMIT 1"));
+            if (wayline != null) {
+                plan.setWaylineId(wayline.getId());
+            }
+        }
+        plan.setCreatedBy(userId);
+        plan.setCreatedAt(LocalDateTime.now());
+        plan.setUpdatedAt(LocalDateTime.now());
+        missionPlanMapper.insert(plan);
+
+        // actualStartAt 留空：由状态同步用司空 run_at 回写真实起飞时间
+        MissionExecutionEntity exec = new MissionExecutionEntity();
+        exec.setPlanId(plan.getId());
+        exec.setStatus("running");
+        exec.setPlannedAt(LocalDateTime.now());
+        exec.setFh2TaskUuid(taskUuid);
+        exec.setCreatedAt(LocalDateTime.now());
+        exec.setUpdatedAt(LocalDateTime.now());
+        missionExecutionMapper.insert(exec);
+        log.info("[mission] chat flight task recorded planId={} execId={} uuid={}",
+                plan.getId(), exec.getId(), taskUuid);
+        return exec;
     }
 
     /** 按调度配置预生成待执行记录，便于详情页展示未执行槽位。 */

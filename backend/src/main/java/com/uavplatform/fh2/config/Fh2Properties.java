@@ -85,6 +85,9 @@ public class Fh2Properties {
     private String deviceSdkJs = "http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.js";
     private String replaySdkCss = "http://192.168.76.141/paasjs-demo/fly-data-sdk/index.css";
     private String replaySdkJs = "http://192.168.76.141/paasjs-demo/fly-data-sdk/index.js";
+    /** 直播大屏（DJILivePlayer）SDK 资源，完全独立、不依赖 paas.js */
+    private String liveSdkCss = "http://192.168.76.141/paasjs-demo/multi-stream-cdn/sdk/style.css";
+    private String liveSdkJs = "http://192.168.76.141/paasjs-demo/multi-stream-cdn/sdk/sdk.umd.js";
 
     /** WaylineEditor OSS 上传 key 前缀；空则用 token 内 organization_uuid */
     private String objectKeyPrefix = "";

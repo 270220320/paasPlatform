@@ -192,7 +192,7 @@ public class SafetyService {
         }
         if (!dji2SafetyClient.configured()) {
             throw new BizException(ErrorCodes.SAFETY_REMOTE_ERROR,
-                    "未配置司空 route-api-base / userToken，无法下发到机场");
+                    "司空 SDK 未初始化，且未配置旧 route-api-base/userToken，无法下发到机场");
         }
 
         List<String> sns = request.getDeviceSns().stream()

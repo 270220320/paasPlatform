@@ -64,7 +64,7 @@ export function createAnnotationFolder(data: { name: string }) {
   return http.post<ApiResult<{ id: number }>>('/annotation-folders', data)
 }
 
-function parseJson<T>(raw?: string, fallback: T): T {
+function parseJson<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback
   try {
     return JSON.parse(raw) as T

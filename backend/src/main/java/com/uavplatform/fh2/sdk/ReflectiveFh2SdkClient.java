@@ -258,6 +258,19 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
     }
 
     @Override
+    public Object getRawDroneInstance(String droneSn) {
+        if (!available() || !StringUtils.hasText(droneSn)) {
+            return null;
+        }
+        try {
+            return getDroneInstance(droneSn.trim());
+        } catch (Exception e) {
+            log.warn("[FH2] getRawDroneInstance({}) failed: {}", droneSn, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public List<Fh2DeviceItemVO> listDevices() {
         ensureReady();
@@ -268,10 +281,12 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$DeviceListCallback");
             Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
                 if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
-                    Object errorObj = args[0];
-                    Object devices = args[1];
+                    // SDK 实际签名 onResult(List<DeviceTopo>, FlightHubError)：数据在前、错误在后；
+                    // 按类型自适应取参，避免按固定顺序错位后 devices 永远解析为空
+                    Object devices = args[0] instanceof List ? args[0] : args[1];
+                    Object errorObj = args[0] instanceof List ? args[1] : args[0];
                     if (errorObj != null && !isEmptyError(errorObj)) {
-                        err.set(String.valueOf(errorObj));
+                        err.set(formatError(errorObj));
                     } else if (devices instanceof List<?> list) {
                         ref.set(mapDevices(list));
                     }
@@ -279,7 +294,8 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 }
                 return null;
             });
-            workspace.getClass().getMethod("getDeviceList", cbClass).invoke(workspace, cb);
+            Object deviceHost = moduleOrWorkspace("getDeviceManageModule");
+            deviceHost.getClass().getMethod("getDeviceList", cbClass).invoke(deviceHost, cb);
             if (!latch.await(30, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("getDeviceList timeout");
             }
@@ -399,8 +415,9 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 }
                 return null;
             });
-            workspace.getClass().getMethod("getDeviceDetailInfo", String.class, cbClass)
-                    .invoke(workspace, gatewaySn, cb);
+            Object deviceHost = moduleOrWorkspace("getDeviceManageModule");
+            deviceHost.getClass().getMethod("getDeviceDetailInfo", String.class, cbClass)
+                    .invoke(deviceHost, gatewaySn, cb);
             if (!latch.await(10, TimeUnit.SECONDS)) {
                 log.warn("[FH2] getDeviceDetailInfo timeout sn={}", gatewaySn);
                 return List.of();
@@ -496,18 +513,10 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 return null;
             });
 
-            Object locIdObj = drone.getClass().getMethod("listenAircraftLocation", locCbClass).invoke(drone, locCb);
-            Object modeIdObj = drone.getClass().getMethod("listenAircraftModeCode", modeCbClass).invoke(drone, modeCb);
-            Object attIdObj = drone.getClass().getMethod("listenAircraftAttitude", attCbClass).invoke(drone, attCb);
-            if (locIdObj instanceof Number n) {
-                locListenId.set(n.intValue());
-            }
-            if (modeIdObj instanceof Number n) {
-                modeListenId.set(n.intValue());
-            }
-            if (attIdObj instanceof Number n) {
-                attitudeListenId.set(n.intValue());
-            }
+            // SDK 3.1.6.0：OSD listen 挪入 IDroneOsdModule 且带 Wrapper 后缀；旧版直接挂 IDrone
+            invokeListen(drone, "listenAircraftLocation", locCbClass, locCb, locListenId);
+            invokeListen(drone, "listenAircraftModeCode", modeCbClass, modeCb, modeListenId);
+            invokeListen(drone, "listenAircraftAttitude", attCbClass, attCb, attitudeListenId);
 
             latch.await(LOCATION_WAIT_MS, TimeUnit.MILLISECONDS);
             // 位置已到时再稍等姿态推送，便于机头朝向一起返回
@@ -559,6 +568,43 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             cancelListen(drone, "cancelListenAircraftModeCode", modeListenId.get());
             cancelListen(drone, "cancelListenAircraftAttitude", attitudeListenId.get());
         }
+    }
+
+    /**
+     * 兼容新旧 SDK 的 OSD listen 调用：宿主优先 IDroneOsdModule（3.1.6.0+），
+     * 方法名优先 Wrapper 后缀版本；listenId 写入传入的容器。
+     */
+    private static void invokeListen(Object drone, String method, Class<?> cbClass, Object cb,
+                                     AtomicInteger listenId) throws Exception {
+        for (Object host : listenHosts(drone)) {
+            for (String name : List.of(method + "Wrapper", method)) {
+                try {
+                    Object id = host.getClass().getMethod(name, cbClass).invoke(host, cb);
+                    if (id instanceof Number n) {
+                        listenId.set(n.intValue());
+                    }
+                    return;
+                } catch (NoSuchMethodException ignored) {
+                    // 尝试下一个方法名/宿主
+                }
+            }
+        }
+        throw new IllegalStateException(method + " 在新旧 SDK 中均未找到");
+    }
+
+    /** listen/cancel 宿主候选：新版 Module 优先，旧版回退 drone 本身 */
+    private static List<Object> listenHosts(Object drone) {
+        List<Object> hosts = new ArrayList<>();
+        try {
+            Object osd = drone.getClass().getMethod("getDroneOsdModule").invoke(drone);
+            if (osd != null) {
+                hosts.add(osd);
+            }
+        } catch (Exception ignored) {
+            // 旧 SDK 无 Module，宿主即 drone
+        }
+        hosts.add(drone);
+        return hosts;
     }
 
     /** 归一化到 [0, 360) */
@@ -618,10 +664,18 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
         if (drone == null || listenId < 0) {
             return;
         }
-        try {
-            drone.getClass().getMethod(method, int.class).invoke(drone, listenId);
-        } catch (Exception ignored) {
-            // best-effort
+        // SDK 3.1.6.0：cancel 同样挪入 IDroneOsdModule 且带 Wrapper 后缀
+        for (Object host : listenHosts(drone)) {
+            for (String name : List.of(method + "Wrapper", method)) {
+                try {
+                    host.getClass().getMethod(name, int.class).invoke(host, listenId);
+                    return;
+                } catch (NoSuchMethodException ignored) {
+                    // 尝试下一个方法名/宿主
+                } catch (Exception ignored) {
+                    return; // best-effort
+                }
+            }
         }
     }
 
@@ -662,9 +716,10 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 }
                 return null;
             });
-            workspace.getClass().getMethod("getWaylineList",
+            Object waylineHost = moduleOrWorkspace("getWaylineManageModule");
+            waylineHost.getClass().getMethod("getWaylineList",
                     Class.forName("com.dji.flighthubsdk.bean.GetWaylineListParam"), cbClass)
-                    .invoke(workspace, param, cb);
+                    .invoke(waylineHost, param, cb);
             if (!latch.await(30, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("getWaylineList timeout");
             }
@@ -693,8 +748,9 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 }
                 return null;
             });
-            workspace.getClass().getMethod("updateWayline", String.class, String.class, cbClass)
-                    .invoke(workspace, waylineUuid, name, cb);
+            Object waylineHost = moduleOrWorkspace("getWaylineManageModule");
+            waylineHost.getClass().getMethod("updateWayline", String.class, String.class, cbClass)
+                    .invoke(waylineHost, waylineUuid, name, cb);
             if (!latch.await(20, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("updateWayline timeout");
             }
@@ -722,8 +778,9 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 }
                 return null;
             });
-            workspace.getClass().getMethod("batchDeleteWaylines", List.class, cbClass)
-                    .invoke(workspace, waylineUuids, cb);
+            Object waylineHost = moduleOrWorkspace("getWaylineManageModule");
+            waylineHost.getClass().getMethod("batchDeleteWaylines", List.class, cbClass)
+                    .invoke(waylineHost, waylineUuids, cb);
             if (!latch.await(20, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("batchDeleteWaylines timeout");
             }
@@ -905,6 +962,365 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             }
         } catch (Exception e) {
             throw new IllegalStateException("deleteMediaFiles failed: " + e.getMessage(), e);
+        }
+    }
+
+    // ==================== SafetyServiceModule 自定义飞行区（限飞区） ====================
+
+    @Override
+    public String createFlightArea(String name, String type, java.util.Map<String, Object> content) {
+        ensureReady();
+        if (!StringUtils.hasText(name)) {
+            throw new IllegalArgumentException("name 必填");
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> idRef = new AtomicReference<>();
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> contentClass = Class.forName("com.dji.flighthubsdk.bean.FlightAreasContentData");
+            Object req = newInstance("com.dji.flighthubsdk.bean.CreateCustomizedFlightAreasParams");
+            invoke(req, "setName", String.class, name.trim());
+            invoke(req, "setType", String.class, blankTo(type, "nfz"));
+            invoke(req, "setCreatedBy", String.class, "aiflow");
+            invoke(req, "setContent", contentClass, buildFlightAreasContent(content));
+
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$CreateCustomizedFlightAreasCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object resp = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (resp != null) {
+                        idRef.set(str(invoke(resp, "getId")));
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+
+            log.info("[FH2] createFlightArea req name={} type={}", name, blankTo(type, "nfz"));
+            Object module = safetyModule();
+            module.getClass()
+                    .getMethod("createCustomizedFlightAreas",
+                            Class.forName("com.dji.flighthubsdk.bean.CreateCustomizedFlightAreasParams"), cbClass)
+                    .invoke(module, req, cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("createFlightArea timeout");
+            }
+            if (err.get() != null) {
+                throw new IllegalStateException("createFlightArea: " + err.get());
+            }
+            if (!StringUtils.hasText(idRef.get())) {
+                throw new IllegalStateException("createFlightArea 未返回 flightAreaId");
+            }
+            log.info("[FH2] createFlightArea ok id={}", idRef.get());
+            return idRef.get().trim();
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("createFlightArea failed: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public void updateFlightArea(String flightAreaId, String name, java.util.Map<String, Object> content) {
+        ensureReady();
+        if (!StringUtils.hasText(flightAreaId)) {
+            throw new IllegalArgumentException("flightAreaId 必填");
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> contentClass = Class.forName("com.dji.flighthubsdk.bean.FlightAreasContentData");
+            Object req = newInstance("com.dji.flighthubsdk.bean.UpdateCustomizedFlightAreasParams");
+            invoke(req, "setFlightAreaId", String.class, flightAreaId.trim());
+            if (StringUtils.hasText(name)) {
+                invoke(req, "setName", String.class, name.trim());
+            }
+            invoke(req, "setUpdateBy", String.class, "aiflow");
+            invoke(req, "setContent", contentClass, buildFlightAreasContent(content));
+
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$UpdateCustomizedFlightAreasCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 1) {
+                    Object errorObj = args[0];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+
+            Object module = safetyModule();
+            module.getClass()
+                    .getMethod("updateCustomizedFlightAreas",
+                            Class.forName("com.dji.flighthubsdk.bean.UpdateCustomizedFlightAreasParams"), cbClass)
+                    .invoke(module, req, cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("updateFlightArea timeout");
+            }
+            if (err.get() != null) {
+                throw new IllegalStateException("updateFlightArea: " + err.get());
+            }
+            log.info("[FH2] updateFlightArea ok id={}", flightAreaId);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("updateFlightArea failed: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public void deleteFlightArea(String flightAreaId) {
+        ensureReady();
+        if (!StringUtils.hasText(flightAreaId)) {
+            return;
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$ResultCallbackWithError");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 1) {
+                    Object errorObj = args[0];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+
+            Object module = safetyModule();
+            module.getClass()
+                    .getMethod("deleteCustomizedFlightAreas", String.class, cbClass)
+                    .invoke(module, flightAreaId.trim(), cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("deleteFlightArea timeout");
+            }
+            if (err.get() != null) {
+                throw new IllegalStateException("deleteFlightArea: " + err.get());
+            }
+            log.info("[FH2] deleteFlightArea ok id={}", flightAreaId);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("deleteFlightArea failed: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public List<java.util.Map<String, Object>> syncFlightAreas(List<String> deviceSns) {
+        ensureReady();
+        List<String> sns = cleanSns(deviceSns);
+        if (sns.isEmpty()) {
+            return List.of();
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<List<java.util.Map<String, Object>>> ref = new AtomicReference<>(List.of());
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$SyncCustomizedFlightAreasCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object resp = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (resp != null) {
+                        Object results = invoke(resp, "getResults");
+                        List<java.util.Map<String, Object>> out = new ArrayList<>();
+                        if (results instanceof List<?> list) {
+                            for (Object item : list) {
+                                java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+                                row.put("deviceSn", str(invoke(item, "getDeviceSn")));
+                                Object code = invoke(item, "getCode");
+                                row.put("code", code instanceof Number n ? n.intValue() : null);
+                                out.add(row);
+                            }
+                        }
+                        ref.set(out);
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+
+            log.info("[FH2] syncFlightAreas sns={}", sns);
+            Object module = safetyModule();
+            module.getClass()
+                    .getMethod("syncCustomizedFlightAreas", List.class, cbClass)
+                    .invoke(module, sns, cb);
+            if (!latch.await(60, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("syncFlightAreas timeout");
+            }
+            if (err.get() != null) {
+                throw new IllegalStateException("syncFlightAreas: " + err.get());
+            }
+            log.info("[FH2] syncFlightAreas ok results={}", ref.get());
+            return ref.get();
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("syncFlightAreas failed: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public List<java.util.Map<String, Object>> getFlightAreasSyncStatus(List<String> deviceSns) {
+        ensureReady();
+        List<String> sns = cleanSns(deviceSns);
+        if (sns.isEmpty()) {
+            return List.of();
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<List<java.util.Map<String, Object>>> ref = new AtomicReference<>(List.of());
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$GetFlightAreasSyncStatusCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object resp = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (resp != null) {
+                        Object list = invoke(resp, "getList");
+                        List<java.util.Map<String, Object>> out = new ArrayList<>();
+                        if (list instanceof List<?> rows) {
+                            for (Object row : rows) {
+                                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                                String sn = str(invoke(row, "getSn"));
+                                m.put("deviceSn", sn);
+                                m.put("sn", sn);
+                                String status = str(invoke(row, "getStatus"));
+                                m.put("status", status);
+                                m.put("syncStatus", status);
+                                Object reason = invoke(row, "getReason");
+                                m.put("reason", reason instanceof Number n ? n.intValue() : null);
+                                out.add(m);
+                            }
+                        }
+                        ref.set(out);
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+
+            Object module = safetyModule();
+            module.getClass()
+                    .getMethod("getFlightAreasSyncStatus", List.class, cbClass)
+                    .invoke(module, sns, cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("getFlightAreasSyncStatus timeout");
+            }
+            if (err.get() != null) {
+                throw new IllegalStateException("getFlightAreasSyncStatus: " + err.get());
+            }
+            return ref.get();
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("getFlightAreasSyncStatus failed: " + rootMessage(e), e);
+        }
+    }
+
+    /** GeoJSON Feature Map → SDK FlightAreasContentData（properties + geometry） */
+    private Object buildFlightAreasContent(java.util.Map<String, Object> content) throws Exception {
+        java.util.Map<String, Object> feature = content == null ? java.util.Map.of() : content;
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> properties = feature.get("properties") instanceof java.util.Map<?, ?> p
+                ? (java.util.Map<String, Object>) p : java.util.Map.of();
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> geometry = feature.get("geometry") instanceof java.util.Map<?, ?> g
+                ? (java.util.Map<String, Object>) g : java.util.Map.of();
+
+        Object props = newInstance("com.dji.flighthubsdk.bean.ContentsPropertyData",
+                new Class[]{String.class, int.class, boolean.class},
+                str(properties.get("color")) == null ? "#E23C39" : String.valueOf(properties.get("color")),
+                properties.get("width") instanceof Number n ? n.intValue() : 4,
+                !Boolean.FALSE.equals(properties.get("clampToGround")));
+
+        Object geo = newInstance("com.dji.flighthubsdk.bean.ContentsGeometryData",
+                new Class[]{String.class, List.class, List.class, double.class},
+                String.valueOf(geometry.getOrDefault("type", "Polygon")),
+                toDoubleRing(geometry.get("coordinates")),
+                toDoubleList(geometry.get("center")),
+                geometry.get("radius") instanceof Number r ? r.doubleValue() : 0d);
+
+        Object data = newInstance("com.dji.flighthubsdk.bean.FlightAreasContentData");
+        invoke(data, "setType", String.class,
+                String.valueOf(feature.getOrDefault("type", "Feature")));
+        invoke(data, "setProperties",
+                Class.forName("com.dji.flighthubsdk.bean.ContentsPropertyData"), props);
+        invoke(data, "setGeometry",
+                Class.forName("com.dji.flighthubsdk.bean.ContentsGeometryData"), geo);
+        return data;
+    }
+
+    /** 任意嵌套坐标 → List<List<List<Double>>>（多边形环） */
+    private static List<List<List<Double>>> toDoubleRing(Object coordinates) {
+        List<List<List<Double>>> out = new ArrayList<>();
+        if (!(coordinates instanceof List<?> rings)) {
+            return out;
+        }
+        for (Object ring : rings) {
+            if (!(ring instanceof List<?> points)) {
+                continue;
+            }
+            out.add(toDoubleList(points));
+        }
+        return out;
+    }
+
+    /** 任意点集 → List<List<Double>>（[lng, lat]） */
+    private static List<List<Double>> toDoubleList(Object points) {
+        List<List<Double>> out = new ArrayList<>();
+        if (!(points instanceof List<?> list)) {
+            return out;
+        }
+        for (Object point : list) {
+            if (point instanceof List<?> pair && pair.size() >= 2
+                    && pair.get(0) instanceof Number && pair.get(1) instanceof Number) {
+                out.add(List.of(((Number) pair.get(0)).doubleValue(), ((Number) pair.get(1)).doubleValue()));
+            }
+        }
+        return out;
+    }
+
+    private static List<String> cleanSns(List<String> deviceSns) {
+        if (deviceSns == null) {
+            return List.of();
+        }
+        return deviceSns.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .toList();
+    }
+
+    private Object safetyModule() throws Exception {
+        Object module = workspace.getClass().getMethod("getSafetyServiceModule").invoke(workspace);
+        if (module == null) {
+            throw new IllegalStateException("getSafetyServiceModule 返回空（司空侧未部署安全服务）");
+        }
+        return module;
+    }
+
+    /**
+     * 反射宿主兼容：SDK 3.1.6.0 起航线/设备管理方法从 Workspace 挪入子 Module
+     * （getWaylineManageModule / getDeviceManageModule），旧版 jar 直接挂在 Workspace 上。
+     * 优先取 Module，取不到时回退 workspace 本身。
+     */
+    private Object moduleOrWorkspace(String moduleGetter) {
+        try {
+            Object module = workspace.getClass().getMethod(moduleGetter).invoke(workspace);
+            return module != null ? module : workspace;
+        } catch (Exception e) {
+            return workspace;
         }
     }
 
@@ -1717,37 +2133,43 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
     private List<Fh2DeviceItemVO> mapDevices(List<?> devices) {
         List<Fh2DeviceItemVO> out = new ArrayList<>();
         for (Object topo : devices) {
-            Object main = invoke(topo, "getMainDevice");
+            // DeviceTopo 主设备 getter 为 getDevice()（jar 内无 getMainDevice）
+            Object main = invoke(topo, "getDevice");
+            if (main == null) {
+                main = invoke(topo, "getMainDevice");
+            }
             if (main == null) {
                 continue;
             }
             String gatewaySn = str(invoke(main, "getDeviceSn"));
-            out.add(Fh2DeviceItemVO.builder()
-                    .sn(gatewaySn)
-                    .name(blankTo(str(invoke(main, "getDeviceName")), gatewaySn))
-                    .deviceType(guessType(str(invoke(main, "getDeviceType")), true))
-                    .model(blankTo(str(invoke(main, "getDeviceModel")), "unknown"))
-                    .gatewaySn(null)
-                    .workStatus("idle")
-                    .online(true)
-                    .build());
+            out.add(toDeviceItem(main, null));
             Object subs = invoke(topo, "getSubDevices");
             if (subs instanceof List<?> subList) {
                 for (Object sub : subList) {
-                    String sn = str(invoke(sub, "getDeviceSn"));
-                    out.add(Fh2DeviceItemVO.builder()
-                            .sn(sn)
-                            .name(blankTo(str(invoke(sub, "getDeviceName")), sn))
-                            .deviceType("aircraft")
-                            .model(blankTo(str(invoke(sub, "getDeviceModel")), "unknown"))
-                            .gatewaySn(gatewaySn)
-                            .workStatus("idle")
-                            .online(true)
-                            .build());
+                    out.add(toDeviceItem(sub, gatewaySn));
                 }
             }
         }
         return out;
+    }
+
+    /** Device bean 实际提供 getDeviceSn/getDeviceClass/getDeviceName/getNickname/getModelKey/isOnline */
+    private Fh2DeviceItemVO toDeviceItem(Object device, String gatewaySn) {
+        String sn = str(invoke(device, "getDeviceSn"));
+        String deviceClass = firstText(str(invoke(device, "getDeviceClass")), str(invoke(device, "getDeviceType")));
+        String name = firstText(
+                str(invoke(device, "getNickname")),
+                str(invoke(device, "getDeviceName")),
+                sn);
+        return Fh2DeviceItemVO.builder()
+                .sn(sn)
+                .name(blankTo(name, sn))
+                .deviceType(guessType(deviceClass, gatewaySn == null))
+                .model(blankTo(firstText(str(invoke(device, "getModelKey")), str(invoke(device, "getDeviceModel"))), "unknown"))
+                .gatewaySn(gatewaySn)
+                .workStatus("idle")
+                .online(Boolean.TRUE.equals(invoke(device, "isOnline")))
+                .build();
     }
 
     private List<Fh2WaylineItemVO> mapWaylines(List<?> items) {
@@ -1763,9 +2185,40 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                     .size(asLong(invoke(item, "getSize")))
                     .updatedAt(asLong(invoke(item, "getUpdatedAt")))
                     .aiWayline(Boolean.TRUE.equals(invoke(item, "isAiWayline")))
+                    .waylineTypes(readWaylineTypes(item))
                     .build());
         }
         return out;
+    }
+
+    /** 航线类型列表：兼容 bean List<Integer> 与 generated IntVector 两种返回形态 */
+    private static List<Integer> readWaylineTypes(Object item) {
+        Object raw = invoke(item, "getWaylineTypes");
+        if (raw instanceof List<?> list) {
+            List<Integer> out = new ArrayList<>(list.size());
+            for (Object v : list) {
+                if (v instanceof Number n) {
+                    out.add(n.intValue());
+                }
+            }
+            return out;
+        }
+        if (raw == null) {
+            return List.of();
+        }
+        try {
+            int size = (int) raw.getClass().getMethod("size").invoke(raw);
+            List<Integer> out = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                Object v = raw.getClass().getMethod("get", int.class).invoke(raw, i);
+                if (v instanceof Number n) {
+                    out.add(n.intValue());
+                }
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     private static String guessType(String raw, boolean gateway) {

@@ -20,6 +20,14 @@ public interface Fh2SdkClient {
 
     Optional<String> initError();
 
+    /**
+     * 裸 IDrone 实例（供飞控网关直接调用 Wrapper 回调 API）；SDK 不可用或 SN 无效时返回 null。
+     * 默认抛 UnsupportedOperationException，仅原生实现支持。
+     */
+    default Object getRawDroneInstance(String droneSn) {
+        throw new UnsupportedOperationException("SDK 不可用");
+    }
+
     List<Fh2DeviceItemVO> listDevices();
 
     /**
@@ -166,5 +174,42 @@ public interface Fh2SdkClient {
      */
     default int getReconstructionImageCount(String modelUuid) {
         return -1;
+    }
+
+    /**
+     * SafetyServiceModule.createCustomizedFlightAreas — 创建自定义飞行区（限飞区）。
+     * content 为 GeoJSON Feature Map（type/properties/geometry），与 t_safety_area.content 一致。
+     *
+     * @param type 区域类型，限飞区用 "nfz"
+     * @return 司空 flightAreaId
+     */
+    default String createFlightArea(String name, String type, java.util.Map<String, Object> content) {
+        throw new UnsupportedOperationException("SDK 不可用");
+    }
+
+    /** SafetyServiceModule.updateCustomizedFlightAreas — 更新自定义飞行区 */
+    default void updateFlightArea(String flightAreaId, String name, java.util.Map<String, Object> content) {
+        throw new UnsupportedOperationException("SDK 不可用");
+    }
+
+    /** SafetyServiceModule.deleteCustomizedFlightAreas — 删除自定义飞行区 */
+    default void deleteFlightArea(String flightAreaId) {
+        throw new UnsupportedOperationException("SDK 不可用");
+    }
+
+    /**
+     * SafetyServiceModule.syncCustomizedFlightAreas — 下发自定义飞行区到机场。
+     * 返回 [{deviceSn, code}]（code=0 成功）。
+     */
+    default List<java.util.Map<String, Object>> syncFlightAreas(List<String> deviceSns) {
+        throw new UnsupportedOperationException("SDK 不可用");
+    }
+
+    /**
+     * SafetyServiceModule.getFlightAreasSyncStatus — 查询机场同步状态。
+     * 返回 [{deviceSn, status, reason}]。
+     */
+    default List<java.util.Map<String, Object>> getFlightAreasSyncStatus(List<String> deviceSns) {
+        throw new UnsupportedOperationException("SDK 不可用");
     }
 }

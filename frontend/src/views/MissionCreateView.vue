@@ -235,7 +235,7 @@
       <el-scrollbar max-height="420px">
         <div
           v-for="w in waylines"
-          :key="w.id"
+          :key="w.id ?? w.name"
           class="picker-item"
           :class="{ active: form.waylineId === w.id }"
           @click="pickWayline(w)"
