@@ -105,7 +105,7 @@ declare global {
     /** 直播大屏 SDK（完全独立、不依赖 paas.js）：initLivePlayer 全局初始化 + DjiLivePlayer 播放器类 */
     DJILivePlayer?: {
       initLivePlayer: (opts: Record<string, unknown>) => void
-      DjiLivePlayer: new (opts: { container: string; sn: string }) => DjiLivePlayerInstance
+      DjiLivePlayer: new (opts: { container: string; sn: string; fillMode?: 'contain' | 'cover' | 'fill' }) => DjiLivePlayerInstance
     }
   }
 }

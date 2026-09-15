@@ -1,6 +1,2 @@
-需求输入：图片
-原型输入：Element Plus+深色，单文件
-编码前输入：规范默认，前端vue3+vite+axios+sass+ts+unocss+element_plus、后端mybatis plus，先做 U-001
-遇到问题：司空jar只支持linux、mac，安装wsl解决
-开发环节是耗时环节，其他就直接过
-
+上云服务部署后，需要配置鉴权环境变量
+地图和高程需要 配置

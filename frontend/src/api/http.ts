@@ -16,6 +16,9 @@ const http = axios.create({
   timeout: 15000,
 })
 
+// 鉴权失效去重标记：多个并发请求同时返回 401 时，只提示并跳转登录一次
+let redirectingToLogin = false
+
 http.interceptors.request.use((config) => {
   const userStore = useUserStore()
   if (userStore.token) {
@@ -26,14 +29,25 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (response) => {
+    // blob 下载响应（航线导出等）无 ApiResult 包装，直接放行，由调用方处理错误分支
+    if (response.config.responseType === 'blob') return response
     const payload = response.data as ApiResult<unknown>
     if (payload.code === 0) {
       return response
     }
     if (payload.code === 40100 || payload.code === 40101) {
-      const userStore = useUserStore()
-      userStore.clear()
-      router.replace({ name: 'login' })
+      if (!redirectingToLogin) {
+        redirectingToLogin = true
+        const userStore = useUserStore()
+        userStore.clear()
+        router.replace({ name: 'login' })
+        ElMessage.error(payload.message || i18n.global.t('http.requestFailed'))
+        // 跳转完成后再放开标记，避免影响下一次会话过期的提示
+        setTimeout(() => {
+          redirectingToLogin = false
+        }, 3000)
+      }
+      return Promise.reject(payload)
     }
     ElMessage.error(payload.message || i18n.global.t('http.requestFailed'))
     return Promise.reject(payload)

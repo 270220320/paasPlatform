@@ -1,6 +1,11 @@
 spring:
   application:
     name: uav-platform
+  servlet:
+    multipart:
+      # 航线 KMZ 导入上限（DJI KMZ 常见 < 2MB，留足余量）
+      max-file-size: 20MB
+      max-request-size: 20MB
   datasource:
     # MYSQL_HOST: Windows 本机默认 127.0.0.1；WSL 内跑后端请用 profile=wsl，或导出 MYSQL_HOST=host.docker.internal / 网关 IP
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:3306/UAVPlatform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
@@ -73,6 +78,15 @@ uav:
   mission:
     dispatch-interval-ms: 30000
     sync-interval-ms: 20000
+
+  # 站内通知模块：SSE 心跳与设备离线监视周期
+  notification:
+    heartbeat-ms: 25000
+    device-watch-interval-ms: 60000
+
+  # 航线模块：导入 KMZ 本体落盘目录（私有化无 OSS，落本地磁盘）
+  wayline:
+    storage-dir: ${WAYLINE_STORAGE_DIR:./data/waylines}
 
   # 对话控制模块（本地 Ollama + qwen）。
   # 后端在 WSL/Docker 内时，先在 Windows 设置 OLLAMA_HOST=0.0.0.0 并放行 11434，

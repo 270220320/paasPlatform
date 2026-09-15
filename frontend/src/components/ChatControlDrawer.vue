@@ -50,30 +50,34 @@
 
       <!-- 设备选择 -->
       <div class="device-bar">
-        <el-select
-          v-model="dockSn"
-          size="small"
-          clearable
-          filterable
-          :teleported="false"
-          :placeholder="t('chat.selectDock')"
-          style="width: 48%"
-          @change="saveDevices"
-        >
-          <el-option v-for="d in docks" :key="d.sn" :value="d.sn" :label="label(d)" />
-        </el-select>
-        <el-select
-          v-model="droneSn"
-          size="small"
-          clearable
-          filterable
-          :teleported="false"
-          :placeholder="t('chat.selectDrone')"
-          style="width: 48%"
-          @change="saveDevices"
-        >
-          <el-option v-for="d in drones" :key="d.sn" :value="d.sn" :label="label(d)" />
-        </el-select>
+        <div class="device-cell">
+          <span class="dev-label">{{ t('chat.dockLabel') }}</span>
+          <el-select
+            v-model="dockSn"
+            size="small"
+            clearable
+            filterable
+            :teleported="false"
+            :placeholder="t('chat.selectDock')"
+            @change="saveDevices"
+          >
+            <el-option v-for="d in docks" :key="d.sn" :value="d.sn" :label="label(d)" />
+          </el-select>
+        </div>
+        <div class="device-cell">
+          <span class="dev-label">{{ t('chat.droneLabel') }}</span>
+          <el-select
+            v-model="droneSn"
+            size="small"
+            clearable
+            filterable
+            :teleported="false"
+            :placeholder="t('chat.selectDrone')"
+            @change="saveDevices"
+          >
+            <el-option v-for="d in drones" :key="d.sn" :value="d.sn" :label="label(d)" />
+          </el-select>
+        </div>
       </div>
 
       <!-- 消息流 -->
@@ -273,16 +277,18 @@ const quickAsks = computed(() => [
 const docks = computed(() => filterDevices('dock'))
 const drones = computed(() => filterDevices('aircraft', 'drone'))
 
+/** 按类型过滤；命中为空时返回空数组而非全部，避免「飞行器」框错误列出机场 */
 function filterDevices(...keys: string[]) {
-  const hit = devices.value.filter((d) =>
+  return devices.value.filter((d) =>
     keys.some((k) => (d.deviceType || '').toLowerCase().includes(k)),
   )
-  return hit.length ? hit : devices.value
 }
 
 function label(d: DeviceVO) {
   const online = d.onlineState === 'online' || d.onlineState === '1'
-  return `${d.name}(${d.sn}${online ? '·在线' : ''})`
+  const tail = d.sn.length > 6 ? d.sn.slice(-6) : d.sn
+  const base = d.name && d.name !== d.sn ? `${d.name}(${tail})` : tail
+  return online ? `${base}·在线` : base
 }
 
 watch(visible, (open) => {
@@ -311,6 +317,11 @@ async function init() {
   const page = await fetchDevices({ page: 1, pageSize: 100 }).catch(() => null)
   if (page?.data?.code === 0) {
     devices.value = page.data.data?.list ?? []
+    // 会话恢复的选中值不在对应选项内时清空，避免 el-select 裸显原始 SN
+    const dockSet = new Set(docks.value.map((d) => d.sn))
+    const droneSet = new Set(drones.value.map((d) => d.sn))
+    if (dockSn.value && !dockSet.has(dockSn.value)) dockSn.value = ''
+    if (droneSn.value && !droneSet.has(droneSn.value)) droneSn.value = ''
   }
 }
 
@@ -620,6 +631,21 @@ function toolStatusText(status: string) {
 .device-bar {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
+}
+
+.device-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dev-label {
+  flex: none;
+  font-size: 12px;
+  color: #8a8f99;
 }
 
 .messages {

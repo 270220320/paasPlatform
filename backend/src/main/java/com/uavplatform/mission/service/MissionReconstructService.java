@@ -26,6 +26,7 @@ import com.uavplatform.mission.dto.MissionExecutionVO;
 import com.uavplatform.mission.mapper.MissionExecutionMapper;
 import com.uavplatform.mission.mapper.MissionPlanMapper;
 import com.uavplatform.mission.remote.Dji2TaskClient;
+import com.uavplatform.notification.service.NotificationService;
 import com.uavplatform.wayline.domain.WaylineEntity;
 import com.uavplatform.wayline.mapper.WaylineMapper;
 import lombok.RequiredArgsConstructor;
@@ -76,6 +77,7 @@ public class MissionReconstructService {
     private final Fh2SdkClient fh2SdkClient;
     private final Dji2TaskClient dji2TaskClient;
     private final Fh2RuntimeConfigHolder fh2ConfigHolder;
+    private final NotificationService notificationService;
 
     private final ConcurrentMap<String, CachedWaylineTypes> waylineTypesCache = new ConcurrentHashMap<>();
 
@@ -578,6 +580,7 @@ public class MissionReconstructService {
         reconstructJobMapper.updateById(job);
         log.warn("[mission-reconstruct] job={} modelId={} marked failed: {}",
                 job.getId(), job.getFh2ModelId(), message);
+        notifyReconstruct(job, false, truncate(message, 200));
     }
 
     private void markSuccess(ReconstructJobEntity job, Fh2TerraModelVO found) {
@@ -600,6 +603,32 @@ public class MissionReconstructService {
         reconstructJobMapper.updateById(job);
         log.info("[mission-reconstruct] job={} modelId={} marked success",
                 job.getId(), job.getFh2ModelId());
+        notifyReconstruct(job, true, null);
+    }
+
+    /** 重建终态通知；发布失败不影响状态机 */
+    private void notifyReconstruct(ReconstructJobEntity job, boolean success, String errorMessage) {
+        try {
+            MissionPlanEntity plan = missionPlanMapper.selectById(job.getMissionPlanId());
+            String planName = plan != null && StringUtils.hasText(plan.getName())
+                    ? plan.getName() : ("计划 #" + job.getMissionPlanId());
+            Long ws = job.getWorkspaceId() != null ? job.getWorkspaceId()
+                    : (plan != null ? plan.getWorkspaceId() : null);
+            if (success) {
+                notificationService.publish(ws, "reconstruct.success", "success",
+                        "三维重建完成：" + planName,
+                        "执行 #" + job.getMissionExecutionId() + " 的三维重建已完成，模型可下载。",
+                        "reconstruct_job", job.getId());
+            } else {
+                notificationService.publish(ws, "reconstruct.failed", "error",
+                        "三维重建失败：" + planName,
+                        "执行 #" + job.getMissionExecutionId() + " 重建失败："
+                                + (StringUtils.hasText(errorMessage) ? errorMessage : "未知原因"),
+                        "reconstruct_job", job.getId());
+            }
+        } catch (Exception e) {
+            log.warn("[mission-reconstruct] notify job={} failed: {}", job.getId(), e.getMessage());
+        }
     }
     private FolderCandidates resolveFolderCandidates(String taskUuid) {
         LinkedHashSet<Integer> ids = new LinkedHashSet<>();

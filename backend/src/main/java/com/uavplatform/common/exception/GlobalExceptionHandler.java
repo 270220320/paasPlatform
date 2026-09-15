@@ -9,6 +9,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * 全局异常处理。
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler {
         }
         log.warn("bad request: {}", message);
         return ApiResult.fail(ErrorCodes.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ApiResult<Void> handleUploadSize(MaxUploadSizeExceededException ex) {
+        log.warn("upload size exceeded: {}", ex.getMessage());
+        return ApiResult.fail(ErrorCodes.BAD_REQUEST, "上传文件超过大小限制（20MB）");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

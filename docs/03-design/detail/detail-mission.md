@@ -4,6 +4,7 @@
 |----------|----------|----------|
 | V1.0 | 2026-07-22 | 初稿 |
 | V2.0 | 2026-08-24 | **按实现校准**：下发通道改为司空（SDK 立即/单次 + dji2 REST 周期/连续）；执行记录关联 fh2_task_uuid；新增任务级三维重建（U-086）、执行媒体管理（U-091）、回放入口（U-085）；状态机与实际代码对齐 |
+| V2.1 | 2026-09-15 | 新建任务航线选择器口径修复：前端原只查 status=published，漏掉 KMZ 导入的 draft 副本；改为拉全量后本地按 published 或 fh2WaylineUuid 非空过滤（与后端 requirePublishedWayline 一致），列表项顺带展示状态标签 |
 
 **涉及表**：`t_mission_plan`（含 `schedule_config` JSON）、`t_mission_execution`（含 `fh2_task_uuid`）、`t_wayline_snapshot`；引用 `t_wayline`、`t_device`、`t_algorithm`、`t_reconstruct_job`
 
@@ -59,7 +60,7 @@
 
 ### 业务规则（已实现）
 
-1. 校验设备存在且未删除 → `50003`；需要航线时校验可用 → `50002`。
+1. 校验设备存在且未删除 → `50003`；需要航线时校验可用 → `50002`。航线可用口径（requirePublishedWayline）：`status=published` 或已回写 `fh2_wayline_uuid`（KMZ 导入的副本回写 uuid 后即为可用，即便仍是 draft）；前端新建页选择器同口径过滤并展示状态标签。
 2. 复制航线内容建 `t_wayline_snapshot`。
 3. manual 任务不下发司空（needsRemote=false），仅本地记录。
 4. 创建事务提交后由 `MissionDispatchService.dispatchAfterCreate` 异步下发（见 U-041）。

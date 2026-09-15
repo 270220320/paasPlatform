@@ -6,10 +6,13 @@ import com.uavplatform.fh2.dto.Fh2DeviceItemVO;
 import com.uavplatform.fh2.dto.Fh2FlightTaskDetailVO;
 import com.uavplatform.fh2.dto.Fh2MediaPageVO;
 import com.uavplatform.fh2.dto.Fh2TerraModelVO;
+import com.uavplatform.fh2.dto.Fh2KmzUploadResult;
+import com.uavplatform.fh2.dto.Fh2WaylineImportedEvent;
 import com.uavplatform.fh2.dto.Fh2WaylineItemVO;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * FlightHub Java SDK 门面。实现可走原生 SDK（反射）或降级空实现。
@@ -60,6 +63,25 @@ public interface Fh2SdkClient {
     void updateWaylineName(String waylineUuid, String name);
 
     void deleteWaylines(List<String> waylineUuids);
+
+    /** 司空航线 KMZ 下载地址（getWaylineDetail.url）；SDK 不可用/查询失败返回 null，调用方降级 */
+    default String fetchWaylineKmzUrl(String waylineUuid) {
+        return null;
+    }
+
+    /**
+     * 上传本地 KMZ 到司空（importKmz）；失败返回 null。
+     * 司空不同版本可能只回填 asyncRequestId 或 kmzObjectKey（见 Fh2KmzUploadResult.pendingKey），
+     * 导入完成的 wayline_uuid 经 addWaylineImportListener 注册的回调推送。
+     */
+    default Fh2KmzUploadResult importKmzToCloud(String kmzFilePath) {
+        return null;
+    }
+
+    /** 注册司空航线导入完成事件回调（异步，SDK 初始化后生效）；返回是否注册成功 */
+    default boolean addWaylineImportListener(Consumer<Fh2WaylineImportedEvent> listener) {
+        return false;
+    }
 
     /**
      * 媒体文件列表。fileTypes 为空时默认查图片+视频（"2","3"）。

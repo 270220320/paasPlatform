@@ -36,6 +36,10 @@ export const FH2_GLOBAL_CONTAINER_IDS = [
  */
 export function purgeOrphanSdkContainers(keepWithin?: HTMLElement | null): void {
   if (typeof document === 'undefined') return
+  // keepWithin 已脱离文档说明所属组件已卸载，本调用是 boot 流程中迟到的 purge：
+  // destroy 链 await 期间用户已切页，文档里的同名节点属于新页面（如刚进入的驾驶舱），
+  // 按“游离节点”删除会误杀新页面挂载点，表现为 map-app mount failed（刷新后恢复）。
+  if (keepWithin && !keepWithin.isConnected) return
   for (const id of FH2_GLOBAL_CONTAINER_IDS) {
     const nodes = document.querySelectorAll(`[id="${id}"]`)
     nodes.forEach((node) => {
@@ -45,6 +49,24 @@ export function purgeOrphanSdkContainers(keepWithin?: HTMLElement | null): void 
   }
 }
 
+/**
+ * SDK 生命周期互斥队列：所有 FH2 destroy 链与下一页的挂载准备必须串行。
+ * 上一页 teardown 的 destroy 是异步的（qiankun 卸载数百 ms），若无互斥，
+ * 迟到的 destroyMap 会拆掉驾驶舱正在挂载的 map 微应用，SDK 内部抛
+ * map-app mount failed（刷新后全局归零故叉“恢复正常”）。
+ * 任务严格按入队顺序执行：teardown 在 onBeforeUnmount 同步入队，
+ * 必然先于下一页 mounted 后 boot 入队的重置任务，从而保证下一页 loadMap
+ * 开始时所有先行 destroy 已彻底完成。
+ */
+let sdkLifecycleQueue: Promise<void> = Promise.resolve()
+
+export function enqueueSdkLifecycle(task: () => Promise<void>): Promise<void> {
+  const next = sdkLifecycleQueue.then(task)
+  // 链断保护：单任务失败不阻塞后续任务
+  sdkLifecycleQueue = next.catch(() => undefined)
+  return next
+}
+
 type Fh2ResetApi = {
   destroyCockpit?: (self?: boolean) => Promise<boolean> | boolean
   destroyMap?: () => Promise<unknown> | unknown
@@ -52,8 +74,8 @@ type Fh2ResetApi = {
   destroyDevice?: () => Promise<unknown> | unknown
 }
 
-/** 依次拆除 FH2 共享上下文（驾驶舱/地图/项目视图/设备视图），幂等且失败忽略 */
-export async function destroyFh2Contexts(): Promise<void> {
+/** 原地执行 destroy 链（调用方必须已持队列锁，否则用 destroyFh2Contexts 入队） */
+async function destroyFh2ContextsLocked(): Promise<void> {
   const fh2 = (window as unknown as { FH2?: Fh2ResetApi }).FH2
   if (!fh2) return
   // 默认 false：卸载驾驶舱 + 地图 + 项目视图（司空文档要求切页这样调）
@@ -79,11 +101,36 @@ export async function destroyFh2Contexts(): Promise<void> {
   }
 }
 
+/** 依次拆除 FH2 共享上下文（驾驶舱/地图/项目视图/设备视图）：串行、幂等且失败忽略 */
+export function destroyFh2Contexts(): Promise<void> {
+  return enqueueSdkLifecycle(destroyFh2ContextsLocked)
+}
+
+/**
+ * 页面卸载专用的 teardown：页面专属 destroy + 通用 destroy 链打包为一个原子任务入队。
+ * 必须在 onBeforeUnmount 的同步阶段调用（保证入队先于下一页 boot），
+ * 否则迟到执行的 destroy 会与下一页 loadMap 并发互踩（map-app mount failed）。
+ */
+export function enqueuePageTeardown(pageDestroy?: () => unknown): Promise<void> {
+  return enqueueSdkLifecycle(async () => {
+    if (pageDestroy) {
+      try {
+        await Promise.resolve(pageDestroy())
+      } catch {
+        // ignore
+      }
+    }
+    await destroyFh2ContextsLocked()
+  })
+}
+
 /**
  * 离开驾驶舱/设备管理等页面后，重置 FH2 共享地图上下文。
  * 不传 keepWithin 时会清掉所有同名全局容器，避免下一页 getElementById 命中 0 尺寸游离节点。
  * 仅限挂载流程中 await 使用；onBeforeUnmount 场景必须改用 teardownSdkOnRouteLeave，
  * 否则 purge 排在 destroy 链之后迟到执行，会误删下一页已挂载的容器（如设备管理空白）。
+ * 迟到场景（destroy 链 await 期间组件已卸载）由 purgeOrphanSdkContainers 内的
+ * keepWithin.isConnected 守卫兜底：跳过 purge，宁留游离节点也不误删新页面容器。
  */
 export async function resetFh2SharedMapContext(keepWithin?: HTMLElement | null): Promise<void> {
   if (typeof window === 'undefined') return

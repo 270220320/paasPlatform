@@ -7,7 +7,9 @@ import com.uavplatform.fh2.dto.Fh2DeviceItemVO;
 import com.uavplatform.fh2.dto.Fh2FlightTaskDetailVO;
 import com.uavplatform.fh2.dto.Fh2MediaFileVO;
 import com.uavplatform.fh2.dto.Fh2MediaPageVO;
+import com.uavplatform.fh2.dto.Fh2KmzUploadResult;
 import com.uavplatform.fh2.dto.Fh2TerraModelVO;
+import com.uavplatform.fh2.dto.Fh2WaylineImportedEvent;
 import com.uavplatform.fh2.dto.Fh2WaylineItemVO;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +36,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * 通过反射调用 com.dji.flighthubsdk.*，避免编译期强依赖 JAR。
@@ -91,6 +95,12 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
     private volatile Long sessionId;
     /** TerraBuildModule.listenReconstructionStatusChanged 返回的 listenId */
     private volatile int reconstructionListenId = -1;
+
+    /** WaylineManageModule.listenImportWaylineEvent 返回的 listenId */
+    private volatile int waylineImportListenId = -1;
+
+    /** 司空航线导入完成事件回调（importKmz 异步结果广播） */
+    private final List<Consumer<Fh2WaylineImportedEvent>> waylineImportListeners = new CopyOnWriteArrayList<>();
 
     /** 缓存重建回调中的错误码（fileId → code），供 syncOne 查询 */
     private final ConcurrentHashMap<Long, Integer> reconstructionErrorCodeMap = new ConcurrentHashMap<>();
@@ -241,6 +251,7 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                     cfg.getProjectUuid(),
                     StringUtils.hasText(cfg.getUserToken()) ? "token" : "gateway-header:" + gwKey);
             ensureReconstructionStatusListener();
+            ensureWaylineImportEventListener();
         } catch (Exception e) {
             error = "SDK init exception: " + e.getMessage();
             log.error("[FH2] init failed", e);
@@ -445,9 +456,14 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 if (modelInfo != null) {
                     model = blankTo(firstText(str(invoke(modelInfo, "getName")), str(invoke(modelInfo, "getKey"))), "unknown");
                 }
+                // 昵称优先（司空用户自定义名），与 toDeviceItem 口径一致，避免落库/展示只剩 SN
+                String subName = firstText(
+                        str(invoke(sub, "getNickname")),
+                        str(invoke(sub, "getDeviceName")),
+                        sn);
                 out.add(Fh2DeviceItemVO.builder()
                         .sn(sn)
-                        .name(sn)
+                        .name(blankTo(subName, sn))
                         .gatewaySn(gatewaySn)
                         .deviceType("aircraft")
                         .model(model)
@@ -789,6 +805,162 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             }
         } catch (Exception e) {
             throw new IllegalStateException("deleteWaylines failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String fetchWaylineKmzUrl(String waylineUuid) {
+        ensureReady();
+        if (!StringUtils.hasText(waylineUuid)) {
+            return null;
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> url = new AtomicReference<>();
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$GetWaylineDetailCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        url.set((String) invoke(result, "getUrl"));
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+            Object waylineHost = moduleOrWorkspace("getWaylineManageModule");
+            waylineHost.getClass().getMethod("getWaylineDetail", String.class, cbClass)
+                    .invoke(waylineHost, waylineUuid.trim(), cb);
+            if (!latch.await(15, TimeUnit.SECONDS)) {
+                log.warn("[FH2] getWaylineDetail timeout uuid={}", waylineUuid);
+                return null;
+            }
+            if (err.get() != null) {
+                log.warn("[FH2] getWaylineDetail failed uuid={}: {}", waylineUuid, err.get());
+                return null;
+            }
+            return url.get();
+        } catch (Exception e) {
+            log.warn("[FH2] getWaylineDetail exception uuid={}: {}", waylineUuid, rootMessage(e));
+            return null;
+        }
+    }
+
+    @Override
+    public Fh2KmzUploadResult importKmzToCloud(String kmzFilePath) {
+        ensureReady();
+        if (!StringUtils.hasText(kmzFilePath)) {
+            return null;
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Fh2KmzUploadResult> uploaded = new AtomicReference<>();
+        AtomicReference<String> err = new AtomicReference<>();
+        try {
+            Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$ImportKmzCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 2) {
+                    Object errorObj = args[0];
+                    Object result = args[1];
+                    log.info("[FH2] importKmz onResult error={}, result={}", errorObj, result);
+                    if (errorObj != null && !isEmptyError(errorObj)) {
+                        err.set(formatError(errorObj));
+                    } else if (result != null) {
+                        Object list = invoke(result, "getList");
+                        if (list instanceof List<?> items && !items.isEmpty()) {
+                            Object item = items.get(0);
+                            // bean.ImportKmzItem 为驼峰命名；司空可能只回填 asyncRequestId 或 kmzObjectKey 之一
+                            uploaded.set(new Fh2KmzUploadResult(
+                                    (String) invoke(item, "getAsyncRequestId"),
+                                    (String) invoke(item, "getKmzObjectKey")));
+                        }
+                    }
+                    latch.countDown();
+                }
+                return null;
+            });
+            Object waylineHost = moduleOrWorkspace("getWaylineManageModule");
+            waylineHost.getClass().getMethod("importKmz", List.class, cbClass)
+                    .invoke(waylineHost, List.of(kmzFilePath), cb);
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                log.warn("[FH2] importKmz timeout path={}", kmzFilePath);
+                return null;
+            }
+            if (err.get() != null) {
+                log.warn("[FH2] importKmz failed: {}", err.get());
+                return null;
+            }
+            Fh2KmzUploadResult r = uploaded.get();
+            return r != null && r.pendingKey() != null ? r : null;
+        } catch (Exception e) {
+            log.warn("[FH2] importKmz exception path={}: {}", kmzFilePath, rootMessage(e));
+            return null;
+        }
+    }
+
+    @Override
+    public boolean addWaylineImportListener(Consumer<Fh2WaylineImportedEvent> listener) {
+        if (listener == null) {
+            return false;
+        }
+        waylineImportListeners.add(listener);
+        ensureWaylineImportEventListener();
+        return true;
+    }
+
+    /** 文档建议：importKmz 前注册导入事件监听；全局注册一次。 */
+    private synchronized void ensureWaylineImportEventListener() {
+        if (!ready || workspace == null || waylineImportListenId >= 0) {
+            return;
+        }
+        try {
+            Class<?> cbClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$ImportWaylineEventCallback");
+            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                if ("onResult".equals(method.getName()) && args != null && args.length >= 1
+                        && args[0] != null && !waylineImportListeners.isEmpty()) {
+                    dispatchWaylineImportEvent(args[0]);
+                }
+                return null;
+            });
+            Object waylineHost = moduleOrWorkspace("getWaylineManageModule");
+            Object listenIdObj = waylineHost.getClass()
+                    .getMethod("listenImportWaylineEvent", cbClass)
+                    .invoke(waylineHost, cb);
+            int listenId = listenIdObj instanceof Number n ? n.intValue() : -1;
+            if (listenId >= 0) {
+                waylineImportListenId = listenId;
+                log.info("[FH2] listenImportWaylineEvent ok listenId={}", listenId);
+            } else {
+                log.warn("[FH2] listenImportWaylineEvent returned invalid listenId={}", listenIdObj);
+            }
+        } catch (Exception e) {
+            log.warn("[FH2] listenImportWaylineEvent register failed: {}", rootMessage(e));
+        }
+    }
+
+    private void dispatchWaylineImportEvent(Object result) {
+        try {
+            // bean.ImportWaylineEventResult 为驼峰命名（getAsyncRequestId/getWaylineUuid）
+            String asyncId = (String) invoke(result, "getAsyncRequestId");
+            String uuid = (String) invoke(result, "getWaylineUuid");
+            String kmzObjectKey = (String) invoke(result, "getKmzObjectKey");
+            Object codeObj = invoke(result, "getCode");
+            int code = codeObj instanceof Number n ? n.intValue() : 0;
+            String message = (String) invoke(result, "getMessage");
+            Fh2WaylineImportedEvent event = new Fh2WaylineImportedEvent(asyncId, uuid, kmzObjectKey, code, message);
+            for (Consumer<Fh2WaylineImportedEvent> listener : waylineImportListeners) {
+                try {
+                    listener.accept(event);
+                } catch (Exception ex) {
+                    log.warn("[FH2] wayline import listener error: {}", rootMessage(ex));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[FH2] dispatchWaylineImportEvent failed: {}", rootMessage(e));
         }
     }
 
@@ -1403,7 +1575,9 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             if (!StringUtils.hasText(uuidRef.get())) {
                 throw new IllegalStateException("createFlightTask 未返回 uuid");
             }
-            // Apifox 文档另有 executeFlightTask；当前 jar 无此方法时跳过，立即任务由云端在 create 后触发
+            // 3.1 实测：es-task 收到 create 后自动推进 prepare→execute（无需客户端触发）；
+            // updateFlightTaskStatus(uuid,2) 属 3.0 旧口径，3.1 会返回 219015 且误导性报错，故不再调用。
+            // 仅当 SDK 后续提供 executeFlightTask 专用方法时才使用。
             tryExecuteFlightTaskIfPresent(module, uuidRef.get());
             log.info("[FH2] createFlightTask ok uuid={} type={}", uuidRef.get(), cmd.getTaskType());
             return uuidRef.get().trim();
@@ -2051,34 +2225,61 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
         };
     }
 
-    /** 若 SDK 后续版本提供 executeFlightTask，则创建后主动下发执行。 */
+    /**
+     * 创建后执行触发（仅限 SDK 提供专用 executeFlightTask 方法时）。
+     * 3.1 实测（2026-09-11 任务 42bfc12c）：立即任务 create 后 es-task 自动下发 prepare/execute，
+     * 无人机自行起飞执行航线；外部调 updateFlightTaskStatus(uuid,2) 会被 219015 拒绝
+     * （task status can not update），且若将其作为失败抛出会误导用户以为创建失败。
+     * 故 updateFlightTaskStatus 降级路径已移除，无 executeFlightTask 方法时直接静默跳过。
+     */
     private void tryExecuteFlightTaskIfPresent(Object module, String taskUuid) {
         try {
             Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$ResultCallbackWithError");
             Method exec = findMethod(module.getClass(), "executeFlightTask", String.class, cbClass);
             if (exec == null) {
+                log.info("[FH2] 3.1 口径：任务 {} 由云端自动触发执行，无需客户端调用", taskUuid);
                 return;
             }
-            CountDownLatch latch = new CountDownLatch(1);
-            AtomicReference<String> err = new AtomicReference<>();
-            Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
-                if ("onResult".equals(method.getName())) {
-                    if (args != null && args.length > 0 && args[0] != null && !isEmptyError(args[0])) {
-                        err.set(formatError(args[0]));
-                    }
-                    latch.countDown();
+            String opName = "executeFlightTask";
+            Object[] invokeArgs = new Object[]{taskUuid, null};
+            // create 后司空 prepare/机场 ready 为异步，过早执行可能报错，小间隔重试
+            long[] delays = {0L, 2000L, 4000L};
+            IllegalStateException last = null;
+            for (long delay : delays) {
+                if (delay > 0) {
+                    Thread.sleep(delay);
                 }
-                return null;
-            });
-            exec.invoke(module, taskUuid, cb);
-            if (!latch.await(30, TimeUnit.SECONDS)) {
-                log.warn("[FH2] executeFlightTask timeout uuid={}", taskUuid);
-                return;
+                CountDownLatch latch = new CountDownLatch(1);
+                AtomicReference<String> err = new AtomicReference<>();
+                Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+                    if ("onResult".equals(method.getName())) {
+                        if (args != null && args.length > 0 && args[0] != null && !isEmptyError(args[0])) {
+                            err.set(formatError(args[0]));
+                        }
+                        latch.countDown();
+                    }
+                    return null;
+                });
+                invokeArgs[invokeArgs.length - 1] = cb;
+                try {
+                    exec.invoke(module, invokeArgs);
+                } catch (Exception invokeEx) {
+                    log.warn("[FH2] {} invoke error uuid={}: {}", opName, taskUuid, rootMessage(invokeEx));
+                    last = new IllegalStateException(opName + ": " + rootMessage(invokeEx));
+                    continue;
+                }
+                if (!latch.await(30, TimeUnit.SECONDS)) {
+                    log.warn("[FH2] {} timeout uuid={}", opName, taskUuid);
+                    return;
+                }
+                if (err.get() == null) {
+                    log.info("[FH2] {} ok uuid={}", opName, taskUuid);
+                    return;
+                }
+                last = new IllegalStateException(opName + ": " + err.get());
+                log.warn("[FH2] {} rejected uuid={}: {}", opName, taskUuid, err.get());
             }
-            if (err.get() != null) {
-                throw new IllegalStateException("executeFlightTask: " + err.get());
-            }
-            log.info("[FH2] executeFlightTask ok uuid={}", taskUuid);
+            throw last;
         } catch (ClassNotFoundException e) {
             // ignore
         } catch (IllegalStateException e) {

@@ -15,6 +15,7 @@ import com.uavplatform.mission.domain.MissionPlanEntity;
 import com.uavplatform.mission.mapper.MissionExecutionMapper;
 import com.uavplatform.mission.mapper.MissionPlanMapper;
 import com.uavplatform.mission.remote.Dji2TaskClient;
+import com.uavplatform.notification.service.NotificationService;
 import com.uavplatform.wayline.domain.WaylineEntity;
 import com.uavplatform.wayline.mapper.WaylineMapper;
 import lombok.RequiredArgsConstructor;
@@ -69,6 +70,7 @@ public class MissionDispatchService {
     private final MissionExecutionMapper missionExecutionMapper;
     private final DeviceMapper deviceMapper;
     private final WaylineMapper waylineMapper;
+    private final NotificationService notificationService;
 
     /** 创建事务提交后：按策略下发司空任务 */
     public void dispatchAfterCreate(Long planId) {
@@ -143,6 +145,7 @@ public class MissionDispatchService {
                 exec.setActualEndAt(LocalDateTime.now());
                 missionExecutionMapper.updateById(exec);
                 refreshPlanStatus(plan.getId());
+                notifyDispatchFailed(plan, exec, e.getMessage());
             }
         }
     }
@@ -446,7 +449,67 @@ public class MissionDispatchService {
         }
         fillFlightDuration(exec);
         missionExecutionMapper.updateById(exec);
+        notifyExecutionStatusChanged(exec, mapped);
         return true;
+    }
+
+    /** 状态实际变化时发站内通知（起飞/完成/失败，含原因与时长）；发布失败不影响同步主流程 */
+    private void notifyExecutionStatusChanged(MissionExecutionEntity exec, String mapped) {
+        try {
+            MissionPlanEntity plan = missionPlanMapper.selectById(exec.getPlanId());
+            if (plan == null || plan.getWorkspaceId() == null) {
+                return;
+            }
+            String planName = StringUtils.hasText(plan.getName()) ? plan.getName() : ("计划 #" + plan.getId());
+            String execLabel = "架次 #" + exec.getId();
+            switch (mapped) {
+                case "running" -> notificationService.publish(plan.getWorkspaceId(), "mission.takeoff", "info",
+                        "任务已起飞：" + planName,
+                        "飞行计划「" + planName + "」" + execLabel + "已实际开始执行。",
+                        "mission_plan", plan.getId());
+                case "completed" -> notificationService.publish(plan.getWorkspaceId(), "mission.completed", "success",
+                        "任务完成：" + planName,
+                        "飞行计划「" + planName + "」" + execLabel + "已完成，飞行时长 "
+                                + formatDuration(exec) + "。",
+                        "mission_plan", plan.getId());
+                case "failed" -> notificationService.publish(plan.getWorkspaceId(), "mission.failed", "error",
+                        "任务失败：" + planName,
+                        "飞行计划「" + planName + "」" + execLabel + "失败："
+                                + (StringUtils.hasText(exec.getFailReason()) ? exec.getFailReason() : "未知原因") + "。",
+                        "mission_plan", plan.getId());
+                default -> {
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[mission-sync] notify execId={} status={} failed: {}", exec.getId(), mapped, e.getMessage());
+        }
+    }
+
+    /** 到期下发失败（本地调度/SDK 创建异常）通知 */
+    private void notifyDispatchFailed(MissionPlanEntity plan, MissionExecutionEntity exec, String reason) {
+        try {
+            if (plan == null || plan.getWorkspaceId() == null) {
+                return;
+            }
+            notificationService.publish(plan.getWorkspaceId(), "mission.dispatch_failed", "error",
+                    "任务下发失败：" + (StringUtils.hasText(plan.getName()) ? plan.getName() : ("计划 #" + plan.getId())),
+                    "架次 #" + exec.getId() + " 下发司空失败："
+                            + (StringUtils.hasText(reason) ? reason : "未知原因") + "。",
+                    "mission_plan", plan.getId());
+        } catch (Exception e) {
+            log.warn("[mission-dispatch] notify dispatch-fail execId={} failed: {}", exec.getId(), e.getMessage());
+        }
+    }
+
+    private static String formatDuration(MissionExecutionEntity exec) {
+        if (exec.getFlightDurationSec() == null) {
+            return "未知";
+        }
+        long sec = exec.getFlightDurationSec().longValue();
+        if (sec < 0) {
+            sec = 0;
+        }
+        return sec >= 60 ? (sec / 60) + " 分 " + (sec % 60) + " 秒" : sec + " 秒";
     }
 
     /** 用起止时间写入飞行时长（秒）；无轨迹里程，不计算 distance。 */
@@ -594,6 +657,14 @@ public class MissionDispatchService {
         }
         plan.setStatus("failed");
         missionPlanMapper.updateById(plan);
+        try {
+            notificationService.publish(plan.getWorkspaceId(), "mission.dispatch_failed", "error",
+                    "任务下发失败：" + (StringUtils.hasText(plan.getName()) ? plan.getName() : ("计划 #" + plan.getId())),
+                    "下发司空失败：" + reason + "，未下发的架次已标记失败。",
+                    "mission_plan", plan.getId());
+        } catch (Exception e) {
+            log.warn("[mission-dispatch] notify plan-dispatch-fail planId={} failed: {}", plan.getId(), e.getMessage());
+        }
     }
 
     private DeviceEntity requireDevice(Long deviceId) {

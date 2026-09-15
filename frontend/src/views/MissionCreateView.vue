@@ -241,7 +241,7 @@
           @click="pickWayline(w)"
         >
           <div class="picker-name">{{ w.name }}</div>
-          <div class="picker-meta">{{ w.aircraftModel || '-' }} · {{ w.updatedAt || '-' }}</div>
+          <div class="picker-meta">{{ w.aircraftModel || '-' }} · {{ w.updatedAt || '-' }} · {{ w.status === 'published' ? t('waylines.published') : t('waylines.draft') }}</div>
         </div>
         <el-empty v-if="!waylines.length" :description="t('waylines.empty')" />
       </el-scrollbar>
@@ -433,12 +433,13 @@ function pickDevice(d: DeviceVO) {
 async function loadWaylines() {
   const { data } = await fetchWaylines({
     keyword: waylineKeyword.value || undefined,
-    status: 'published',
     page: 1,
     pageSize: 100,
   })
   const pageData = data.data as { list: WaylineVO[] }
-  waylines.value = pageData.list || []
+  // 对齐后端 requirePublishedWayline 口径：published 或已回写司空 uuid 均可建任务。
+  // KMZ 导入的副本回写 uuid 后 status 仍为 draft，只按 published 过滤会漏掉新导入航线
+  waylines.value = (pageData.list || []).filter((w) => w.status === 'published' || w.fh2WaylineUuid)
 }
 
 async function loadDevices() {

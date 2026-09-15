@@ -28,6 +28,7 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs } from '@/utils/loadScript'
+import { enqueueSdkLifecycle } from '@/utils/sdkContainers'
 
 interface AuthConfig {
   authKeys: string[]
@@ -94,16 +95,21 @@ function clearPreviewContainers() {
 async function resetPreview() {
   const api = fh2()
   if (!api) return
-  try {
-    await Promise.resolve(api.destroyPaasView?.())
-  } catch {
-    // ignore
-  }
-  try {
-    await Promise.resolve(api.destroyMap?.())
-  } catch {
-    // ignore
-  }
+  // destroy 链入全局互斥队列：onBeforeUnmount 时 fire-and-forget 裸跑的话，
+  // 迟到的 destroyMap 会与下一页（驾驶舱）loadMap 并发互踩（map-app mount failed）。
+  // 入队保证与其它页面的 teardown/boot 重置严格串行。
+  await enqueueSdkLifecycle(async () => {
+    try {
+      await Promise.resolve(api.destroyPaasView?.())
+    } catch {
+      // ignore
+    }
+    try {
+      await Promise.resolve(api.destroyMap?.())
+    } catch {
+      // ignore
+    }
+  })
   viewLoaded = false
 }
 

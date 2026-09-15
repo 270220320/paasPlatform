@@ -49,6 +49,14 @@
                 v-if="canWrite"
                 link
                 type="primary"
+                :icon="Upload"
+                :title="t('waylines.import')"
+                @click="onImportClick"
+              />
+              <el-button
+                v-if="canWrite"
+                link
+                type="primary"
                 :icon="Plus"
                 :title="t('waylines.create')"
                 @click="onCreate"
@@ -87,6 +95,7 @@
                     <el-button link :icon="MoreFilled" />
                     <template #dropdown>
                       <el-dropdown-menu>
+                        <el-dropdown-item command="export">{{ t('waylines.export') }}</el-dropdown-item>
                         <el-dropdown-item command="delete" style="color: var(--el-color-danger)">
                           {{ t('common.delete') }}
                         </el-dropdown-item>
@@ -129,6 +138,9 @@
       @saved="onEditorSaved"
       @renamed="onEditorRenamed"
     />
+
+    <!-- 导入（U-032）：隐藏 input，由导入按钮触发；支持 KMZ 与导出封装 JSON，导入到当前选中文件夹 -->
+    <input ref="kmzInput" type="file" accept=".kmz,.json" style="display: none" @change="onKmzFileChange" />
   </div>
 </template>
 
@@ -137,15 +149,18 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, EditPen, Folder, FolderAdd, MoreFilled, Plus, Search } from '@element-plus/icons-vue'
+import { Delete, EditPen, Folder, FolderAdd, MoreFilled, Plus, Search, Upload } from '@element-plus/icons-vue'
 import WaylineEditorPane from '@/components/WaylineEditorPane.vue'
 import {
   createWaylineFolder,
   deleteWayline,
   deleteWaylineByUuid,
   deleteWaylineFolder,
+  exportWayline,
+  fetchWayline,
   fetchWaylineFolders,
   fetchWaylines,
+  importWayline,
   type WaylineFolderVO,
   type WaylineVO,
 } from '@/api/wayline'
@@ -224,6 +239,7 @@ const editorMode = ref<'idle' | 'edit' | 'create'>('idle')
 const editorWaylineId = ref('')
 const editorWaylineName = ref('')
 const selectedKey = ref('')
+const kmzInput = ref<HTMLInputElement>()
 
 function displayName(row: WaylineVO) {
   const name = row.name?.trim()
@@ -249,7 +265,19 @@ function selectFolder(id: number) {
   reloadWaylines()
 }
 
-function onSelect(row: WaylineVO) {
+async function onSelect(row: WaylineVO) {
+  if (!row.fh2WaylineUuid && row.id != null) {
+    // KMZ 导入后 uuid 由司空异步回写（约 6~9 秒），列表快照可能滞后：点击时实时拉详情补判一次
+    try {
+      const { data } = await fetchWayline(row.id)
+      if (data.data?.fh2WaylineUuid) {
+        row.fh2WaylineUuid = data.data.fh2WaylineUuid
+        if (data.data.name) row.name = data.data.name
+      }
+    } catch {
+      // 拉取失败按既有快照判断
+    }
+  }
   if (!row.fh2WaylineUuid) {
     ElMessage.warning(t('waylines.editUnavailable'))
     return
@@ -358,6 +386,10 @@ async function onDeleteFolder(folder: WaylineFolderVO) {
 }
 
 async function onCardCommand(cmd: string, row: WaylineVO) {
+  if (cmd === 'export') {
+    await downloadWayline(row)
+    return
+  }
   if (cmd !== 'delete') return
   await ElMessageBox.confirm(t('waylines.deleteConfirm', { name: displayName(row) }), t('common.confirmTitle'))
   if (row.fh2WaylineUuid) {
@@ -377,6 +409,62 @@ async function onCardCommand(cmd: string, row: WaylineVO) {
   ElMessage.success(t('waylines.deleted'))
   // 删光文件夹内航线后需同步刷新 waylineCount，让删除按钮及时出现
   await Promise.all([loadFolders(), loadWaylines()])
+}
+
+/** 导出（U-032）：后端返回 KMZ 本体或降级 JSON，文件名优先取响应头 */
+async function downloadWayline(row: WaylineVO) {
+  if (row.id == null) {
+    ElMessage.warning(t('waylines.editUnavailable'))
+    return
+  }
+  const { blob, filename } = await exportWayline(row.id).catch(() => ({ blob: null, filename: '' }))
+  if (!blob) return
+  const ext = blob.type.includes('vnd.google-earth.kmz') ? '.kmz' : '.json'
+  const name = filename || `${sanitizeDownloadName(displayName(row))}${ext}`
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success(t('waylines.exported'))
+}
+
+function sanitizeDownloadName(name: string) {
+  const cleaned = name.trim().replace(/[\\/:*?"<>|]+/g, '_')
+  return cleaned || 'wayline'
+}
+
+/** 导入 KMZ：导入到当前选中文件夹，失败提示由 http 拦截器统一弹出 */
+function onImportClick() {
+  if (!canWrite.value) return
+  if (selectedFolderId.value == null) {
+    ElMessage.warning(t('waylines.selectFolderFirst'))
+    return
+  }
+  kmzInput.value?.click()
+}
+
+async function onKmzFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 清空选择，允许再次导入同一文件
+  input.value = ''
+  if (!file) return
+  try {
+    const { data } = await importWayline(file, selectedFolderId.value ?? undefined)
+    const restored = data.data?.restored === true
+    const name = data.data?.name || file.name
+    ElMessage.success(t(restored ? 'waylines.restored' : 'waylines.imported', { name }))
+    // 导入会改变文件夹计数与列表
+    await Promise.all([loadFolders(), reloadWaylines()])
+    // KMZ 会异步上传司空，后端 6s 起轮询回写 uuid（含重试），9s 再刷一次列表基本可拿到可编辑状态
+    if (!restored && file.name.toLowerCase().endsWith('.kmz')) {
+      setTimeout(() => { reloadWaylines() }, 9000)
+    }
+  } catch {
+    // 错误提示已由 http 拦截器弹出
+  }
 }
 
 async function onEditorCreated(payload: { waylineId: string; name: string }) {

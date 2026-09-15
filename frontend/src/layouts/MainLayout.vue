@@ -58,6 +58,8 @@
 
       <div class="right">
 
+        <NotificationBell />
+
         <span class="user" @click="goProfile">{{ userStore.user?.displayName }}</span>
 
         <el-button link type="primary" @click="onLogout">{{ t('nav.logout') }}</el-button>
@@ -102,6 +104,7 @@ import { logoutApi } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 
 import ChatControlDrawer from '@/components/ChatControlDrawer.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 
 

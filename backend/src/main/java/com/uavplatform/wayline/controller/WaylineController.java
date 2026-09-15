@@ -5,6 +5,7 @@ import com.uavplatform.common.result.IdVO;
 import com.uavplatform.common.result.PageResult;
 import com.uavplatform.wayline.dto.WaylineCreateRequest;
 import com.uavplatform.wayline.dto.WaylineDetailVO;
+import com.uavplatform.wayline.dto.WaylineExportFile;
 import com.uavplatform.wayline.dto.WaylineFolderCreateRequest;
 import com.uavplatform.wayline.dto.WaylineFolderVO;
 import com.uavplatform.wayline.dto.WaylineListVO;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.util.UriUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -97,12 +100,14 @@ public class WaylineController {
         return ApiResult.ok(waylineService.importFile(file, folderId, aircraftModel));
     }
 
+    /** 导出（U-032）：KMZ 本体优先，降级 JSON；文件名 RFC 5987 编码支持中文 */
     @GetMapping("/waylines/{id}/export")
     public ResponseEntity<byte[]> export(@PathVariable Long id) {
-        byte[] data = waylineService.export(id);
+        WaylineExportFile file = waylineService.export(id);
+        String encodedName = UriUtils.encode(file.filename(), StandardCharsets.UTF_8);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=wayline-" + id + ".txt")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(data);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .body(file.data());
     }
 }

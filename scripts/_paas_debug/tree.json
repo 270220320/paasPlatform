@@ -1,0 +1,2320 @@
+{
+  "sha": "4ec6b0c7f9472aeb09a0a47949855d19c473ea07",
+  "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/4ec6b0c7f9472aeb09a0a47949855d19c473ea07",
+  "tree": [
+    {
+      "path": "docs",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "143845521dc9ff5116a04b39fb005b0846a75ebc",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/143845521dc9ff5116a04b39fb005b0846a75ebc"
+    },
+    {
+      "path": "docs/cn",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "dbfc0af524914e770d26b95bf1ee0de2f28020ca",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/dbfc0af524914e770d26b95bf1ee0de2f28020ca"
+    },
+    {
+      "path": "docs/cn/00.index.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "253c444a9694f5395b3ddf3bdaa5a1f3417ae759",
+      "size": 46525,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/253c444a9694f5395b3ddf3bdaa5a1f3417ae759"
+    },
+    {
+      "path": "docs/cn/01.tutorial-map.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e43470a18b5cc9ac8bc4acfaa556ef0d18c9907c",
+      "size": 6632,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/e43470a18b5cc9ac8bc4acfaa556ef0d18c9907c"
+    },
+    {
+      "path": "docs/cn/02.flight-safety-notification.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cf40222113a894b2635d7e32a46cb3f139e71c3d",
+      "size": 2191,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/cf40222113a894b2635d7e32a46cb3f139e71c3d"
+    },
+    {
+      "path": "docs/cn/10.overview",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "3d547c033c71df2600b7d141524667029178c6d2",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/3d547c033c71df2600b7d141524667029178c6d2"
+    },
+    {
+      "path": "docs/cn/10.overview/10.product-introduction.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "46ce267723ae6d1d6d1f9ce98789c00ccc0a2774",
+      "size": 2990,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/46ce267723ae6d1d6d1f9ce98789c00ccc0a2774"
+    },
+    {
+      "path": "docs/cn/10.overview/20.product-architecture.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5e08f7d1af33d3e1827321a473061ffcd54a3139",
+      "size": 2395,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5e08f7d1af33d3e1827321a473061ffcd54a3139"
+    },
+    {
+      "path": "docs/cn/10.overview/30.product-support.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f42bed612df291710f92d09b0e4c5e94c42829f3",
+      "size": 8760,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f42bed612df291710f92d09b0e4c5e94c42829f3"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "935170e7d69af37cd6bc3e3700997dbf8e140cbf",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/935170e7d69af37cd6bc3e3700997dbf8e140cbf"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept/10.proper-noun.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa716365cf82826dfa654afb0ff0ba2685c142f7",
+      "size": 2566,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/aa716365cf82826dfa654afb0ff0ba2685c142f7"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept/20.mqtt.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3818d498f35bcc6bdc17ab04ef3bbad68f34e0b8",
+      "size": 8753,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/3818d498f35bcc6bdc17ab04ef3bbad68f34e0b8"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept/30.thing-model.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b3f326ab4fcf60f85aa8a0bfa0d0ae606b9e14df",
+      "size": 4100,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b3f326ab4fcf60f85aa8a0bfa0d0ae606b9e14df"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept/40.https.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8952e73cb96311c8cbab24c6fec4fd17d72174e9",
+      "size": 5726,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8952e73cb96311c8cbab24c6fec4fd17d72174e9"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept/50.websocket.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6365c33da4d0d764390b3f436feee641e51a80b7",
+      "size": 612,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6365c33da4d0d764390b3f436feee641e51a80b7"
+    },
+    {
+      "path": "docs/cn/10.overview/40.basic-concept/60.jsbridge.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "220712584e6cc6d943f3b4378558a0617a9baaa6",
+      "size": 3378,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/220712584e6cc6d943f3b4378558a0617a9baaa6"
+    },
+    {
+      "path": "docs/cn/20.quick-start",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b5e07af30974ed9f2bfacd251c0a5b968cbae128",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/b5e07af30974ed9f2bfacd251c0a5b968cbae128"
+    },
+    {
+      "path": "docs/cn/20.quick-start/10.environment-prepare-list.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8511ef63a1d208c14f9b1e1d3451312921916720",
+      "size": 1284,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8511ef63a1d208c14f9b1e1d3451312921916720"
+    },
+    {
+      "path": "docs/cn/20.quick-start/20.source-code-deployment-steps.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "66b576b2ba1961eec97a1697c8857f7bc3ffeb3d",
+      "size": 7422,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/66b576b2ba1961eec97a1697c8857f7bc3ffeb3d"
+    },
+    {
+      "path": "docs/cn/20.quick-start/30.docker-deployment-steps.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0a85ae4b8676718c3e51d221f075df9a3ff4b89d",
+      "size": 4855,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0a85ae4b8676718c3e51d221f075df9a3ff4b89d"
+    },
+    {
+      "path": "docs/cn/20.quick-start/40.function-display-video.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bde35682a3ae744f7bc42100aea12252a302dd42",
+      "size": 1713,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bde35682a3ae744f7bc42100aea12252a302dd42"
+    },
+    {
+      "path": "docs/cn/30.feature-set",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f6dc46e68f0560982da5f320784f8a6e6eb907e7",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/f6dc46e68f0560982da5f320784f8a6e6eb907e7"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "7912bd63b0b471765af1f061479375fa53fd715a",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/7912bd63b0b471765af1f061479375fa53fd715a"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/10.pilot-access-to-cloud.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "05283c0522eea8c05003a1a7a32f03dc3742ddaa",
+      "size": 7351,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/05283c0522eea8c05003a1a7a32f03dc3742ddaa"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/20.pilot-situation-awareness.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7ef6cced01ff4e03cdf1aab0db18d510d6c10b2a",
+      "size": 6427,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7ef6cced01ff4e03cdf1aab0db18d510d6c10b2a"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/30.pilot-livestream.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3a2d2794cc2bce4b86e552841f408b7205590924",
+      "size": 7996,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/3a2d2794cc2bce4b86e552841f408b7205590924"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/40.pilot-map-elements.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "67962bfb9b0594da6d561823a7d9532914ff0359",
+      "size": 6042,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/67962bfb9b0594da6d561823a7d9532914ff0359"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/50.pilot-media-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f5c094a9fbb0721958aab6dd61442b5836028e8",
+      "size": 3270,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6f5c094a9fbb0721958aab6dd61442b5836028e8"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/60.pilot-wayline-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fe23110182ba3ff8ead54f0b3c9abc65e896ee5d",
+      "size": 4629,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/fe23110182ba3ff8ead54f0b3c9abc65e896ee5d"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/70.pull-pilot-log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d26bd933679e62df2fd7cc089cc9c066a45d076e",
+      "size": 2166,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d26bd933679e62df2fd7cc089cc9c066a45d076e"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/80.pilot-third-party-app.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2d64511c4c40f11e82bebb8df4328a4c8d9be04c",
+      "size": 741,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2d64511c4c40f11e82bebb8df4328a4c8d9be04c"
+    },
+    {
+      "path": "docs/cn/30.feature-set/10.pilot-feature-set/90.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d6347e9f35507bb865176dae9cc2c38604f79418",
+      "size": 3883,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d6347e9f35507bb865176dae9cc2c38604f79418"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "6f5620896322ba43cab3094ba786fc3a2c91b041",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/6f5620896322ba43cab3094ba786fc3a2c91b041"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/10.dock-access-to-cloud.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5805c95df12c4c84520c1ed61d7d59d9b11a63e2",
+      "size": 4625,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5805c95df12c4c84520c1ed61d7d59d9b11a63e2"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/100.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5266b1e6b16186aa693a489545a6b30e067fc5f0",
+      "size": 4668,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5266b1e6b16186aa693a489545a6b30e067fc5f0"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/110.custom-flight-area.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d1371fcf8b7437bac221ee191a110260c0e461ab",
+      "size": 2945,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d1371fcf8b7437bac221ee191a110260c0e461ab"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/120.multi-dock.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5649c764abab139401444fccef0a4c8bfb8c8d19",
+      "size": 6945,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5649c764abab139401444fccef0a4c8bfb8c8d19"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/20.dock-device-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f223fae5fedd63685a8bbd010b0de794e8f54b36",
+      "size": 3593,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f223fae5fedd63685a8bbd010b0de794e8f54b36"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/30.dock-livestream.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3b74e3255b555271ee473c3a12187352e7c83650",
+      "size": 5465,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/3b74e3255b555271ee473c3a12187352e7c83650"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/40.dock-media-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "15ea2b401b772970cc9ff0028d538e41c46930a4",
+      "size": 2349,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/15ea2b401b772970cc9ff0028d538e41c46930a4"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/50.dock-wayline-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d3e5d751c77d736aa06a2b8f47683881136a99f8",
+      "size": 9056,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d3e5d751c77d736aa06a2b8f47683881136a99f8"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/60.hms.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c902541eb44d71860029066e95cc6a1811e7d719",
+      "size": 3814,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/c902541eb44d71860029066e95cc6a1811e7d719"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/70.remote-debug.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cc8edd5926c963be19ddeaa69287f68f1a72f000",
+      "size": 2337,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/cc8edd5926c963be19ddeaa69287f68f1a72f000"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/80.firmware-upgrade.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f68aa58b4371966fda3f7b6ef763a8a57575617",
+      "size": 3416,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7f68aa58b4371966fda3f7b6ef763a8a57575617"
+    },
+    {
+      "path": "docs/cn/30.feature-set/20.dock-feature-set/90.remote-log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f98e27a7a1e04cbc6e80b36c39554ca3388aadee",
+      "size": 2349,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f98e27a7a1e04cbc6e80b36c39554ca3388aadee"
+    },
+    {
+      "path": "docs/cn/50.debug",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "0a8b43ac83692955dc8049a8be39d889e811caf4",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/0a8b43ac83692955dc8049a8be39d889e811caf4"
+    },
+    {
+      "path": "docs/cn/50.debug/10.dji-pilot2-webview-debug.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c0034004c4dd53abc34410f57219040e846c4fa7",
+      "size": 3135,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/c0034004c4dd53abc34410f57219040e846c4fa7"
+    },
+    {
+      "path": "docs/cn/50.debug/20.log-export.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "db2ad3ddc9b1a2477300a55499bfbeeb0383f677",
+      "size": 1925,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/db2ad3ddc9b1a2477300a55499bfbeeb0383f677"
+    },
+    {
+      "path": "docs/cn/50.debug/30.mqttx.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "427536d2321e574d9edd3ea8bf07b35e8055df2d",
+      "size": 268,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/427536d2321e574d9edd3ea8bf07b35e8055df2d"
+    },
+    {
+      "path": "docs/cn/60.api-reference",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "c8bcd3ec48cabac285fd9cf827d4e8c6a309d83f",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/c8bcd3ec48cabac285fd9cf827d4e8c6a309d83f"
+    },
+    {
+      "path": "docs/cn/60.api-reference/00.dji-wpml",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "c80fe77e0259703d77d14bbbc8e41d6a8b7d4c8b",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/c80fe77e0259703d77d14bbbc8e41d6a8b7d4c8b"
+    },
+    {
+      "path": "docs/cn/60.api-reference/00.dji-wpml/10.overview.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b806a38e9cd5913eb9744621ded49c23756fcd02",
+      "size": 6251,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b806a38e9cd5913eb9744621ded49c23756fcd02"
+    },
+    {
+      "path": "docs/cn/60.api-reference/00.dji-wpml/20.template-kml.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "11fce6fa801672830276fbe10d7ad49300182159",
+      "size": 47685,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/11fce6fa801672830276fbe10d7ad49300182159"
+    },
+    {
+      "path": "docs/cn/60.api-reference/00.dji-wpml/30.waylines-wpml.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "77ed4416f5456618b7cf8c0df6180dbfb326fbc0",
+      "size": 16206,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/77ed4416f5456618b7cf8c0df6180dbfb326fbc0"
+    },
+    {
+      "path": "docs/cn/60.api-reference/00.dji-wpml/40.common-element.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f04ada1e150246ffc1f5920a6e4425c76fb0f93d",
+      "size": 52113,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f04ada1e150246ffc1f5920a6e4425c76fb0f93d"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d8a682e74f736fda183cb98095e10dffc1caec95",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/d8a682e74f736fda183cb98095e10dffc1caec95"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "efca3488beb84f20323d47d037c8359962f08a4e",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/efca3488beb84f20323d47d037c8359962f08a4e"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/00.topic-definition.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb89615f93cd83400c1c531e711cc79b7733e218",
+      "size": 15350,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/fb89615f93cd83400c1c531e711cc79b7733e218"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/10.m3-series",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "2138c0c371219ba5038d1211826cb794db802f75",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/2138c0c371219ba5038d1211826cb794db802f75"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/10.m3-series/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9916772d4e00142f861b3f7a3697ca9f8e0aeaa",
+      "size": 25925,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b9916772d4e00142f861b3f7a3697ca9f8e0aeaa"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "deddeb4fc07a26aa89a7af8ea48275c6068ab3b5",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/deddeb4fc07a26aa89a7af8ea48275c6068ab3b5"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bdf3b74783e0c9ec5c4a7bd5f9e92699c1790b1c",
+      "size": 6749,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bdf3b74783e0c9ec5c4a7bd5f9e92699c1790b1c"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6daad897c98c76c29dfe7dd707fe280275107965",
+      "size": 2556,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6daad897c98c76c29dfe7dd707fe280275107965"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/20.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "713655250844e0523b2951b7fa8a1f5554dd4352",
+      "size": 7002,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/713655250844e0523b2951b7fa8a1f5554dd4352"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/30.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "417a655d6b39b0ed8777e48f1eb17bd6dfb598b1",
+      "size": 42272,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/417a655d6b39b0ed8777e48f1eb17bd6dfb598b1"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/40.remote-control.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1456a545e27a166100754bd0615b03c4c4c3a8f6",
+      "size": 15342,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/1456a545e27a166100754bd0615b03c4c4c3a8f6"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8591cb67c0366c4f6ff07cd075f0480a27f3ac7e",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/8591cb67c0366c4f6ff07cd075f0480a27f3ac7e"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/10.aircraft",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "faa2d405815e51e9623c44dca6a5bd2cbbbb3f73",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/faa2d405815e51e9623c44dca6a5bd2cbbbb3f73"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/10.aircraft/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8ce14cab7d9de0271655caa93372eef6864fd542",
+      "size": 29116,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8ce14cab7d9de0271655caa93372eef6864fd542"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "02d37b9a8dbee8d879da4393d3b0b5d32af4272e",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/02d37b9a8dbee8d879da4393d3b0b5d32af4272e"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bdf3b74783e0c9ec5c4a7bd5f9e92699c1790b1c",
+      "size": 6749,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bdf3b74783e0c9ec5c4a7bd5f9e92699c1790b1c"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6daad897c98c76c29dfe7dd707fe280275107965",
+      "size": 2556,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6daad897c98c76c29dfe7dd707fe280275107965"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc/20.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "713655250844e0523b2951b7fa8a1f5554dd4352",
+      "size": 7002,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/713655250844e0523b2951b7fa8a1f5554dd4352"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8474a345975969ab405467d950961bd5aec3d4fe",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/8474a345975969ab405467d950961bd5aec3d4fe"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "ad00517413300ce5324b15091b046786947c38e5",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/ad00517413300ce5324b15091b046786947c38e5"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/10.create.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d5b435b0f02f1fa6e4a596187d541c4f194eaa4c",
+      "size": 4134,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d5b435b0f02f1fa6e4a596187d541c4f194eaa4c"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/20.update.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "177a948f736d652dbd47f701aa55ab60a21b4bb3",
+      "size": 3309,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/177a948f736d652dbd47f701aa55ab60a21b4bb3"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/30.obtain.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6ed4d56c4a8667983a5f817e99794dc440b162be",
+      "size": 11317,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6ed4d56c4a8667983a5f817e99794dc440b162be"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/40.delete.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a97e0dbbdc9c80d302a4b2a807fe153e564cdea9",
+      "size": 1558,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a97e0dbbdc9c80d302a4b2a807fe153e564cdea9"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "8149c8b3f7af47adab0f25c45a87d627b95ce811",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/8149c8b3f7af47adab0f25c45a87d627b95ce811"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/10.obtain-waypointfile-list.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "676f01fea4c43d2ef4853ed8db2cc65311471678",
+      "size": 6084,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/676f01fea4c43d2ef4853ed8db2cc65311471678"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/20.obtain-temporary-credential.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "360a4a58c8f2ec39efd5761bb9eb345a68c4a8b6",
+      "size": 4023,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/360a4a58c8f2ec39efd5761bb9eb345a68c4a8b6"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/30.get-waypointfile-download-location.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f552ea9a3eb74c804a1d5c7ee1a0b15337104a34",
+      "size": 575,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f552ea9a3eb74c804a1d5c7ee1a0b15337104a34"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/40.get-duplicated-waypointfile-name.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d949b19d5ff5d911c57832b9e3d30ed5a9b544c2",
+      "size": 1420,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d949b19d5ff5d911c57832b9e3d30ed5a9b544c2"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/50.waypointfile-upload-result-report.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "468d1b4c3c9e1ba52ad522efc0a9cc7a857a304b",
+      "size": 2182,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/468d1b4c3c9e1ba52ad522efc0a9cc7a857a304b"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/60.collect-waypointfile-in-batch.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d532f710c2dfe70a2d223ebcf0c0a64bb73f7386",
+      "size": 1383,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d532f710c2dfe70a2d223ebcf0c0a64bb73f7386"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/70.cancel-collect.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cb7162dd39d62df6cf33964510a5ecb1724132a9",
+      "size": 2004,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/cb7162dd39d62df6cf33964510a5ecb1724132a9"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/30.media-management",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "e89e466f70210bfdc5a03e89a73d1020c684a9bf",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/e89e466f70210bfdc5a03e89a73d1020c684a9bf"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/10.fast-upload.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "199303ca1f4c2e9ad0b4f21e37da429ca895bd34",
+      "size": 2776,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/199303ca1f4c2e9ad0b4f21e37da429ca895bd34"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/20.obtain-exited-tiny-fingerprint.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "37100ee018f76a4ac0216254a1ce7ac70f70302e",
+      "size": 1709,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/37100ee018f76a4ac0216254a1ce7ac70f70302e"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/30.obtain-temporary-credential.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "34d23585dba94d800261d44752b75e48268df4c4",
+      "size": 3957,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/34d23585dba94d800261d44752b75e48268df4c4"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/40.mediafile-upload-result-report.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "79e2c1814e48ad69c71f48225ec812df26ae2210",
+      "size": 5065,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/79e2c1814e48ad69c71f48225ec812df26ae2210"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/50.group-upload-callback.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "db0f4133610bef25ba06bf3d7f699f1e1ab1b0db",
+      "size": 2244,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/db0f4133610bef25ba06bf3d7f699f1e1ab1b0db"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/40.situation-awareness",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b5da9f0004256a2c680dada7d1ddf462136799d8",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/b5da9f0004256a2c680dada7d1ddf462136799d8"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/10.https/40.situation-awareness/10.obtain-device-topology-list.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "23975069c48adeb125894a98e0e37d8c5b632fd9",
+      "size": 8821,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/23975069c48adeb125894a98e0e37d8c5b632fd9"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/20.websocket",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "bf020203a188a1b292859ab8c5f9a5eb6b9f0726",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/bf020203a188a1b292859ab8c5f9a5eb6b9f0726"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/20.websocket/10.map-elements",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b131545f09b0c84b7aa52967ff4e0547036b0178",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/b131545f09b0c84b7aa52967ff4e0547036b0178"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/20.websocket/10.map-elements/10.message-push.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "efbbef528469454fa31c00a194bf4ead4977158f",
+      "size": 5538,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/efbbef528469454fa31c00a194bf4ead4977158f"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/20.websocket/20.situation-awareness",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "c9e57f8756292362703e87977fd061e97f947c79",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/c9e57f8756292362703e87977fd061e97f947c79"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/20.websocket/20.situation-awareness/10.message-push.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e491d2fbbe53914401b737c33fd83f96b8701315",
+      "size": 4048,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/e491d2fbbe53914401b737c33fd83f96b8701315"
+    },
+    {
+      "path": "docs/cn/60.api-reference/10.pilot-to-cloud/30.jsbridge.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "99c8799fc2727f68441a8ddee3f70277dc6132a2",
+      "size": 12378,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/99c8799fc2727f68441a8ddee3f70277dc6132a2"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "db8b63ae765d01962c8c4a297598fb040bf61e85",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/db8b63ae765d01962c8c4a297598fb040bf61e85"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "0ba13e65c32c0d69d11bf749d226c95a2c8be36d",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/0ba13e65c32c0d69d11bf749d226c95a2c8be36d"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/00.topic-definition.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fb89615f93cd83400c1c531e711cc79b7733e218",
+      "size": 15350,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/fb89615f93cd83400c1c531e711cc79b7733e218"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/10.aircraft",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "488fb16780cbf75e839a63e69259ac7b273acfa4",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/488fb16780cbf75e839a63e69259ac7b273acfa4"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/10.aircraft/00.m30-properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d001c8693c00cfc1e5a8d7e6bf7dd11a15b8bfaf",
+      "size": 29948,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d001c8693c00cfc1e5a8d7e6bf7dd11a15b8bfaf"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/10.aircraft/10.m3d-properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a6e1bc09f87f9435da81bd18773ded4430162a2d",
+      "size": 28848,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a6e1bc09f87f9435da81bd18773ded4430162a2d"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f010e8735379bdbdb5bbe51506bb1b4e297c8deb",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/f010e8735379bdbdb5bbe51506bb1b4e297c8deb"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "acd43eaab8e890755983b3ac254ab45e64b78e8e",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/acd43eaab8e890755983b3ac254ab45e64b78e8e"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1f0a711dfe429ffbe83581e6117358d26a58cffa",
+      "size": 25438,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/1f0a711dfe429ffbe83581e6117358d26a58cffa"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e61eb3a214323389c25083b20e51081a18f36bf5",
+      "size": 2925,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/e61eb3a214323389c25083b20e51081a18f36bf5"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/100.config.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7e93f5dde7f33699ecc00bf2ee75b80ddb1137e1",
+      "size": 1631,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7e93f5dde7f33699ecc00bf2ee75b80ddb1137e1"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/110.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6b61fbb9ad07d7eef5000487b8eab50e1ceb2b45",
+      "size": 64487,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6b61fbb9ad07d7eef5000487b8eab50e1ceb2b45"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/120.airsense.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5f6aac16d9e5d152333f3febbc6d4878b3a0114f",
+      "size": 1999,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5f6aac16d9e5d152333f3febbc6d4878b3a0114f"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/130.custom-flight-area.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f3fe502b6c5bab25cdd7b81e4c505476cbee8e5",
+      "size": 5051,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6f3fe502b6c5bab25cdd7b81e4c505476cbee8e5"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/140.psdk.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7a1a2036bb050d477913347ee2f9c2352deb3821",
+      "size": 15310,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7a1a2036bb050d477913347ee2f9c2352deb3821"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/150.psdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8c6f820720c6988a475ce02824ad8fb60ae72705",
+      "size": 1644,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8c6f820720c6988a475ce02824ad8fb60ae72705"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/160.esdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0574402cf740aaf4a60f509dbae3b2218272fd46",
+      "size": 1640,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0574402cf740aaf4a60f509dbae3b2218272fd46"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/170.flysafe.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f104543b5f28f7544b737acd932c0658c538f6c7",
+      "size": 9535,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f104543b5f28f7544b737acd932c0658c538f6c7"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/20.organization.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f002ab9b76473e85d7e584cd6fca483e4f973bb",
+      "size": 5205,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2f002ab9b76473e85d7e584cd6fca483e4f973bb"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/30.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "370eabcb8c8204f9ec76e21c19b30fd333d9d4f6",
+      "size": 7160,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/370eabcb8c8204f9ec76e21c19b30fd333d9d4f6"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/40.file.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5333e026b34e67d955c2c9efd6f04a75290af895",
+      "size": 6345,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5333e026b34e67d955c2c9efd6f04a75290af895"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/50.wayline.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ae6b88738fcad02029687952c8a97fbd9bb70f9",
+      "size": 31152,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0ae6b88738fcad02029687952c8a97fbd9bb70f9"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/60.hms.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f0064de39545f894081a917c319ca6f6de20bdb7",
+      "size": 2060,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f0064de39545f894081a917c319ca6f6de20bdb7"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/70.cmd.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1617921fcc57a0e7c0efb9cb6197c076029c963f",
+      "size": 36012,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/1617921fcc57a0e7c0efb9cb6197c076029c963f"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/80.firmware.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6d4e8911ccaa95510ffd5ecf5e03a67aa4dd824",
+      "size": 3498,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b6d4e8911ccaa95510ffd5ecf5e03a67aa4dd824"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/90.log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b755c0ed403fe487af88ca6fd24f05f441d3934f",
+      "size": 7733,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b755c0ed403fe487af88ca6fd24f05f441d3934f"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "0c23a20ac2ad6ffd1058e21c2d3d1680bc7e2ba5",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/0c23a20ac2ad6ffd1058e21c2d3d1680bc7e2ba5"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7bc745d12669cd1a5962c41fd1b1330721d0aa68",
+      "size": 29021,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7bc745d12669cd1a5962c41fd1b1330721d0aa68"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7c75c5edcecc4bbc2a1778672df244943242c5b9",
+      "size": 2926,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7c75c5edcecc4bbc2a1778672df244943242c5b9"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/100.config.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c638668743c11d4395b35c8a55dc83176a377a52",
+      "size": 1628,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/c638668743c11d4395b35c8a55dc83176a377a52"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/110.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "17467fb9cbced5128e97c8b6140d5a587a67d7e0",
+      "size": 63079,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/17467fb9cbced5128e97c8b6140d5a587a67d7e0"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/120.airsense.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5f6aac16d9e5d152333f3febbc6d4878b3a0114f",
+      "size": 1999,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5f6aac16d9e5d152333f3febbc6d4878b3a0114f"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/130.custom-flight-area.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6f3fe502b6c5bab25cdd7b81e4c505476cbee8e5",
+      "size": 5051,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6f3fe502b6c5bab25cdd7b81e4c505476cbee8e5"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/140.psdk.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "48232439336b7527d12da28d0ede73b4c4041046",
+      "size": 15370,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/48232439336b7527d12da28d0ede73b4c4041046"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/150.psdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8c6f820720c6988a475ce02824ad8fb60ae72705",
+      "size": 1644,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8c6f820720c6988a475ce02824ad8fb60ae72705"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/160.esdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0574402cf740aaf4a60f509dbae3b2218272fd46",
+      "size": 1640,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0574402cf740aaf4a60f509dbae3b2218272fd46"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/170.flysafe.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "050deb1350f33d6db8f0bcdda848538eca7dbdbc",
+      "size": 9537,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/050deb1350f33d6db8f0bcdda848538eca7dbdbc"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/180.remote-control.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "db1dae88a8dd679525225ff5ee0b4de0d99d6f19",
+      "size": 43962,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/db1dae88a8dd679525225ff5ee0b4de0d99d6f19"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/20.organization.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f002ab9b76473e85d7e584cd6fca483e4f973bb",
+      "size": 5205,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2f002ab9b76473e85d7e584cd6fca483e4f973bb"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/30.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f33f15cc2b85f4410330d0aca1263a405e54a97b",
+      "size": 8274,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f33f15cc2b85f4410330d0aca1263a405e54a97b"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/40.file.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5333e026b34e67d955c2c9efd6f04a75290af895",
+      "size": 6345,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/5333e026b34e67d955c2c9efd6f04a75290af895"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/50.wayline.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2be5745cf8e2b9a4d293a403110a2cbf0d61f7d9",
+      "size": 39497,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2be5745cf8e2b9a4d293a403110a2cbf0d61f7d9"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/60.hms.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9f65eb17dfa61d1fad9403b3b8f1bd913a44b1ae",
+      "size": 1885,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/9f65eb17dfa61d1fad9403b3b8f1bd913a44b1ae"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/70.cmd.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f4d1eab7aa402e7c454f3ad44bb078b764ccee51",
+      "size": 35652,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f4d1eab7aa402e7c454f3ad44bb078b764ccee51"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/80.firmware.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6d4e8911ccaa95510ffd5ecf5e03a67aa4dd824",
+      "size": 3498,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b6d4e8911ccaa95510ffd5ecf5e03a67aa4dd824"
+    },
+    {
+      "path": "docs/cn/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/90.log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b755c0ed403fe487af88ca6fd24f05f441d3934f",
+      "size": 7733,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b755c0ed403fe487af88ca6fd24f05f441d3934f"
+    },
+    {
+      "path": "docs/cn/71.error-code.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "be5e661671a5725d7ae7edf1ffaa2daef57211a3",
+      "size": 64270,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/be5e661671a5725d7ae7edf1ffaa2daef57211a3"
+    },
+    {
+      "path": "docs/cn/80.faq.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1e989813be99de9d6a2d2891ad7936d25b3ec71c",
+      "size": 2639,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/1e989813be99de9d6a2d2891ad7936d25b3ec71c"
+    },
+    {
+      "path": "docs/en",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "577dea8c89fe244225815947d70a30cf45a3fc50",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/577dea8c89fe244225815947d70a30cf45a3fc50"
+    },
+    {
+      "path": "docs/en/00.index.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a607dd272f462612c2a7a710b4abd75ff316c692",
+      "size": 49926,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a607dd272f462612c2a7a710b4abd75ff316c692"
+    },
+    {
+      "path": "docs/en/01.tutorial-map.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1285463f61cf65a7414b6d8040ef41abd0c94765",
+      "size": 6820,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/1285463f61cf65a7414b6d8040ef41abd0c94765"
+    },
+    {
+      "path": "docs/en/02.flight-safety-notification.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9b22688679c8ce30ae7b13734203853040502523",
+      "size": 2372,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/9b22688679c8ce30ae7b13734203853040502523"
+    },
+    {
+      "path": "docs/en/10.overview",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "650e82db4b006cd05e567306dc65f69450b39238",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/650e82db4b006cd05e567306dc65f69450b39238"
+    },
+    {
+      "path": "docs/en/10.overview/10.product-introduction.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "767ae2cf9d95d03c19a52d416277b8b9d6282507",
+      "size": 2836,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/767ae2cf9d95d03c19a52d416277b8b9d6282507"
+    },
+    {
+      "path": "docs/en/10.overview/20.product-architecture.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b16b91d99b1d2e2216a23bb72a0ed7ef60c65dab",
+      "size": 2950,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b16b91d99b1d2e2216a23bb72a0ed7ef60c65dab"
+    },
+    {
+      "path": "docs/en/10.overview/30.product-support.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0c5d08eff78739eda394f8dc8d875c491152227d",
+      "size": 9430,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0c5d08eff78739eda394f8dc8d875c491152227d"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "600ad67696af38b6e4ec158859f0ea69627011b9",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/600ad67696af38b6e4ec158859f0ea69627011b9"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept/10.proper-noun.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "09928b9835d126f8da7008719f1f20d0400fba7f",
+      "size": 3304,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/09928b9835d126f8da7008719f1f20d0400fba7f"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept/20.mqtt.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a6e3bc1db37cede8716cf93a25f49cfc71078757",
+      "size": 8811,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a6e3bc1db37cede8716cf93a25f49cfc71078757"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept/30.thing-model.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6bb4193302d2486e1b0de7a959b735c0a3ae969",
+      "size": 4959,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f6bb4193302d2486e1b0de7a959b735c0a3ae969"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept/40.https.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a82e81e61dabcbb3d89b36e7217b2284ca4e1caf",
+      "size": 6640,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a82e81e61dabcbb3d89b36e7217b2284ca4e1caf"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept/50.websocket.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "20288d9a448f4e14184c612f91452f9de18788c5",
+      "size": 703,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/20288d9a448f4e14184c612f91452f9de18788c5"
+    },
+    {
+      "path": "docs/en/10.overview/40.basic-concept/60.jsbridge.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "be6a8e4d63c6959abdcc96a324a652fa7393ecf7",
+      "size": 3704,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/be6a8e4d63c6959abdcc96a324a652fa7393ecf7"
+    },
+    {
+      "path": "docs/en/20.quick-start",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "85d607fec0e09f052270666f447f946266d1d042",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/85d607fec0e09f052270666f447f946266d1d042"
+    },
+    {
+      "path": "docs/en/20.quick-start/10.environment-prepare-list.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "78fba2f6de171b126bfcd5368f15e738b630c6a7",
+      "size": 1352,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/78fba2f6de171b126bfcd5368f15e738b630c6a7"
+    },
+    {
+      "path": "docs/en/20.quick-start/20.source-code-deployment-steps.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "928174de4ac502463f373d16b7438333cb4ab3f0",
+      "size": 8131,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/928174de4ac502463f373d16b7438333cb4ab3f0"
+    },
+    {
+      "path": "docs/en/20.quick-start/30.docker-deployment-steps.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "db259b83d30967e43721eecff24250b4fc87c022",
+      "size": 5320,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/db259b83d30967e43721eecff24250b4fc87c022"
+    },
+    {
+      "path": "docs/en/20.quick-start/40.function-display-video.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e1624c9bc858bdc9f5432272359388d4d54b1761",
+      "size": 1767,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/e1624c9bc858bdc9f5432272359388d4d54b1761"
+    },
+    {
+      "path": "docs/en/30.feature-set",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "5f887cb7d2e2dbf7cb0cb9c2e9738d028ea9368a",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/5f887cb7d2e2dbf7cb0cb9c2e9738d028ea9368a"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "a1ab4c91f3d57877f5016b01fed36ad2b6a11307",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/a1ab4c91f3d57877f5016b01fed36ad2b6a11307"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/10.pilot-access-to-cloud.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b27e4ae41380d4c1b94a8bb746fc6996fa3b817b",
+      "size": 8119,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b27e4ae41380d4c1b94a8bb746fc6996fa3b817b"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/20.pilot-situation-awareness.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cb3599d33937db228e043f70da758cae83d30f6a",
+      "size": 6552,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/cb3599d33937db228e043f70da758cae83d30f6a"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/30.pilot-livestream.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3aca81db3567cb146c23608abaff78b6917c05a",
+      "size": 8816,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f3aca81db3567cb146c23608abaff78b6917c05a"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/40.pilot-map-elements.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "44676e8cf53c990f3e475126f889663906e48f98",
+      "size": 5834,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/44676e8cf53c990f3e475126f889663906e48f98"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/50.pilot-media-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fda32a4192e17fd0f11e27f1cbe3b34d044effaf",
+      "size": 2995,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/fda32a4192e17fd0f11e27f1cbe3b34d044effaf"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/60.pilot-wayline-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0007167a9098144b69106d7cb7599014b96b9ac5",
+      "size": 4995,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0007167a9098144b69106d7cb7599014b96b9ac5"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/70.pull-pilot-log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0aa9f247f1dfcffa231ed2621802adf0f6e0cd1d",
+      "size": 1952,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0aa9f247f1dfcffa231ed2621802adf0f6e0cd1d"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/80.pilot-third-party-app.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6ae88d3c6ac6bbb60e1bbefc7632447c6df39511",
+      "size": 739,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6ae88d3c6ac6bbb60e1bbefc7632447c6df39511"
+    },
+    {
+      "path": "docs/en/30.feature-set/10.pilot-feature-set/90.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8af36115ecdb2e72c5d848652c78852ab7cdc65a",
+      "size": 4541,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8af36115ecdb2e72c5d848652c78852ab7cdc65a"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "91bc34b52a2c41aeee47b1ef4298d7fcc9172fc0",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/91bc34b52a2c41aeee47b1ef4298d7fcc9172fc0"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/10.dock-access-to-cloud.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "914e8d20af8eb9691039d74f832f8b366d95cf53",
+      "size": 5406,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/914e8d20af8eb9691039d74f832f8b366d95cf53"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/100.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "eec7bc22bb0f0391bc9ee3a03088c66402bd0130",
+      "size": 5395,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/eec7bc22bb0f0391bc9ee3a03088c66402bd0130"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/110.custom-flight-area.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7496a6338a61375292faceb81ca41fca8d35ea7c",
+      "size": 3260,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7496a6338a61375292faceb81ca41fca8d35ea7c"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/120.multi-dock.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "68cafee29a62cd6463a5c3c73c207b67439d8cde",
+      "size": 7947,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/68cafee29a62cd6463a5c3c73c207b67439d8cde"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/20.dock-device-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b9c34ffa41f8f01758d7383e7db305640e0447e9",
+      "size": 3672,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b9c34ffa41f8f01758d7383e7db305640e0447e9"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/30.dock-livestream.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "549aa6cad1e0d58f212c6b0974994971f6d408a0",
+      "size": 5906,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/549aa6cad1e0d58f212c6b0974994971f6d408a0"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/40.dock-media-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0839c3e3fc93294be54f9f8b403395ae60bb3c83",
+      "size": 2614,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0839c3e3fc93294be54f9f8b403395ae60bb3c83"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/50.dock-wayline-management.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e252dd8d190066a5d005848c0ece67995d2cca48",
+      "size": 9670,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/e252dd8d190066a5d005848c0ece67995d2cca48"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/60.hms.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d4b79c46b4a14be3c977b6a672d9bc954a070ef1",
+      "size": 4030,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d4b79c46b4a14be3c977b6a672d9bc954a070ef1"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/70.remote-debug.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9735f71dce1a30c5b92d1541a6bd0c9d09cabe43",
+      "size": 2710,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/9735f71dce1a30c5b92d1541a6bd0c9d09cabe43"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/80.firmware-upgrade.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cd0508c7edc4d4752bdae8fcbf008e7c678fd992",
+      "size": 4349,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/cd0508c7edc4d4752bdae8fcbf008e7c678fd992"
+    },
+    {
+      "path": "docs/en/30.feature-set/20.dock-feature-set/90.remote-log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f4f3a1a585718380bd23566a28228e443de53e6a",
+      "size": 2529,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f4f3a1a585718380bd23566a28228e443de53e6a"
+    },
+    {
+      "path": "docs/en/50.debug",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "2453f846fde4b4c81893d26729ace94493956bc8",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/2453f846fde4b4c81893d26729ace94493956bc8"
+    },
+    {
+      "path": "docs/en/50.debug/10.dji-pilot2-webview-debug.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "04be1d442d7372371fc85862920387a117e49ce8",
+      "size": 3383,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/04be1d442d7372371fc85862920387a117e49ce8"
+    },
+    {
+      "path": "docs/en/50.debug/20.log-export.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "138f06aad2e7357ac0f34d6607151148746a937f",
+      "size": 2268,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/138f06aad2e7357ac0f34d6607151148746a937f"
+    },
+    {
+      "path": "docs/en/50.debug/30.mqttx.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "74d8d2b9be79568e36384f3b8da13b697381f143",
+      "size": 237,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/74d8d2b9be79568e36384f3b8da13b697381f143"
+    },
+    {
+      "path": "docs/en/60.api-reference",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b6e13b79b0493d0b5d49cc62a7f9c9594946712f",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/b6e13b79b0493d0b5d49cc62a7f9c9594946712f"
+    },
+    {
+      "path": "docs/en/60.api-reference/00.dji-wpml",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "291c6ac91ff2b11bba9cfa0fef9075f82ff5f89f",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/291c6ac91ff2b11bba9cfa0fef9075f82ff5f89f"
+    },
+    {
+      "path": "docs/en/60.api-reference/00.dji-wpml/10.overview.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f541726c3a3d39088d91ee6cb5f8bbe755041275",
+      "size": 5349,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f541726c3a3d39088d91ee6cb5f8bbe755041275"
+    },
+    {
+      "path": "docs/en/60.api-reference/00.dji-wpml/20.template-kml.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f593ceb143e77fe8314010bf72c86b464dd1a872",
+      "size": 52087,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f593ceb143e77fe8314010bf72c86b464dd1a872"
+    },
+    {
+      "path": "docs/en/60.api-reference/00.dji-wpml/30.waylines-wpml.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "00656e89e5f6aaacb1d26471128424b45de61004",
+      "size": 17032,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/00656e89e5f6aaacb1d26471128424b45de61004"
+    },
+    {
+      "path": "docs/en/60.api-reference/00.dji-wpml/40.common-element.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ed9a32a18dc96b57cf6e514832c87782ae58895e",
+      "size": 52182,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/ed9a32a18dc96b57cf6e514832c87782ae58895e"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f1de4d0ea41c1ab4be96a996c43616667b29ccee",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/f1de4d0ea41c1ab4be96a996c43616667b29ccee"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "df0bc6d023a4eb11307318d438da91c5f94ce941",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/df0bc6d023a4eb11307318d438da91c5f94ce941"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/00.topic-definition.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bc3376e3bb811edb833a3b63472cf5b5c64d7bbd",
+      "size": 16003,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bc3376e3bb811edb833a3b63472cf5b5c64d7bbd"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/10.m3-series",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b5238c1719a2f316caa528468ef5a518d1598134",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/b5238c1719a2f316caa528468ef5a518d1598134"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/10.m3-series/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7764a31f06864415f0896d7ee0e49b43daa33672",
+      "size": 24650,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7764a31f06864415f0896d7ee0e49b43daa33672"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "d290272a2ea8aeb791705185f9249ff8db0fdebc",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/d290272a2ea8aeb791705185f9249ff8db0fdebc"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f644a986a88e60d97ea27fb26c138424cdc1722",
+      "size": 7518,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7f644a986a88e60d97ea27fb26c138424cdc1722"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd97e56338f45cba3cd9d70a537b58661b38482d",
+      "size": 2603,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/dd97e56338f45cba3cd9d70a537b58661b38482d"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/20.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2b3dab5fb1b3594108e443a23f1015cbe6600c1e",
+      "size": 7232,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2b3dab5fb1b3594108e443a23f1015cbe6600c1e"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/30.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7758f5a939505d7971f293b705d5fa21b373a49b",
+      "size": 48226,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7758f5a939505d7971f293b705d5fa21b373a49b"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/20.rc-pro/40.remote-control.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "09dc2dbb8379e2720110e31015aebdd0f80d3166",
+      "size": 13487,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/09dc2dbb8379e2720110e31015aebdd0f80d3166"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "09557c94dc61e350585c480976805ef07df6a73f",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/09557c94dc61e350585c480976805ef07df6a73f"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/10.aircraft",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "ee69d169adcd489658eacf019b104a21314b5efb",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/ee69d169adcd489658eacf019b104a21314b5efb"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/10.aircraft/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f1206f03b9c1c019f05f35f6cd1617c2d8d3ef8b",
+      "size": 28194,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f1206f03b9c1c019f05f35f6cd1617c2d8d3ef8b"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "89b76d12a60ad828953ec07e63048bacd5ba60cd",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/89b76d12a60ad828953ec07e63048bacd5ba60cd"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7f644a986a88e60d97ea27fb26c138424cdc1722",
+      "size": 7518,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7f644a986a88e60d97ea27fb26c138424cdc1722"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dd97e56338f45cba3cd9d70a537b58661b38482d",
+      "size": 2603,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/dd97e56338f45cba3cd9d70a537b58661b38482d"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/30.others/20.rc/20.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2c9f72d993820c2d2a217f8ebf5a23ee6a1bc430",
+      "size": 7231,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2c9f72d993820c2d2a217f8ebf5a23ee6a1bc430"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "0e45cd18b4e932dc504bbce6303868f5c6f7054f",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/0e45cd18b4e932dc504bbce6303868f5c6f7054f"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "f0b3aed34d12b991bf5b3f8f84031fb708a4c722",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/f0b3aed34d12b991bf5b3f8f84031fb708a4c722"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/10.create.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "69a8be18174a6c994164b00f6bf1172077ccd050",
+      "size": 6400,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/69a8be18174a6c994164b00f6bf1172077ccd050"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/20.update.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "21eecc8a016ec3d2eb993a602881f57d7b810d01",
+      "size": 3334,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/21eecc8a016ec3d2eb993a602881f57d7b810d01"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/30.obtain.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8a575f25c2d0bf852f2d8bb3bbe8f94521d93328",
+      "size": 10845,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8a575f25c2d0bf852f2d8bb3bbe8f94521d93328"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/10.map-elements/40.delete.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "fefd1bba355fef4e1b8e2e9b387566d7af4ad554",
+      "size": 1573,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/fefd1bba355fef4e1b8e2e9b387566d7af4ad554"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "5ea576e9ed86bf4d4d49178cbf16b2d96e6ea089",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/5ea576e9ed86bf4d4d49178cbf16b2d96e6ea089"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/10.obtain-waypointfile-list.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "76ff3a27160062e78ca13befafc1bd288b17d7f3",
+      "size": 7920,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/76ff3a27160062e78ca13befafc1bd288b17d7f3"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/20.obtain-temporary-credential.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a48cc61e74d2267658e2ad0de11c05153f11a570",
+      "size": 5603,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a48cc61e74d2267658e2ad0de11c05153f11a570"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/30.get-waypointfile-download-location.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4b304ebce997367c4c8c6495613aa0b2f9de9cc3",
+      "size": 873,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/4b304ebce997367c4c8c6495613aa0b2f9de9cc3"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/40.get-duplicated-waypointfile-name.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8a3ace84e2ef6a5fa132076717580de170caf9ab",
+      "size": 2138,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/8a3ace84e2ef6a5fa132076717580de170caf9ab"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/50.waypointfile-upload-result-report.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "da6b2a2eed90ef2c9048ab9f7cd218cfb73b3e95",
+      "size": 3281,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/da6b2a2eed90ef2c9048ab9f7cd218cfb73b3e95"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/60.collect-waypointfile-in-batch.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "253fa22ad43cf2c14311f8133c0f62dcc032fca5",
+      "size": 2400,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/253fa22ad43cf2c14311f8133c0f62dcc032fca5"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/20.waypoint-management/70.cancel-collect.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6b704561189d200a080dad9f9a03a82b06ed8757",
+      "size": 1853,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6b704561189d200a080dad9f9a03a82b06ed8757"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/30.media-management",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "e207a6001b85306c233b0763fd1d8e28cc964fe5",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/e207a6001b85306c233b0763fd1d8e28cc964fe5"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/10.fast-upload.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "63448fe019fafef7e770cb90c06913b1c5c7f3ab",
+      "size": 4486,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/63448fe019fafef7e770cb90c06913b1c5c7f3ab"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/20.obtain-exited-tiny-fingerprint.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2ac7430bfde913befe86d1d61ac5f3d088022781",
+      "size": 2494,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2ac7430bfde913befe86d1d61ac5f3d088022781"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/30.obtain-temporary-credential.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "cfa62f40d4f5b70a65b163fae0f3e8792998cea7",
+      "size": 5615,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/cfa62f40d4f5b70a65b163fae0f3e8792998cea7"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/40.mediafile-upload-result-report.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2477273478842c136496cf0dd3365e794df38402",
+      "size": 7870,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2477273478842c136496cf0dd3365e794df38402"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/30.media-management/50.group-upload-callback.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bb2d1a1b0b20a63d1cf76d6956b028a2037d3504",
+      "size": 2279,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bb2d1a1b0b20a63d1cf76d6956b028a2037d3504"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/40.situation-awareness",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "658750fb7cdc6794c2d26931e84119006d36c03c",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/658750fb7cdc6794c2d26931e84119006d36c03c"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/10.https/40.situation-awareness/10.obtain-device-topology-list.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bfa6348d2e59ef6077f1efbbd5680d3bfee30059",
+      "size": 12133,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bfa6348d2e59ef6077f1efbbd5680d3bfee30059"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/20.websocket",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "73dd93f0639e496e7f9f2c1b704947518028cde1",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/73dd93f0639e496e7f9f2c1b704947518028cde1"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/20.websocket/10.map-elements",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "a36ebaa7c9220ea4bc847e653beff7d50c9a4dd3",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/a36ebaa7c9220ea4bc847e653beff7d50c9a4dd3"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/20.websocket/10.map-elements/10.message-push.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa0e2009b1d7429412bb0c96c357704329526c73",
+      "size": 5331,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/aa0e2009b1d7429412bb0c96c357704329526c73"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/20.websocket/20.situation-awareness",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "285194fd0d8bb499982997c8eec3ecc7cd2970ce",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/285194fd0d8bb499982997c8eec3ecc7cd2970ce"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/20.websocket/20.situation-awareness/10.message-push.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0199913bd9333a07bcb0f84975525cedfac1c881",
+      "size": 4007,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/0199913bd9333a07bcb0f84975525cedfac1c881"
+    },
+    {
+      "path": "docs/en/60.api-reference/10.pilot-to-cloud/30.jsbridge.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7304a48c102a3e9a64345c3c6784455434b651f3",
+      "size": 12374,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7304a48c102a3e9a64345c3c6784455434b651f3"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "5cdddae8719960cdbd9e702584c7fa764e74f2af",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/5cdddae8719960cdbd9e702584c7fa764e74f2af"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "aa7b932113fd74b27efe4bf8e94b7ce068a326b5",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/aa7b932113fd74b27efe4bf8e94b7ce068a326b5"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/00.topic-definition.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bc3376e3bb811edb833a3b63472cf5b5c64d7bbd",
+      "size": 16003,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bc3376e3bb811edb833a3b63472cf5b5c64d7bbd"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/10.aircraft",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "56142901b1a29997bcbafc76ed9b74b0b2676b7e",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/56142901b1a29997bcbafc76ed9b74b0b2676b7e"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/10.aircraft/00.m30-properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "34fedb0c7a68e47cdb51b60a3c0400973b204f64",
+      "size": 33403,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/34fedb0c7a68e47cdb51b60a3c0400973b204f64"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/10.aircraft/10.m3d-properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "49620000102c1cce0bc185dcdfa0bf088279b209",
+      "size": 31586,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/49620000102c1cce0bc185dcdfa0bf088279b209"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "df7d1664624169ae60777b4be3444beeba370e32",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/df7d1664624169ae60777b4be3444beeba370e32"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b2e0067a4f1fef9a800d710c0f5afd1a73cd3f8d",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/b2e0067a4f1fef9a800d710c0f5afd1a73cd3f8d"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1174d16151dc96c0e6fd8b82224cf6a7b83ef8fe",
+      "size": 27619,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/1174d16151dc96c0e6fd8b82224cf6a7b83ef8fe"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6d56cb28ea1ac8a4f5b317fe50923fb8e19622ef",
+      "size": 2996,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6d56cb28ea1ac8a4f5b317fe50923fb8e19622ef"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/100.config.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f9a402f30a20f9d0b84eccd541e0867a50107de",
+      "size": 1664,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2f9a402f30a20f9d0b84eccd541e0867a50107de"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/110.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4055c7974a68ba4fcf2e17d3b4bfc7160bae9453",
+      "size": 67719,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/4055c7974a68ba4fcf2e17d3b4bfc7160bae9453"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/120.airsense.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b90c6bb8fea5d0c671faf9fcfbcc1267c2e0e85d",
+      "size": 2263,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b90c6bb8fea5d0c671faf9fcfbcc1267c2e0e85d"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/130.custom-flight-area.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d0f22326d3019d3a336d79da3f64a7e2552d2494",
+      "size": 5135,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d0f22326d3019d3a336d79da3f64a7e2552d2494"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/140.psdk.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c905acc19ac4b8b964e99021ed5cdcf335351c0f",
+      "size": 15291,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/c905acc19ac4b8b964e99021ed5cdcf335351c0f"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/150.psdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a0c9c340eb6c3a4530e023f044bfbc2057dcfb72",
+      "size": 1653,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a0c9c340eb6c3a4530e023f044bfbc2057dcfb72"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/160.esdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57e0578956ed44981ca2cd4aa1c516554043fbd9",
+      "size": 1653,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/57e0578956ed44981ca2cd4aa1c516554043fbd9"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/170.flysafe.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9323e446378e9f5c40bf7d94e82c676c1d7bfc0e",
+      "size": 10065,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/9323e446378e9f5c40bf7d94e82c676c1d7bfc0e"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/20.organization.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "367958758f75c8593f06098524b981253aeb56bc",
+      "size": 5168,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/367958758f75c8593f06098524b981253aeb56bc"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/30.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bd924a5beff5da676a25965fccd6ca864e4644fb",
+      "size": 7464,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/bd924a5beff5da676a25965fccd6ca864e4644fb"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/40.file.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5bbd5b6d8a247ee092df0c882dc4acccc6274e5",
+      "size": 6415,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/c5bbd5b6d8a247ee092df0c882dc4acccc6274e5"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/50.wayline.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9abd7bdc0a164b68bedf66f9bc137083484bd4a9",
+      "size": 33276,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/9abd7bdc0a164b68bedf66f9bc137083484bd4a9"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/60.hms.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "14d600db11a12ede210aae3792995b086bc9e5a7",
+      "size": 2049,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/14d600db11a12ede210aae3792995b086bc9e5a7"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/70.cmd.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ac865f2bd134da33450b4ab66d359459ef169b83",
+      "size": 37171,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/ac865f2bd134da33450b4ab66d359459ef169b83"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/80.firmware.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2026410ccc0bef9894aa4be48dd1614db359527a",
+      "size": 3522,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2026410ccc0bef9894aa4be48dd1614db359527a"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/00.dock1/90.log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4d751264d4b916e793f8c613ea72a277238684f6",
+      "size": 7742,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/4d751264d4b916e793f8c613ea72a277238684f6"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "dd547b71cceb0af45c8067818355b67c59ee5695",
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/trees/dd547b71cceb0af45c8067818355b67c59ee5695"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/00.properties.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3d62929f0f4165e15e56acd5cf9a37cd2269a78",
+      "size": 30416,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/f3d62929f0f4165e15e56acd5cf9a37cd2269a78"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/10.device.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6d56cb28ea1ac8a4f5b317fe50923fb8e19622ef",
+      "size": 2996,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6d56cb28ea1ac8a4f5b317fe50923fb8e19622ef"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/100.config.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2f9a402f30a20f9d0b84eccd541e0867a50107de",
+      "size": 1664,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2f9a402f30a20f9d0b84eccd541e0867a50107de"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/110.drc.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "7fa492ad9b5752cfde8caec23d7b5c9f96c81f66",
+      "size": 67404,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/7fa492ad9b5752cfde8caec23d7b5c9f96c81f66"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/120.airsense.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b90c6bb8fea5d0c671faf9fcfbcc1267c2e0e85d",
+      "size": 2263,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b90c6bb8fea5d0c671faf9fcfbcc1267c2e0e85d"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/130.custom-flight-area.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d0f22326d3019d3a336d79da3f64a7e2552d2494",
+      "size": 5135,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/d0f22326d3019d3a336d79da3f64a7e2552d2494"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/140.psdk.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c905acc19ac4b8b964e99021ed5cdcf335351c0f",
+      "size": 15291,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/c905acc19ac4b8b964e99021ed5cdcf335351c0f"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/150.psdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a0c9c340eb6c3a4530e023f044bfbc2057dcfb72",
+      "size": 1653,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/a0c9c340eb6c3a4530e023f044bfbc2057dcfb72"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/160.esdk-transmit-custom-data.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "57e0578956ed44981ca2cd4aa1c516554043fbd9",
+      "size": 1653,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/57e0578956ed44981ca2cd4aa1c516554043fbd9"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/170.flysafe.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9323e446378e9f5c40bf7d94e82c676c1d7bfc0e",
+      "size": 10065,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/9323e446378e9f5c40bf7d94e82c676c1d7bfc0e"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/180.remote-control.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "59461d13a58ba6c40955647bc737a582518145e2",
+      "size": 63415,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/59461d13a58ba6c40955647bc737a582518145e2"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/20.organization.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "367958758f75c8593f06098524b981253aeb56bc",
+      "size": 5168,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/367958758f75c8593f06098524b981253aeb56bc"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/30.live.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "213588df3dba19564d61bbc500f3bd9aadc03f0f",
+      "size": 8658,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/213588df3dba19564d61bbc500f3bd9aadc03f0f"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/40.file.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "580e0b063caac2346369a0f5e17979542039aaa5",
+      "size": 6415,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/580e0b063caac2346369a0f5e17979542039aaa5"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/50.wayline.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b6b90f08a9a83ebb2d3f05bc43668d52ddb3ede0",
+      "size": 43043,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/b6b90f08a9a83ebb2d3f05bc43668d52ddb3ede0"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/60.hms.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4a9bce60ca5c248476c5a3ec6b5cb56d6bb461b6",
+      "size": 1911,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/4a9bce60ca5c248476c5a3ec6b5cb56d6bb461b6"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/70.cmd.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "dc85ef8875eba8871f3854163e9045f14966856d",
+      "size": 38187,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/dc85ef8875eba8871f3854163e9045f14966856d"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/80.firmware.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2026410ccc0bef9894aa4be48dd1614db359527a",
+      "size": 3522,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/2026410ccc0bef9894aa4be48dd1614db359527a"
+    },
+    {
+      "path": "docs/en/60.api-reference/20.dock-to-cloud/00.mqtt/20.dock/10.dock2/90.log.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4d751264d4b916e793f8c613ea72a277238684f6",
+      "size": 7742,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/4d751264d4b916e793f8c613ea72a277238684f6"
+    },
+    {
+      "path": "docs/en/71.error-code.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6879579a4a138581bb9f8e93d2d49099a1e5443d",
+      "size": 65812,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/6879579a4a138581bb9f8e93d2d49099a1e5443d"
+    },
+    {
+      "path": "docs/en/80.faq.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "585d22c611eb72adc24fb5e27a51f92f56feb7b2",
+      "size": 2778,
+      "url": "https://api.github.com/repos/dji-sdk/Cloud-API-Doc/git/blobs/585d22c611eb72adc24fb5e27a51f92f56feb7b2"
+    }
+  ],
+  "truncated": false
+}

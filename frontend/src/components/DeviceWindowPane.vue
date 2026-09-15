@@ -46,7 +46,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs } from '@/utils/loadScript'
-import { resetFh2SharedMapContext, destroyFh2Contexts, purgeOrphanSdkContainers } from '@/utils/sdkContainers'
+import { resetFh2SharedMapContext, enqueuePageTeardown, purgeOrphanSdkContainers } from '@/utils/sdkContainers'
 import { fetchCockpitDevices } from '@/api/paas'
 
 /**
@@ -247,16 +247,11 @@ onBeforeUnmount(() => {
   // 同步阶段 purge 游离容器（Vue 卸载时下一页容器尚未挂载，不会误删）
   purgeOrphanSdkContainers()
   // 异步串行销毁：destroyDeviceWindow 必须先完整执行（内部按 小窗→地图→project-app
-  // 顺序拆），若与 destroyMap 并发，地图实例先置空会引发小窗回调 "map instance is null"
+  // 顺序拆），若与 destroyMap 并发，地图实例先置空会引发小窗回调 "map instance is null"。
+  // 必须在卸载的同步阶段整体入队：晚于下一页 boot 入队时，迟到执行的 destroy
+  // 会与驾驶舱 loadMap 并发互踩（SDK 报 map-app mount failed）。
   const fh2 = fh2Api()
-  void (async () => {
-    try {
-      await Promise.resolve(fh2?.destroyDeviceWindow?.())
-    } catch {
-      // ignore
-    }
-    await destroyFh2Contexts()
-  })()
+  void enqueuePageTeardown(() => fh2?.destroyDeviceWindow?.())
 })
 </script>
 

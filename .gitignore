@@ -36,5 +36,5 @@ backend/logs/
 tiles_tianjin/
 *.zip
 
-# 根目录游离的 javac 输出目录
-com/
+# 根目录游离的 javac 输出目录（锚定根，避免误伤 backend/src/main/java/com/ 下新增源码）
+/com/

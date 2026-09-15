@@ -171,10 +171,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+/* 非全屏：保留平台顶部菜单，占满 MainLayout 内容区（main--bleed 已去 padding/禁滚动）
+   高度链：layout(100vh) → main(flex:1) → cockpit-page(100%) → fh2-container(flex:1) */
 .cockpit-page {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #0a0a0a;
