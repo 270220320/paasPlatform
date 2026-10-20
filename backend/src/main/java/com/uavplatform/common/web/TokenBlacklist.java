@@ -55,4 +55,11 @@ public class TokenBlacklist {
             revokedUserIds.remove(userId);
         }
     }
+
+    /** 登录成功后解封 Token：JWT 无随机 jti，同账号重复签发同一字符串，需随登录解除其吊销态。 */
+    public void remove(String token) {
+        if (token != null) {
+            revokedTokens.remove(token);
+        }
+    }
 }

@@ -1,0 +1,40 @@
+{
+  "code": 0,
+  "message": "ok",
+  "data": [
+    {
+      "id": 3,
+      "name": "多边形限飞区_1",
+      "zoneType": 3,
+      "coordinates": [
+        {
+          "longitude": 117.219684585,
+          "latitude": 39.067704217,
+          "altitude": null
+        },
+        {
+          "longitude": 117.219495191,
+          "latitude": 39.063042129,
+          "altitude": null
+        },
+        {
+          "longitude": 117.225176994,
+          "latitude": 39.062979125,
+          "altitude": null
+        },
+        {
+          "longitude": 117.225122882,
+          "latitude": 39.067872214,
+          "altitude": null
+        }
+      ],
+      "radiusM": null,
+      "color": "#E23C39",
+      "lineWidth": 4,
+      "clampToGround": false,
+      "syncStatus": "synced",
+      "updatedAt": "2026-08-26 17:07:58"
+    }
+  ],
+  "requestId": "44937e646efc4ec5942b37303c610f45"
+}

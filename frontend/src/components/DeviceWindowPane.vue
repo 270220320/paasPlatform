@@ -46,7 +46,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs } from '@/utils/loadScript'
-import { resetFh2SharedMapContext, enqueuePageTeardown, purgeOrphanSdkContainers } from '@/utils/sdkContainers'
+import { resetFh2SharedMapContext, enqueueSdkLifecycle, enqueuePageTeardown, purgeOrphanSdkContainers, waitForFh2Mounts } from '@/utils/sdkContainers'
 import { fetchCockpitDevices } from '@/api/paas'
 
 /**
@@ -202,32 +202,37 @@ async function boot() {
       throw new Error('FH2.loadDeviceWindow unavailable')
     }
 
-    const auth = authConfig(cfg)
-    const prjId = cfg.projectUuid?.trim() || ''
-    fh2.initConfig({
-      serverUrl: cfg.gatewayBase,
-      wssUrl: cfg.wssUrl,
-      hostUrl: cfg.frontHost,
-      projectToken: cfg.userToken || '',
-      ...(prjId ? { prjId } : {}),
-    })
-    fh2.initNotifyCenter(cfg.wssUrl, auth)
-    // loadMap 不能省：project-app 挂载后依赖地图态，缺失会触发 SDK 内部路由纠正（整页跳转循环）。
-    // 地图容器已在 CSS 中视觉隐藏，不会展示。
-    await Promise.resolve(fh2.loadMap(cfg.serverHost, auth, cfg.wssUrl))
-    if (!alive || token !== bootToken) {
-      // 组件已卸载（onBeforeUnmount 已负责销毁）或 boot 重入（新 boot 会重置共享上下文），直接遇出
-      return
-    }
+    await enqueueSdkLifecycle(async () => {
+      if (!alive || token !== bootToken) return
+      const auth = authConfig(cfg)
+      const prjId = cfg.projectUuid?.trim() || ''
+      fh2.initConfig({
+        serverUrl: cfg.gatewayBase,
+        wssUrl: cfg.wssUrl,
+        hostUrl: cfg.frontHost,
+        projectToken: cfg.userToken || '',
+        ...(prjId ? { prjId } : {}),
+      })
+      fh2.initNotifyCenter(cfg.wssUrl, auth)
+      // loadMap 不能省：project-app 挂载后依赖地图态，缺失会触发 SDK 内部路由纠正（整页跳转循环）。
+      // 地图容器已在 CSS 中视觉隐藏，不会展示。
+      await Promise.resolve(fh2.loadMap(cfg.serverHost, auth, cfg.wssUrl))
+      if (!alive || token !== bootToken) {
+        // 组件已卸载（onBeforeUnmount 已负责销毁）或 boot 重入（新 boot 会重置共享上下文），直接遇出
+        return
+      }
 
-    deviceWindows =
-      (await fh2.loadDeviceWindow('real-time-app-container', {
-        devices: selectedDeviceSn.value,
-        map: false,
-      })) || []
-    windowReady.value = true
-    applyInstanceConfig()
-    phase.value = 'ready'
+      deviceWindows =
+        (await fh2.loadDeviceWindow('real-time-app-container', {
+          devices: selectedDeviceSn.value,
+          map: false,
+        })) || []
+      await waitForFh2Mounts()
+      if (!alive || token !== bootToken) return
+      windowReady.value = true
+      applyInstanceConfig()
+      phase.value = 'ready'
+    })
   } catch (error) {
     if (!alive || token !== bootToken) return
     phase.value = 'error'

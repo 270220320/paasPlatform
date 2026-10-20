@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * 限飞区推送司空：优先走 FlightHub SDK SafetyServiceModule（复用 gateway-header:user_id 鉴权），
  * SDK 不可用且旧 dji2 后台（route-api-base + X-User-Token）已配置时回退 HTTP 直连。
- * 私有化 76.141 无 56789 服务也无 user token，仅 SDK 通道可用。
+ * 私有化 76.129 无 56789 服务也无 user token，仅 SDK 通道可用。
  */
 @Slf4j
 @Component

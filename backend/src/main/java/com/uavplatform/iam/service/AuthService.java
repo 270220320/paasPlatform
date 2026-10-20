@@ -72,6 +72,7 @@ public class AuthService {
                 role.getCode(),
                 permissions);
         tokenBlacklist.clearUserRevoke(user.getId());
+        tokenBlacklist.remove(token);
         tokenBlacklist.remember(token, user.getId());
 
         UserVO userVO = UserVO.builder()

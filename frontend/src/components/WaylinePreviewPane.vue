@@ -1,5 +1,5 @@
 <template>
-  <div class="preview-pane">
+  <div ref="rootEl" class="preview-pane">
     <div v-if="!waylineUuid" class="preview-empty">
       {{ t('missions.selectWaylineHint') }}
     </div>
@@ -28,7 +28,7 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs } from '@/utils/loadScript'
-import { enqueueSdkLifecycle } from '@/utils/sdkContainers'
+import { enqueueSdkLifecycle, waitForFh2Mounts } from '@/utils/sdkContainers'
 
 interface AuthConfig {
   authKeys: string[]
@@ -64,6 +64,8 @@ const { load, authConfig } = usePaasBootstrap()
 
 const busy = ref(false)
 const statusText = ref('')
+const rootEl = ref<HTMLElement | null>(null)
+let alive = true
 let viewLoaded = false
 let loadSeq = 0
 
@@ -74,10 +76,11 @@ function fh2(): Fh2PreviewApi | undefined {
 async function waitForDom() {
   for (let i = 0; i < 30; i += 1) {
     await nextTick()
+    if (!alive) return
     if (
-      document.getElementById('project-app-container') &&
-      document.getElementById('project-middle-container') &&
-      document.getElementById('map-app-global')
+      rootEl.value?.querySelector('#project-app-container') &&
+      rootEl.value.querySelector('#project-middle-container') &&
+      rootEl.value.querySelector('#map-app-global')
     ) {
       return
     }
@@ -88,7 +91,7 @@ async function waitForDom() {
 
 function clearPreviewContainers() {
   for (const id of ['project-app-container', 'map-app-global', 'project-middle-container']) {
-    document.getElementById(id)?.replaceChildren()
+    rootEl.value?.querySelector(`[id="${id}"]`)?.replaceChildren()
   }
 }
 
@@ -126,42 +129,48 @@ async function showWayline(waylineUuid: string) {
 
     await loadPaasJs(cfg.frontHost)
     await waitForDom()
-    if (seq !== loadSeq) return
+    if (!alive || seq !== loadSeq) return
 
     const api = fh2()
     if (!api) throw new Error(t('cockpit.fh2NotReady'))
 
-    const auth = authConfig(cfg)
-    const prjId = cfg.projectUuid?.trim() || ''
-    api.initConfig({
-      serverUrl: cfg.gatewayBase,
-      hostUrl: cfg.frontHost,
-      projectToken: cfg.userToken,
-      ...(prjId ? { prjId } : {}),
-    })
+    // 初始化、清容器和挂载都在队内进行，避免切页时与驾驶舱销毁/挂载交叉。
+    if (!viewLoaded) await resetPreview()
+    await enqueueSdkLifecycle(async () => {
+      if (!alive || seq !== loadSeq) return
+      const auth = authConfig(cfg)
+      const prjId = cfg.projectUuid?.trim() || ''
+      api.initConfig({
+        serverUrl: cfg.gatewayBase,
+        hostUrl: cfg.frontHost,
+        projectToken: cfg.userToken,
+        ...(prjId ? { prjId } : {}),
+      })
 
-    const params = {
-      waylineIdArray: [waylineUuid],
-      authConfig: {
-        baseUrl: cfg.gatewayBase,
-        auth,
-      },
-    }
+      const params = {
+        waylineIdArray: [waylineUuid],
+        authConfig: {
+          baseUrl: cfg.gatewayBase,
+          auth,
+        },
+      }
 
-    if (viewLoaded) {
+      if (viewLoaded) {
+        api.loadWaylineView('project-app-container', params)
+        await waitForFh2Mounts()
+        return
+      }
+
+      clearPreviewContainers()
+
+      await Promise.resolve(api.loadMap(cfg.serverHost, auth))
+      if (!alive || seq !== loadSeq) return
+
       api.loadWaylineView('project-app-container', params)
-      return
-    }
-
-    await resetPreview()
-    clearPreviewContainers()
-    if (seq !== loadSeq) return
-
-    await Promise.resolve(api.loadMap(cfg.serverHost, auth))
-    if (seq !== loadSeq) return
-
-    api.loadWaylineView('project-app-container', params)
-    viewLoaded = true
+      await waitForFh2Mounts()
+      if (!alive || seq !== loadSeq) return
+      viewLoaded = true
+    })
   } catch (e: unknown) {
     if (seq !== loadSeq) return
     statusText.value = e instanceof Error ? e.message : t('missions.waylineLoadFailed')
@@ -185,6 +194,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  alive = false
   loadSeq += 1
   void resetPreview()
 })

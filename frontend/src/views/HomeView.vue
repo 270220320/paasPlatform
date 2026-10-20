@@ -93,6 +93,8 @@ import {
 } from '@/api/dashboard'
 import { fetchFlyingAircraftLocations, type AircraftLocationVO } from '@/api/paas'
 import { listSafetyAreas, type SafetyAreaVO } from '@/api/safety'
+import { listWorkAreas, type WorkAreaVO } from '@/api/workArea'
+import { WORK_AREA_DEFAULT_COLOR } from '@/utils/workAreaStorage'
 import { annotationVoToRecord, fetchAnnotations } from '@/api/map'
 import type { AnnotationRecord } from '@/utils/annotationStorage'
 import { meApi } from '@/api/auth'
@@ -126,9 +128,10 @@ const missionResultEl = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 let aircraftLayer: L.LayerGroup | null = null
 let noflyLayer: L.LayerGroup | null = null
+let workAreaLayer: L.LayerGroup | null = null
 let annotationLayer: L.LayerGroup | null = null
 let locationTimer: ReturnType<typeof setInterval> | null = null
-let noflyTimer: ReturnType<typeof setInterval> | null = null
+let areaTimer: ReturnType<typeof setInterval> | null = null
 let annotationTimer: ReturnType<typeof setInterval> | null = null
 let dockChart: EChartsType | null = null
 let distChart: EChartsType | null = null
@@ -136,7 +139,7 @@ let resultChart: EChartsType | null = null
 let resizeObserver: ResizeObserver | null = null
 
 const AIRCRAFT_POLL_MS = 5000
-const NOFLY_POLL_MS = 30000
+const AREA_POLL_MS = 30000
 const ANNOTATION_POLL_MS = 30000
 const AIRCRAFT_ICON_SIZE = 36
 /** 首页禁飞区描边基准线宽（屏像素）；缩放时不超过该值，缩小视野时变细，避免看起来变粗 */
@@ -162,11 +165,13 @@ function noflyStrokeWeight() {
 function syncOverlayStrokeWeights() {
   const noflyWeight = noflyStrokeWeight()
   const annotationWeight = pathStrokeWeight(ANNOTATION_STROKE_BASE)
-  noflyLayer?.eachLayer((layer) => {
-    if (layer instanceof L.Path) {
-      layer.setStyle({ weight: noflyWeight })
-    }
-  })
+  for (const group of [noflyLayer, workAreaLayer]) {
+    group?.eachLayer((layer) => {
+      if (layer instanceof L.Path) {
+        layer.setStyle({ weight: noflyWeight })
+      }
+    })
+  }
   annotationLayer?.eachLayer((layer) => {
     if (layer instanceof L.Path) {
       layer.setStyle({ weight: annotationWeight })
@@ -229,6 +234,7 @@ function initMap() {
     maxZoom: 18,
   }).addTo(map)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
+  workAreaLayer = L.layerGroup().addTo(map)
   noflyLayer = L.layerGroup().addTo(map)
   annotationLayer = L.layerGroup().addTo(map)
   aircraftLayer = L.layerGroup().addTo(map)
@@ -265,7 +271,7 @@ function renderAircraftMarkers(list: AircraftLocationVO[]) {
   }
 }
 
-function toLatLngs(item: SafetyAreaVO): L.LatLngExpression[] {
+function toLatLngs(item: SafetyAreaVO | WorkAreaVO): L.LatLngExpression[] {
   return (item.coordinates || [])
     .map((c) => {
       const lat = Number(c.latitude)
@@ -276,19 +282,21 @@ function toLatLngs(item: SafetyAreaVO): L.LatLngExpression[] {
     .filter((p): p is L.LatLngExpression => Boolean(p))
 }
 
-function renderSyncedNoFlyZones(list: SafetyAreaVO[]) {
-  if (!map || !noflyLayer) return
-  noflyLayer.clearLayers()
+function renderAreaZones(list: (SafetyAreaVO | WorkAreaVO)[], kind: 'nofly' | 'work') {
+  const layerGroup = kind === 'work' ? workAreaLayer : noflyLayer
+  if (!map || !layerGroup) return
+  layerGroup.clearLayers()
   const weight = noflyStrokeWeight()
   for (const item of list) {
-    if (!isSyncedSafetyArea(item)) continue
-    const color = item.color || '#E23C39'
-    const name = item.name || t('home.noflyZone')
+    // 作业区仅由平台管理，不需要限飞区的设备同步状态。
+    if (kind === 'nofly' && !isSyncedSafetyArea(item)) continue
+    const color = item.color || (kind === 'work' ? WORK_AREA_DEFAULT_COLOR : '#E23C39')
+    const name = item.name || t(kind === 'work' ? 'home.workArea' : 'home.noflyZone')
     const pathStyle = {
       color,
       weight,
       fillColor: color,
-      fillOpacity: 0.28,
+      fillOpacity: kind === 'work' ? 0.2 : 0.28,
       opacity: 0.9,
       lineJoin: 'round' as const,
       lineCap: 'round' as const,
@@ -306,8 +314,9 @@ function renderSyncedNoFlyZones(list: SafetyAreaVO[]) {
       if (latlngs.length < 3) continue
       layer = L.polygon(latlngs, pathStyle)
     }
-    layer.bindPopup(`<strong>${escapeHtml(name)}</strong><div>${t('home.noflySynced')}</div>`)
-    layer.addTo(noflyLayer)
+    const label = t(kind === 'work' ? 'home.workArea' : 'home.noflySynced')
+    layer.bindPopup(`<strong>${escapeHtml(name)}</strong><div>${escapeHtml(label)}</div>`)
+    layer.addTo(layerGroup)
   }
 }
 
@@ -390,9 +399,18 @@ async function loadAircraftLocations() {
 async function loadSyncedNoFlyZones() {
   try {
     const result = await listSafetyAreas()
-    renderSyncedNoFlyZones(result.list || [])
+    renderAreaZones(result.list || [], 'nofly')
   } catch {
     // 无 map:read 或接口失败时不打断首页
+  }
+}
+
+async function loadWorkAreas() {
+  try {
+    const result = await listWorkAreas()
+    renderAreaZones(result.list || [], 'work')
+  } catch {
+    // 接口失败时保留上次已显示的作业区。
   }
 }
 
@@ -424,19 +442,21 @@ function stopAircraftPolling() {
   }
 }
 
-function startNoFlyPolling() {
-  stopNoFlyPolling()
+function startAreaPolling() {
+  stopAreaPolling()
   void loadSyncedNoFlyZones()
-  noflyTimer = setInterval(() => {
+  void loadWorkAreas()
+  areaTimer = setInterval(() => {
     if (document.visibilityState === 'hidden') return
     void loadSyncedNoFlyZones()
-  }, NOFLY_POLL_MS)
+    void loadWorkAreas()
+  }, AREA_POLL_MS)
 }
 
-function stopNoFlyPolling() {
-  if (noflyTimer) {
-    clearInterval(noflyTimer)
-    noflyTimer = null
+function stopAreaPolling() {
+  if (areaTimer) {
+    clearInterval(areaTimer)
+    areaTimer = null
   }
 }
 
@@ -658,7 +678,7 @@ onMounted(async () => {
   initMap()
   await load()
   startAircraftPolling()
-  startNoFlyPolling()
+  startAreaPolling()
   startAnnotationPolling()
   resizeObserver = new ResizeObserver(() => resizeCharts())
   if (mapEl.value) resizeObserver.observe(mapEl.value)
@@ -667,7 +687,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   stopAircraftPolling()
-  stopNoFlyPolling()
+  stopAreaPolling()
   stopAnnotationPolling()
   window.removeEventListener('resize', resizeCharts)
   resizeObserver?.disconnect()
@@ -680,6 +700,8 @@ onBeforeUnmount(() => {
   annotationLayer = null
   noflyLayer?.clearLayers()
   noflyLayer = null
+  workAreaLayer?.clearLayers()
+  workAreaLayer = null
   map?.remove()
   map = null
 })

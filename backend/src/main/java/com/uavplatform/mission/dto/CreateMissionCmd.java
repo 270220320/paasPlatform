@@ -25,6 +25,12 @@ public class CreateMissionCmd {
     /** 机场/网关 SN（与驾驶舱设备列表一致） */
     private String deviceSn;
 
+    /** 蛙跳任务的降落机场；与 landingDeviceSn 二选一。 */
+    private Long landingDeviceId;
+
+    /** 蛙跳任务的降落机场/网关 SN。 */
+    private String landingDeviceSn;
+
     @NotBlank(message = "任务策略不能为空")
     private String strategy;
 

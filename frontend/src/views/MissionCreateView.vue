@@ -12,6 +12,7 @@
             <el-radio-group v-model="form.taskType" class="seg-group" @change="onTaskTypeChange">
               <el-radio-button value="normal">{{ t('missions.taskNormal') }}</el-radio-button>
               <el-radio-button value="wayline">{{ t('missions.taskWayline') }}</el-radio-button>
+              <el-radio-button value="leapfrog">{{ t('missions.taskLeapfrog') }}</el-radio-button>
               <el-radio-button value="manual">{{ t('missions.taskManual') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
@@ -33,7 +34,7 @@
           </el-form-item>
 
           <el-form-item :label="t('missions.selectDevice')" required>
-            <el-button class="picker-btn" @click="devicePickerVisible = true">
+            <el-button class="picker-btn" @click="openDevicePicker('departure')">
               <el-icon v-if="!selectedDevice"><Plus /></el-icon>
               <span>
                 {{
@@ -44,6 +45,28 @@
               </span>
             </el-button>
           </el-form-item>
+
+          <template v-if="isLeapfrog">
+            <el-form-item :label="t('missions.landingDevice')" required>
+              <el-button class="picker-btn" @click="openDevicePicker('landing')">
+                <el-icon v-if="!selectedLandingDevice"><Plus /></el-icon>
+                <span>
+                  {{
+                    selectedLandingDevice
+                      ? `${selectedLandingDevice.name}（${selectedLandingDevice.gatewaySn || selectedLandingDevice.sn}）`
+                      : t('missions.selectLandingDeviceBtn')
+                  }}
+                </span>
+              </el-button>
+            </el-form-item>
+            <el-alert
+              :title="t('missions.leapfrogSafetyHint')"
+              type="warning"
+              :closable="false"
+              show-icon
+              class="leapfrog-hint"
+            />
+          </template>
 
           <el-form-item :label="t('missions.strategy')" required>
             <el-radio-group v-model="form.strategy" class="seg-group seg-wrap">
@@ -247,13 +270,16 @@
       </el-scrollbar>
     </el-dialog>
 
-    <el-dialog v-model="devicePickerVisible" :title="t('missions.selectDevice')" width="560px">
+    <el-dialog v-model="devicePickerVisible" :title="devicePickerTarget === 'landing' ? t('missions.landingDevice') : t('missions.selectDevice')" width="560px">
       <el-scrollbar v-loading="devicesLoading" max-height="420px">
         <div
           v-for="d in devices"
           :key="d.gatewaySn || d.sn"
           class="picker-item"
-          :class="{ active: form.deviceSn === (d.gatewaySn || d.sn) }"
+          :class="{
+            active: (devicePickerTarget === 'landing' ? form.landingDeviceSn : form.deviceSn) === (d.gatewaySn || d.sn),
+            disabled: devicePickerTarget === 'landing' && form.deviceSn === (d.gatewaySn || d.sn),
+          }"
           @click="pickDevice(d)"
         >
           <div class="picker-name">{{ d.name }}</div>
@@ -293,8 +319,10 @@ const waylines = ref<WaylineVO[]>([])
 const waylineKeyword = ref('')
 const waylinePickerVisible = ref(false)
 const devicePickerVisible = ref(false)
+const devicePickerTarget = ref<'departure' | 'landing'>('departure')
 const selectedWayline = ref<WaylineVO | null>(null)
 const selectedDevice = ref<DeviceVO | null>(null)
+const selectedLandingDevice = ref<DeviceVO | null>(null)
 
 /** 与驾驶舱一致：设备管理接口以机场为主，排除独立飞行器记录 */
 const devices = computed(() =>
@@ -308,6 +336,7 @@ const form = reactive({
   name: t('missions.createTitle'),
   taskType: 'wayline',
   deviceSn: '' as string,
+  landingDeviceSn: '' as string,
   waylineId: undefined as number | undefined,
   strategy: 'immediate',
   executeDate: '' as string,
@@ -323,9 +352,10 @@ const form = reactive({
   smartRth: false,
 })
 
-const needsWayline = computed(() => form.taskType === 'normal' || form.taskType === 'wayline')
+const isLeapfrog = computed(() => form.taskType === 'leapfrog')
+const needsWayline = computed(() => form.taskType === 'normal' || form.taskType === 'wayline' || isLeapfrog.value)
 /** 周期/连续走 dji2，手动任务不下发司空 */
-const supportsCycleStrategy = computed(() => needsWayline.value)
+const supportsCycleStrategy = computed(() => needsWayline.value && !isLeapfrog.value)
 /** 立即/单次走 createFlightTask，才支持精度/断点/返航等 */
 const showSdkFlightParams = computed(
   () => needsWayline.value && (form.strategy === 'immediate' || form.strategy === 'once'),
@@ -404,6 +434,10 @@ function onTaskTypeChange() {
   if (!supportsCycleStrategy.value && (form.strategy === 'recurring' || form.strategy === 'continuous')) {
     form.strategy = 'immediate'
   }
+  if (!isLeapfrog.value) {
+    selectedLandingDevice.value = null
+    form.landingDeviceSn = ''
+  }
 }
 
 function clearWayline() {
@@ -424,9 +458,28 @@ function pickWayline(w: WaylineVO) {
   waylinePickerVisible.value = false
 }
 
+function openDevicePicker(target: 'departure' | 'landing') {
+  devicePickerTarget.value = target
+  devicePickerVisible.value = true
+}
+
 function pickDevice(d: DeviceVO) {
-  selectedDevice.value = d
-  form.deviceSn = d.gatewaySn || d.sn
+  const sn = d.gatewaySn || d.sn
+  if (devicePickerTarget.value === 'landing') {
+    if (sn === form.deviceSn) {
+      ElMessage.warning(t('missions.leapfrogDevicesDifferent'))
+      return
+    }
+    selectedLandingDevice.value = d
+    form.landingDeviceSn = sn
+  } else {
+    selectedDevice.value = d
+    form.deviceSn = sn
+    if (form.landingDeviceSn === sn) {
+      selectedLandingDevice.value = null
+      form.landingDeviceSn = ''
+    }
+  }
   devicePickerVisible.value = false
 }
 
@@ -464,6 +517,14 @@ async function submit() {
     ElMessage.warning(t('missions.selectDeviceRequired'))
     return
   }
+  if (isLeapfrog.value && !form.landingDeviceSn) {
+    ElMessage.warning(t('missions.selectLandingDeviceRequired'))
+    return
+  }
+  if (isLeapfrog.value && form.landingDeviceSn === form.deviceSn) {
+    ElMessage.warning(t('missions.leapfrogDevicesDifferent'))
+    return
+  }
   if (needsWayline.value && !form.waylineId) {
     ElMessage.warning(t('missions.selectWaylineRequired'))
     return
@@ -479,6 +540,7 @@ async function submit() {
       name: form.name.trim(),
       taskType: form.taskType,
       deviceSn: form.deviceSn,
+      landingDeviceSn: isLeapfrog.value ? form.landingDeviceSn : undefined,
       waylineId: needsWayline.value ? form.waylineId : undefined,
       strategy: form.strategy,
       // 隐藏字段仍传默认值，满足后端必填校验；周期/手动不会下发到 SDK
@@ -556,6 +618,15 @@ onMounted(async () => {
   :deep(.el-form-item__label) {
     color: #cfd3dc;
   }
+}
+
+.leapfrog-hint {
+  margin: -4px 0 12px;
+}
+
+.picker-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .seg-group {

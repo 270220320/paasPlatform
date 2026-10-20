@@ -105,6 +105,26 @@ class MissionServiceTest {
     }
 
     @Test
+    void create_leapfrogWithoutLandingDock_shouldFail() {
+        CreateMissionCmd cmd = baseCmd();
+        cmd.setTaskType("leapfrog");
+
+        BizException ex = assertThrows(BizException.class, () -> missionService.create(cmd));
+        assertEquals(ErrorCodes.MISSION_PARAM_MISSING, ex.getCode());
+    }
+
+    @Test
+    void create_scheduledLeapfrog_shouldFail() {
+        CreateMissionCmd cmd = baseCmd();
+        cmd.setTaskType("leapfrog");
+        cmd.setLandingDeviceId(2L);
+        cmd.setStrategy("once");
+
+        BizException ex = assertThrows(BizException.class, () -> missionService.create(cmd));
+        assertEquals(ErrorCodes.BAD_REQUEST, ex.getCode());
+    }
+
+    @Test
     void delete_running_shouldFail() {
         MissionPlanEntity plan = planWithStatus("running");
         when(missionPlanMapper.selectById(7L)).thenReturn(plan);

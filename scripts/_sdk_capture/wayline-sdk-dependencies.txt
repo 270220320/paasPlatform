@@ -1,0 +1,126 @@
+# WaylineEditor 运行时依赖清单（静态分析版 v1）
+# 来源：paas.js(1.2KB loader) + wayline-edit-sdk/index.js(15.9MB) + paas-core.54517b54926d70c7.js(27.4MB)
+# 抓取日期：2026-09-17，环境：192.168.76.141 私有化司空
+
+================ 一、静态资源依赖树（paas.js loader 硬编码）================
+根路径 = frontHost（80 端口），由 <script fh2> 属性解析
+  /paas.css
+  /Cesium-1.116.0-fix-27-20260509122436/Cesium.js + Widgets/widgets.css   # 定制版 Cesium，版本号带日期
+  /wasm-v06.00.00.128/libppe.js      # PPE wasm 加载器
+  /wasm-v06.00.00.128/libwpmz.js     # ★ WPML/KMZ 编解码 WASM（浏览器端生成 KMZ 的核心）
+  /ar-wasm-2025.11-6/ArCore.js
+  /lidar-wasm-v11/liblidar.js
+  /mine-decoder/MineDecoder.js
+  /drtc-0.27.0.139/sdk.js
+  /paas-core.54517b54926d70c7.js     # hash 文件名，DOM ready 后二级加载（27.4MB：共享地图+通知中心）
+  /paasjs-demo/wayline-edit-sdk/index.js + index.css   # 编辑器 bundle（15.9MB）
+
+镜像策略：按目录全量抓取；Cesium/wasm 目录带版本号相对稳定，paas-core hash 随版本变。
+
+================ 二、API 依赖图谱（按服务分组）================
+--- A. 航线编辑器核心（mock 优先级最高）---
+  POST /pf-wayline/editor/v1/sts
+      body: { object_key_prefix: <specify_path 或空>, expire: 900 }
+      resp: data.data = OSS STS 临时凭证（bucket/ak/sk/token）
+  POST /pf-wayline/editor/v1/upload            # KMZ 直传 OSS 后的注册接口（返回航线 id/uuid）
+  POST /pf-wayline/editor/v1/snapshot-upload   # 航线快照图（编辑器缩略图）上传
+  POST /pf-wayline/editor/v1/image-crop
+      body: { wayline_uuid, image_info:{ media_file_uuid, action_uuid, object_box } }
+  GET  /pf-wayline/editor/v1/action-media/list
+  POST /pf-wayline/api/v1/concat               # 航线拼接
+  GET  /pf-wayline/api/v1/details              # 航线详情（编辑已有航线时）
+  GET  /pf-wayline/api/v1/lists                # 航线列表
+  POST /pf-wayline/api/v1/create | update/{id} | delete/{id}
+  POST /pf-wayline/api/v1/model-list           # body:{ wayline_uuid } → 机型列表
+  POST /pf-wayline/editor/v1/generate-area-wayline-callback      # 面状航线生成回调
+  POST /pf-wayline/editor/v1/generate-mapping-wayline-callback  # 建图航线生成回调
+  ★ 面状/建图航线的网格化算法在司空服务端（callback 模式），浏览器端只提交多边形
+
+  保存函数参数形态（bundle 内 eae 解构）：
+    { objectKey, fileName, id, errorInfos, snapshot, originWaylineUuid,
+      modelFilesKey, modelFilesUuid, withMegaphone, withSearchLight, target_area_key, ... }
+  OSS 对象 key 前缀：/dji_wpmz/${...}
+
+--- B. 地图底座（mock 难度最高）---
+  GET /device/api/v1/manager/map-configs       # 地图配置协商（瓦片服务地址下发），ignoreGlobalErrorHandler
+  GET /dem/api/v2/terrain-tiles/wgs84/layer.json?ak=<key>   # Cesium 标准地形协议（CesiumTerrainProvider.fromUrl）
+  GET /dem/api/v2/terrain-tiles/wgs84/{z/x/y}  # 地形瓦片，query 带 ak 鉴权
+     错误码 235404 = 无高程数据（弹窗提示）
+  GET /pf-map/api/v1/elements | element-icons  # 地图元素/图标
+  GET /model/api/v1/workspaces/files/{id}/tiles-list  # 3D 模型瓦片
+  GET .../tiles/ + geom.bin + text.bin         # 3D tiles 二进制
+  GET /geo_resource/v1/proxy/map/place/v2/suggestion  # POI 地名搜索
+  内置外网底图：Mapbox/OSM/CartoCDN/ArcGIS（maplibre 默认样式，私有化应不启用）
+
+--- C. 辅助服务（可先 stub）---
+  GET  /device/api/v1/manager/device/topologies/grouped?page_num=1&page_size=999   # 设备拓扑（机型联动）
+  GET  /pf-terra/api/v1/models/files            # 地形模型文件
+  POST /pf-terra/api/v1/models/elevation-files-list   # 高程文件列表
+  GET  /pf-media/api/v2/speaker/sts             # 喊话器媒体 STS
+  GET  /live/api/v1/manage/api/v1/ai-inside/models    # AI 模型列表
+  GET  /control/api/v1/tts/synthesize?...       # TTS 合成
+  POST .../media-files/ | batch-delete | geo-media-file   # 媒体文件
+  POST .../psdk/commands                        # PSDK 指令
+
+--- D. WS ---
+  ws://.../openapi/v0.9/notification/ws/v1/notifications   # 由宿主传入（AiFlow 配置），编辑器内部未发现独立 WS 端点
+
+================ 三、保存链路时序还原 =================
+  1. 浏览器端编辑完成 → libwpmz WASM 生成 KMZ Blob（new File([blob], fileName)）
+  2. POST /pf-wayline/editor/v1/sts { object_key_prefix, expire:900 } → 拿 OSS STS
+  3. 浏览器直传 OSS（对象 key = /dji_wpmz/...）
+  4. POST /pf-wayline/editor/v1/upload { objectKey, fileName, snapshot, ... } → 注册航线，返回 waylineId
+  5. 快照图 → /snapshot-upload
+  ★ mock 要点：STS 接口发假凭证 + 自建"OSS"接收 PUT；upload 落盘即得 KMZ 产物
+
+================ 四、运行时抓包验证结果（2026-09-17 实录）================
+流程：登录→航线库→新建 CAPTURE-TEST(M30T)→虚拟飞行打 3 航点→保存成功，共 905 条流量。
+原始数据：runtime-netlog-*.json；分析：netlog-analysis.txt；测试航线已删。
+
+★ 保存链路实测（完整时序，与静态推断一致但协议细节全断实）：
+  1. POST /pf-wayline/editor/v1/sts {object_key_prefix:"<工作空间uuid>", expire:900}
+     → {code:0, data:{bucket:"file-storage-privatization", credentials:{access_key_id,
+        access_key_secret, security_token, expire, platform}}}
+  2. S3 分片直传（同域名路径，MinIO 兼容层，非独立 OSS 域名）：
+     POST /file-storage-privatization/<ws-uuid>/CAPTURE-TEST.kmz?uploads=        初始化分片
+     PUT  ...?partNumber=1&uploadId=...   body=Blob(1357B 空航线 / 3339B 三航点) ← KMZ 本体
+     POST ...?uploadId=...               body=CompleteMultipartUpload XML       合并分片
+  3. POST /pf-wayline/editor/v1/upload
+     req : {kmz_object_key, wayline_name, wayline_uuid:""(新建)|已有uuid(覆盖),
+            origin_wayline_uuid, editor_warnings, snapshots[], model_file_object_keys[],
+            model_file_uuids[], with_megaphone, with_search_light,
+            target_area_file_object_key, business_file_object_key,
+            elevation_file_object_keys[], clean_collision}
+     resp: {code:0, data:{ext_data, kmz_data:{survey_area_scope}, kmz_object_key,
+            wayline_name, wayline_uuid}}  ← 拿到司空 uuid
+
+★ 地图底座实测（mock 顾虑全部消除）：
+  map-configs resp: {map_config_list:[{name:"tj", type:"custom",
+     link:"http://192.168.76.141:30813/png-tiles_1/{z}/{x}/{y}.jpg", min_z:0, max_z:30}]}
+  → 瓦片地址是配置下发的标准 XYZ 模板！mock 时把 link 指向任意 XYZ 服务（含 tiles_tianjin 本地服务）即可
+  layer.json 不可用时报 {code:235404}，编辑器仅弹提示不阻塞 → 地形服务可缺省
+  地图微应用本体：/map-app/index.html（Rsbuild 应用，司空 frontHost 静态资源）
+
+★ WS 实测：仅 ping/pong 心跳 + subscribe/unsubscribe 订阅管理，保存链路零依赖
+★ 设备拓扑（机型选择）：GET device/api/v1/manager/device/topologies/grouped → list[device_sn, device_model{key,domain,type,sub_type,name,class}, device_online_status...]
+★ 航线详情：GET pf-wayline/api/v1/details?wayline_uuid=... → {ext_data:{kmz_without_res_md5,
+  kmz_without_res_object_key}, kmz_data:{drone_type, distance, duration, md5, payload_types...}}
+  （注：还有 -without-res.kmz 去资源副本在 OSS）
+★ KMZ 回读：GET /file-storage-privatization/<key>?X-Amz-...GetObject 预签名 URL 下载
+★ Cesium 运行时 Assets（IAU2006_XYS_*.json、approximateTerrainHeights.json）也走司空静态服务
+★ 静态资源新增项：/paasjs-demo/wayline-edit-sdk/assets/models/drone.*.gltf（无人机 3D 模型）、
+  ArCore.wasm / liblidar.wasm / MineDecoder.wasm（各 wasm 的二进制本体，镜像时勿漏）
+
+================ 五、mock 可行性结论（运行时验证后）================
+  1. 对象存储是同域名路径（/file-storage-privatization/），S3 兼容协议三分片端点
+     → mock 无跨域/签名难点，接住 PUT 即得 KMZ 本体（实测仅 1.3~3.3KB）
+  2. 瓦片地址配置下发 + 地形可缺省 → 地图层 mock 门槛极低
+  3. WS 非必需 → 可完全不 mock 或仅静默心跳
+  4. 需要认真回放的读接口（响应体已全部实录在 netlog）：topologies/grouped、
+     map-configs、pf-wayline lists/details、pf-map elements/lists、model-list
+  5. 面状航线生成仍需司空服务端（generate-*-callback），mock 环境仅线状可用
+
+遗留小坑：编辑器要求视口≥某尺寸（小窗口反复弹分辨率警告）；虚拟飞行打点模式
+（W 前进 + Space 打点）属交互行为，不影响 mock。
+工具沉淀（可复用）：frontend/public/sdk-net-recorder.js（hook）+
+scripts/_sdk_capture/{netlog-receiver,analyze-netlog,sign-jwt}.js

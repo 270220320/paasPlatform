@@ -1252,6 +1252,8 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
         }
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<String> err = new AtomicReference<>();
+        AtomicInteger serverCode = new AtomicInteger();
+        AtomicInteger httpCode = new AtomicInteger();
         try {
             Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$ResultCallbackWithError");
             Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
@@ -1259,6 +1261,14 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                     Object errorObj = args[0];
                     if (errorObj != null && !isEmptyError(errorObj)) {
                         err.set(formatError(errorObj));
+                        Object server = invoke(errorObj, "getServerCode");
+                        Object http = invoke(errorObj, "getHttpCode");
+                        if (server instanceof Number n) {
+                            serverCode.set(n.intValue());
+                        }
+                        if (http instanceof Number n) {
+                            httpCode.set(n.intValue());
+                        }
                     }
                     latch.countDown();
                 }
@@ -1273,7 +1283,21 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
                 throw new IllegalStateException("deleteFlightArea timeout");
             }
             if (err.get() != null) {
-                throw new IllegalStateException("deleteFlightArea: " + err.get());
+                IllegalStateException failure = new IllegalStateException("deleteFlightArea: " + err.get());
+                // 迁移或外部删除后，司空对不存在的 UUID 也返回通用 230007，须查询确认，不能直接忽略。
+                if (serverCode.get() == 230007 && httpCode.get() == 400) {
+                    try {
+                        if (flightAreaMissing(module, flightAreaId.trim())) {
+                            log.info("[FH2] deleteFlightArea already absent id={}", flightAreaId);
+                            return;
+                        }
+                    } catch (Exception verificationFailure) {
+                        failure.addSuppressed(verificationFailure);
+                        log.warn("[FH2] cannot verify missing flight area id={}: {}",
+                                flightAreaId, verificationFailure.getMessage());
+                    }
+                }
+                throw failure;
             }
             log.info("[FH2] deleteFlightArea ok id={}", flightAreaId);
         } catch (IllegalStateException e) {
@@ -1281,6 +1305,62 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
         } catch (Exception e) {
             throw new IllegalStateException("deleteFlightArea failed: " + rootMessage(e), e);
         }
+    }
+
+    /** 按 UUID 查询，不加名称、类型或状态筛选；查询失败时不允许继续本地删除。 */
+    private boolean flightAreaMissing(Object module, String flightAreaId) throws Exception {
+        Object params = newInstance("com.dji.flighthubsdk.bean.GetCustomizedFlightAreasParams");
+        invoke(params, "setIds", List.class, List.of(flightAreaId));
+        invoke(params, "setPageIndex", int.class, 1);
+        invoke(params, "setPageSize", int.class, 1);
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Boolean> missing = new AtomicReference<>();
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        Class<?> cbClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$GetCustomizedFlightAreasCallback");
+        Object cb = Proxy.newProxyInstance(cbClass.getClassLoader(), new Class[]{cbClass}, (proxy, method, args) -> {
+            if ("onResult".equals(method.getName())) {
+                try {
+                    if (args == null || args.length < 2 || args[1] == null) {
+                        throw new IllegalStateException("getFlightAreas returned no result");
+                    }
+                    if (args[0] != null && !isEmptyError(args[0])) {
+                        throw new IllegalStateException("getFlightAreas: " + formatError(args[0]));
+                    }
+                    Object result = args[1];
+                    Object rows = invoke(result, "getList");
+                    Object pagination = invoke(result, "getPagination");
+                    Object page = pagination == null ? null : invoke(pagination, "getPage");
+                    Object pageSize = pagination == null ? null : invoke(pagination, "getPageSize");
+                    if (rows instanceof List<?> list && !list.isEmpty()) {
+                        // 无论返回目标区域还是意外数据，都不认定远端缺失。
+                        missing.set(false);
+                    } else if (rows instanceof List<?> list && list.isEmpty()
+                            && page instanceof Number p && p.intValue() == 1
+                            && pageSize instanceof Number size && size.intValue() == 1) {
+                        // 精确 ID 的第一页为空即可确认缺失。服务端省略 total 时，
+                        // SDK 3.1.6.0 的 total 可能是未初始化值，不能用于判断。
+                        missing.set(true);
+                    } else {
+                        throw new IllegalStateException("getFlightAreas returned an incomplete result: page="
+                                + page + ", pageSize=" + pageSize);
+                    }
+                } catch (Exception e) {
+                    failure.set(e);
+                } finally {
+                    latch.countDown();
+                }
+            }
+            return null;
+        });
+        module.getClass().getMethod("getCustomizedFlightAreas", params.getClass(), cbClass)
+                .invoke(module, params, cb);
+        if (!latch.await(10, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("getFlightAreas timeout");
+        }
+        if (failure.get() != null) {
+            throw failure.get();
+        }
+        return Boolean.TRUE.equals(missing.get());
     }
 
     @Override
@@ -1585,6 +1665,92 @@ public class ReflectiveFh2SdkClient implements Fh2SdkClient {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("createFlightTask failed: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public void setRoamingStationSns(String droneSn, List<String> stationSns) {
+        ensureReady();
+        if (!StringUtils.hasText(droneSn) || stationSns == null || stationSns.size() < 2) {
+            throw new IllegalArgumentException("蛙跳飞行需要飞行器 SN 和至少两座机场");
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> errorRef = new AtomicReference<>();
+        try {
+            Object req = newInstance("com.dji.flighthubsdk.bean.SetRoamingStationSnParams");
+            invoke(req, "setDroneSn", String.class, droneSn.trim());
+            invoke(req, "setStationSns", List.class, stationSns.stream()
+                    .filter(StringUtils::hasText)
+                    .map(String::trim)
+                    .distinct()
+                    .toList());
+            Class<?> callbackClass = Class.forName(
+                    "com.dji.flighthubsdk.FlightHubCallback$SetRoamingStationSnCallback");
+            Object callback = Proxy.newProxyInstance(callbackClass.getClassLoader(), new Class[]{callbackClass},
+                    (proxy, method, args) -> {
+                        if ("onResult".equals(method.getName()) && args != null && args.length >= 1) {
+                            Object errorObj = args[0];
+                            if (errorObj != null && !isEmptyError(errorObj)) {
+                                errorRef.set(formatError(errorObj));
+                            }
+                            latch.countDown();
+                        }
+                        return null;
+                    });
+            Object module = flightTaskModule();
+            module.getClass().getMethod("setRoamingStationSn", req.getClass(), callbackClass)
+                    .invoke(module, req, callback);
+            awaitRoamingCallback(latch, errorRef, "setRoamingStationSn");
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("配置蛙跳机场失败: " + rootMessage(e), e);
+        }
+    }
+
+    @Override
+    public void startRoaming(String droneSn, String flightId) {
+        ensureReady();
+        if (!StringUtils.hasText(droneSn) || !StringUtils.hasText(flightId)) {
+            throw new IllegalArgumentException("蛙跳飞行缺少飞行器 SN 或任务 ID");
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> errorRef = new AtomicReference<>();
+        try {
+            Object req = newInstance("com.dji.flighthubsdk.bean.StartRoamingParams");
+            invoke(req, "setDroneSn", String.class, droneSn.trim());
+            invoke(req, "setFlightId", String.class, flightId.trim());
+            // SDK StartRoamingParams 的默认值为 1（从飞行任务启动）。显式写入避免版本差异。
+            invoke(req, "setSourceTaskType", int.class, 1);
+            Class<?> callbackClass = Class.forName("com.dji.flighthubsdk.FlightHubCallback$StartRoamingCallback");
+            Object callback = Proxy.newProxyInstance(callbackClass.getClassLoader(), new Class[]{callbackClass},
+                    (proxy, method, args) -> {
+                        if ("onResult".equals(method.getName()) && args != null && args.length >= 1) {
+                            Object errorObj = args[0];
+                            if (errorObj != null && !isEmptyError(errorObj)) {
+                                errorRef.set(formatError(errorObj));
+                            }
+                            latch.countDown();
+                        }
+                        return null;
+                    });
+            Object module = flightTaskModule();
+            module.getClass().getMethod("startRoaming", req.getClass(), callbackClass).invoke(module, req, callback);
+            awaitRoamingCallback(latch, errorRef, "startRoaming");
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("启动蛙跳飞行失败: " + rootMessage(e), e);
+        }
+    }
+
+    private static void awaitRoamingCallback(CountDownLatch latch, AtomicReference<String> errorRef, String operation)
+            throws InterruptedException {
+        if (!latch.await(60, TimeUnit.SECONDS)) {
+            throw new IllegalStateException(operation + " timeout");
+        }
+        if (StringUtils.hasText(errorRef.get())) {
+            throw new IllegalStateException(operation + ": " + errorRef.get());
         }
     }
 

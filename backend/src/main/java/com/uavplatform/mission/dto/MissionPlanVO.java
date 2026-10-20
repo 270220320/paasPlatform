@@ -18,6 +18,8 @@ public class MissionPlanVO {
     private Boolean areaWayline;
     private Long deviceId;
     private String deviceName;
+    private Long landingDeviceId;
+    private String landingDeviceName;
     private String waylineName;
     private String strategy;
     private String scheduleAt;

@@ -35,10 +35,10 @@ uav:
   fh2:
     enabled: true
     # paas.js 在 80 端口；API/WS 在 30812
-    front-host: http://192.168.76.141
-    server-host: http://192.168.76.141:30812
-    gateway-base: http://192.168.76.141:30812/gateway
-    wss-url: ws://192.168.76.141:30812/openapi/v0.9/notification/ws/v1/notifications
+    front-host: http://192.168.76.129
+    server-host: http://192.168.76.129:30812
+    gateway-base: http://192.168.76.129:30812/gateway
+    wss-url: ws://192.168.76.129:30812/openapi/v0.9/notification/ws/v1/notifications
     # 请填入司空下发的用户 Token 与 binding_uuid（也可用 t_fh2_config 覆盖）；私有化部署无 user token，留空即可
     user-token: ""
     # 私有化无 token 时 binding_uuid/project_uuid 无法从 token 解析，手动指定
@@ -56,20 +56,20 @@ uav:
     # 仅当自动获取不到 folderUuid 时生效。在司空控制台「媒体管理」中找到对应文件夹的 UUID 填入。
     terra-build-folder-uuid: ${FH2_TERRA_FOLDER_UUID:}
     object-key-prefix: ""
-    sdk-address: http://192.168.76.141
+    sdk-address: http://192.168.76.129
     sdk-port: "30812"
     sdk-native-enabled: true
-    wayline-sdk-css: http://192.168.76.141/paasjs-demo/wayline-edit-sdk/index.css
-    wayline-sdk-js: http://192.168.76.141/paasjs-demo/wayline-edit-sdk/index.js
-    device-sdk-css: http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.css
-    device-sdk-js: http://192.168.76.141/paasjs-demo/device-manager-sdk-v2/index.js
-    replay-sdk-css: http://192.168.76.141/paasjs-demo/fly-data-sdk/index.css
-    replay-sdk-js: http://192.168.76.141/paasjs-demo/fly-data-sdk/index.js
+    wayline-sdk-css: http://192.168.76.129/paasjs-demo/wayline-edit-sdk/index.css
+    wayline-sdk-js: http://192.168.76.129/paasjs-demo/wayline-edit-sdk/index.js
+    device-sdk-css: http://192.168.76.129/paasjs-demo/device-manager-sdk-v2/index.css
+    device-sdk-js: http://192.168.76.129/paasjs-demo/device-manager-sdk-v2/index.js
+    replay-sdk-css: http://192.168.76.129/paasjs-demo/fly-data-sdk/index.css
+    replay-sdk-js: http://192.168.76.129/paasjs-demo/fly-data-sdk/index.js
     # 直播大屏（DJILivePlayer）SDK；完全独立、不依赖 paas.js
-    live-sdk-css: http://192.168.76.141/paasjs-demo/multi-stream-cdn/sdk/style.css
-    live-sdk-js: http://192.168.76.141/paasjs-demo/multi-stream-cdn/sdk/sdk.umd.js
+    live-sdk-css: http://192.168.76.129/paasjs-demo/multi-stream-cdn/sdk/style.css
+    live-sdk-js: http://192.168.76.129/paasjs-demo/multi-stream-cdn/sdk/sdk.umd.js
     # dji2 后台（限飞区 /safety、飞行任务 /task|/flighttask）
-    route-api-base: http://192.168.76.141:56789
+    route-api-base: http://192.168.76.129:56789
     # 私有化网关鉴权头：网关回调 ISV_WEBHOOK_URL 鉴权，开发期默认 webhook 放行全部，
     # 约定头 user_id: paas_test（鉴权接入指南 2.4）；切换自建 Webhook 时改这两个值
     extra-http-header-key: ${FH2_EXTRA_HEADER_KEY:user_id}

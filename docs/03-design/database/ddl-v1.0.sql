@@ -333,10 +333,11 @@ CREATE TABLE `t_mission_plan` (
   `id`                   BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键',
   `workspace_id`         BIGINT        NOT NULL DEFAULT 1,
   `name`                 VARCHAR(128)  NOT NULL COMMENT '计划名称',
-  `task_type`            VARCHAR(32)   NOT NULL COMMENT 'normal/wayline/manual',
+  `task_type`            VARCHAR(32)   NOT NULL COMMENT 'normal/wayline/leapfrog/manual',
   `wayline_id`           BIGINT        DEFAULT NULL COMMENT '源航线ID',
   `wayline_snapshot_id`  BIGINT        DEFAULT NULL COMMENT '航线快照ID',
   `device_id`            BIGINT        NOT NULL COMMENT '执行设备ID',
+  `landing_device_id`    BIGINT        DEFAULT NULL COMMENT '蛙跳任务降落机场ID',
   `strategy`             VARCHAR(32)   NOT NULL COMMENT 'immediate/once/recurring/continuous',
   `schedule_at`          DATETIME(6)   DEFAULT NULL COMMENT '定时时间(单次)',
   `cron_expr`            VARCHAR(64)   DEFAULT NULL COMMENT '重复频率摘要如 1,day',
@@ -355,8 +356,10 @@ CREATE TABLE `t_mission_plan` (
   PRIMARY KEY (`id`),
   KEY `idx_mission_status_schedule` (`status`, `schedule_at`),
   KEY `idx_mission_device` (`device_id`),
+  KEY `idx_mission_landing_device` (`landing_device_id`),
   KEY `idx_mission_wayline` (`wayline_id`),
   CONSTRAINT `fk_mission_device` FOREIGN KEY (`device_id`) REFERENCES `t_device` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_mission_landing_device` FOREIGN KEY (`landing_device_id`) REFERENCES `t_device` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_mission_wayline` FOREIGN KEY (`wayline_id`) REFERENCES `t_wayline` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_mission_snapshot` FOREIGN KEY (`wayline_snapshot_id`) REFERENCES `t_wayline_snapshot` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务计划';

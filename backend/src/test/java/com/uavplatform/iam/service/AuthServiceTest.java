@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -114,6 +115,33 @@ class AuthServiceTest {
         request.setPassword("123456");
         BizException ex = assertThrows(BizException.class, () -> authService.login(request));
         assertEquals(ErrorCodes.AUTH_BAD_CREDENTIALS, ex.getCode());
+    }
+
+    @Test
+    void login_afterLogout_shouldUnbanToken() {
+        // 回归（冒烟 SC-001 发现）：JWT 无 jti，同账号重复签发同一 token；
+        // logout 拉黑后必须随 login 解封，否则登出后重新登录仍 40100，直到重启后端。
+        UserEntity user = buildUser(passwordEncoder.encode("123456"), "active");
+        RoleEntity role = buildRole();
+        when(userMapper.selectOne(any())).thenReturn(user);
+        when(roleMapper.selectById(1L)).thenReturn(role);
+        when(roleMapper.selectPermissionCodesByRoleId(1L)).thenReturn(List.of());
+        when(jwtTokenProvider.createToken(any(), any(), any(), any())).thenReturn("token-demo");
+
+        LoginRequest request = new LoginRequest();
+        request.setAccount("admin@aiflow.local");
+        request.setPassword("123456");
+
+        authService.login(request);
+        verify(tokenBlacklist).remove("token-demo");
+
+        // 真实黑名单对象端到端验证：logout 拉黑 → 重新登录 → token 解封
+        TokenBlacklist realBlacklist = new TokenBlacklist();
+        realBlacklist.add("token-demo");
+        AuthService realAuthService = new AuthService(
+                userMapper, roleMapper, passwordEncoder, jwtTokenProvider, realBlacklist);
+        realAuthService.login(request);
+        assertFalse(realBlacklist.contains("token-demo"));
     }
 
     private UserEntity buildUser(String hash, String status) {

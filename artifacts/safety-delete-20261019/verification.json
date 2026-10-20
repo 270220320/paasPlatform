@@ -1,0 +1,16 @@
+{
+  "deletedLocalAreaId": 3,
+  "oldRemoteAreaId": "0d584cf1-257a-4988-82d2-338d30b97cf5",
+  "delete": {
+    "code": 0,
+    "message": "ok",
+    "data": null,
+    "requestId": "c47ce73823904489bd6d4ba0b5719a31"
+  },
+  "areasAfter": {
+    "code": 0,
+    "message": "ok",
+    "data": [],
+    "requestId": "d9f86e5ee7f64abe9559df77d478b3f8"
+  }
+}

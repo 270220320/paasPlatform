@@ -70,7 +70,7 @@ public class MissionService {
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final Set<String> TASK_TYPES = Set.of("normal", "wayline", "manual");
+    private static final Set<String> TASK_TYPES = Set.of("normal", "wayline", "manual", "leapfrog");
     private static final Set<String> STRATEGIES = Set.of("immediate", "once", "recurring", "continuous");
     private static final Set<String> FREQ_UNITS = Set.of("day", "week", "month");
     private static final Set<String> DELETABLE = Set.of("draft", "pending", "paused");
@@ -156,6 +156,16 @@ public class MissionService {
         if (device == null || !workspaceId().equals(device.getWorkspaceId())) {
             throw new BizException(ErrorCodes.DEVICE_UNAVAILABLE, "设备不可用");
         }
+        DeviceEntity landingDevice = null;
+        if (isLeapfrog(cmd.getTaskType())) {
+            landingDevice = resolveDevice(cmd.getLandingDeviceId(), cmd.getLandingDeviceSn());
+            if (landingDevice == null || !workspaceId().equals(landingDevice.getWorkspaceId())) {
+                throw new BizException(ErrorCodes.DEVICE_UNAVAILABLE, "降落机场不可用");
+            }
+            if (Objects.equals(device.getId(), landingDevice.getId())) {
+                throw new BizException(ErrorCodes.BAD_REQUEST, "起飞机场与降落机场不能相同");
+            }
+        }
 
         Long snapshotId = null;
         if (needsWayline(cmd.getTaskType())) {
@@ -179,6 +189,7 @@ public class MissionService {
         plan.setWaylineId(cmd.getWaylineId());
         plan.setWaylineSnapshotId(snapshotId);
         plan.setDeviceId(device.getId());
+        plan.setLandingDeviceId(landingDevice == null ? null : landingDevice.getId());
         plan.setStrategy(cmd.getStrategy());
         applySchedule(plan, cmd);
         plan.setAccuracyMode(cmd.getAccuracyMode());
@@ -304,6 +315,7 @@ public class MissionService {
             copy.setWaylineSnapshotId(source.getWaylineSnapshotId());
         }
         copy.setDeviceId(source.getDeviceId());
+        copy.setLandingDeviceId(source.getLandingDeviceId());
         copy.setStrategy(source.getStrategy());
         copy.setScheduleAt(source.getScheduleAt());
         copy.setCronExpr(source.getCronExpr());
@@ -347,6 +359,17 @@ public class MissionService {
         }
         if (cmd.getDeviceId() == null && !StringUtils.hasText(cmd.getDeviceSn())) {
             throw new BizException(ErrorCodes.MISSION_PARAM_MISSING, "缺少设备参数");
+        }
+        if (isLeapfrog(cmd.getTaskType())) {
+            if (cmd.getLandingDeviceId() == null && !StringUtils.hasText(cmd.getLandingDeviceSn())) {
+                throw new BizException(ErrorCodes.MISSION_PARAM_MISSING, "蛙跳任务缺少降落机场");
+            }
+            if (!"immediate".equals(cmd.getStrategy())) {
+                throw new BizException(ErrorCodes.BAD_REQUEST, "蛙跳任务目前仅支持立即执行");
+            }
+            if (!"rtk".equalsIgnoreCase(cmd.getAccuracyMode()) && !"high".equalsIgnoreCase(cmd.getAccuracyMode())) {
+                throw new BizException(ErrorCodes.BAD_REQUEST, "蛙跳任务仅支持高精度 RTK");
+            }
         }
         if (needsWayline(cmd.getTaskType()) && cmd.getWaylineId() == null) {
             throw new BizException(ErrorCodes.MISSION_PARAM_MISSING, "缺少必填参数");
@@ -512,16 +535,20 @@ public class MissionService {
 
     /** 按本地 ID 或司空机场 SN 解析设备；SN 不存在时落一条本地镜像。 */
     private DeviceEntity resolveDevice(CreateMissionCmd cmd) {
-        if (cmd.getDeviceId() != null) {
-            DeviceEntity byId = deviceMapper.selectById(cmd.getDeviceId());
+        return resolveDevice(cmd.getDeviceId(), cmd.getDeviceSn());
+    }
+
+    private DeviceEntity resolveDevice(Long deviceId, String deviceSn) {
+        if (deviceId != null) {
+            DeviceEntity byId = deviceMapper.selectById(deviceId);
             if (byId != null) {
                 return byId;
             }
         }
-        if (!StringUtils.hasText(cmd.getDeviceSn())) {
+        if (!StringUtils.hasText(deviceSn)) {
             return null;
         }
-        String sn = cmd.getDeviceSn().trim();
+        String sn = deviceSn.trim();
         DeviceEntity exist = deviceMapper.selectOne(new LambdaQueryWrapper<DeviceEntity>()
                 .eq(DeviceEntity::getWorkspaceId, workspaceId())
                 .and(w -> w.eq(DeviceEntity::getSn, sn).or().eq(DeviceEntity::getGatewaySn, sn))
@@ -544,7 +571,11 @@ public class MissionService {
     }
 
     private boolean needsWayline(String taskType) {
-        return "normal".equals(taskType) || "wayline".equals(taskType);
+        return "normal".equals(taskType) || "wayline".equals(taskType) || isLeapfrog(taskType);
+    }
+
+    private static boolean isLeapfrog(String taskType) {
+        return "leapfrog".equals(taskType);
     }
 
     private boolean hasMultimodalAlgorithm() {
@@ -955,6 +986,7 @@ public class MissionService {
 
     private MissionPlanVO toVO(MissionPlanEntity plan) {
         DeviceEntity device = deviceMapper.selectById(plan.getDeviceId());
+        DeviceEntity landingDevice = plan.getLandingDeviceId() == null ? null : deviceMapper.selectById(plan.getLandingDeviceId());
         WaylineEntity wayline = plan.getWaylineId() == null ? null : waylineMapper.selectById(plan.getWaylineId());
         return MissionPlanVO.builder()
                 .id(plan.getId())
@@ -964,6 +996,8 @@ public class MissionService {
                 .waylineSnapshotId(plan.getWaylineSnapshotId())
                 .deviceId(plan.getDeviceId())
                 .deviceName(device == null ? null : device.getName())
+                .landingDeviceId(plan.getLandingDeviceId())
+                .landingDeviceName(landingDevice == null ? null : landingDevice.getName())
                 .waylineName(wayline == null ? null : wayline.getName())
                 .strategy(plan.getStrategy())
                 .scheduleAt(plan.getScheduleAt() == null ? null : plan.getScheduleAt().format(FMT))

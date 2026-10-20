@@ -93,6 +93,7 @@ function taskTypeLabel(value?: string) {
   const map: Record<string, string> = {
     normal: t('missions.taskNormal'),
     wayline: t('missions.taskWayline'),
+    leapfrog: t('missions.taskLeapfrog'),
     manual: t('missions.taskManual'),
   }
   return value ? map[value] || value : '-'

@@ -122,6 +122,20 @@ public interface Fh2SdkClient {
      */
     String createFlightTask(Fh2CreateFlightTaskCmd cmd);
 
+    /**
+     * 配置蛙跳飞行可用的机场列表。stationSns 至少应包含起飞机场与降落机场。
+     */
+    default void setRoamingStationSns(String droneSn, java.util.List<String> stationSns) {
+        throw new UnsupportedOperationException("当前 FlightHub SDK 不支持蛙跳飞行");
+    }
+
+    /**
+     * 启动蛙跳飞行。SDK 的 sourceTaskType 默认值为 1，代表从飞行任务启动。
+     */
+    default void startRoaming(String droneSn, String flightId) {
+        throw new UnsupportedOperationException("当前 FlightHub SDK 不支持蛙跳飞行");
+    }
+
     /** FlightTaskModule.getFlightTaskDetail */
     Fh2FlightTaskDetailVO getFlightTaskDetail(String taskUuid);
 

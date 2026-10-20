@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>editDemo · paas.js 航线编辑器（离线版）</title>
+  <script>
+    // crypto.randomUUID 仅在 secure context（https / localhost）暴露；
+    // 局域网 IP 访问（http://192.168.x.x）时 SDK 会因缺失该 API 启动失败，这里提前 polyfill。
+    // getRandomValues 本身不限 secure context，用它生成 RFC4122 v4。
+    (function () {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return
+      function uuidv4() {
+        var b = new Uint8Array(16)
+        ;(window.crypto && window.crypto.getRandomValues ? window.crypto : window.msCrypto).getRandomValues(b)
+        b[6] = (b[6] & 0x0f) | 0x40
+        b[8] = (b[8] & 0x3f) | 0x80
+        var h = ''
+        for (var i = 0; i < 16; i++) h += ('0' + b[i].toString(16)).slice(-2)
+        return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20)
+      }
+      var ok = false
+      try { Object.defineProperty(Crypto.prototype, 'randomUUID', { value: uuidv4, configurable: true, writable: true }); ok = true } catch (e) { /* ignore */ }
+      if (!ok || !window.crypto.randomUUID) {
+        try { Object.defineProperty(window.crypto, 'randomUUID', { value: uuidv4, configurable: true, writable: true }) } catch (e) { /* ignore */ }
+      }
+    })()
+  </script>
+  <link rel="stylesheet" href="/paas.css">
+  <link rel="stylesheet" href="/paasjs-demo/wayline-edit-sdk/index.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body {
+      display: flex;
+      flex-direction: column;
+      background: #0a0a0a;
+      color: #d7dbe0;
+      font: 13px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+    }
+
+    /* ---------- 顶部 DEMO 工具条 ---------- */
+    .demo-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 46px;
+      padding: 0 12px;
+      background: #16181d;
+      border-bottom: 1px solid #2a2d34;
+      flex: none;
+      z-index: 100;
+    }
+    .demo-bar .logo { font-weight: 700; color: #fff; white-space: nowrap; }
+    .demo-bar .logo em { color: #4d9cf7; font-style: normal; }
+    #btn-new {
+      padding: 6px 16px;
+      border: 1px solid #3d82f7;
+      border-radius: 4px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #btn-new:hover { background: #1d4ed8; }
+    #btn-new:disabled { opacity: .45; cursor: not-allowed; }
+    #status {
+      flex: 1;
+      min-width: 0;
+      color: #8b919a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #library {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 55%;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    #library:empty::after { content: "暂无已保存航线"; color: #565b63; }
+    .lib-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border: 1px solid #33373f;
+      border-radius: 4px;
+      background: #1d2026;
+      cursor: pointer;
+    }
+    .lib-item:hover { border-color: #4d9cf7; }
+    .lib-item .n { color: #d7dbe0; }
+    .lib-item .s { color: #565b63; font-size: 11px; }
+    .lib-item a {
+      color: #4d9cf7;
+      text-decoration: none;
+      font-size: 11px;
+      padding: 1px 4px;
+      border: 1px solid #33373f;
+      border-radius: 3px;
+    }
+    .lib-item a:hover { border-color: #4d9cf7; }
+
+    /* ---------- 编辑器宿主（骨架与铺满样式对齐 AiFlow WaylineEditorPane） ---------- */
+    .editor-pane {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+    .wayline-editor-root.fh2-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .wayline-editor-root .map-app-container > div { width: 100%; height: 100%; }
+    .wayline-editor-root .project-details {
+      position: relative;
+      width: 100%;
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .wayline-editor-root .project-details .right-micro-app {
+      position: relative;
+      display: flex;
+      flex: 1;
+    }
+    .wayline-editor-root .project-details .right-micro-app .maps-micro-app {
+      display: flex;
+      flex: 1;
+      height: 100%;
+    }
+    .wayline-editor-root .project-details .right-micro-app .map-app-placeholder {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .wayline-editor-root .project-details .right-micro-app .map-app-container {
+      height: 100%;
+      min-height: 0;
+    }
+    .wayline-editor-root .project-details .right-micro-app #wayline-app-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    /* Cesium 默认 canvas 尺寸不随容器变化，强制铺满后配合 resize() */
+    #map-app-global,
+    #map-app-global .cesium-viewer,
+    #map-app-global .cesium-viewer-cesiumWidgetContainer,
+    #map-app-global .cesium-widget,
+    #map-app-global .cesium-widget canvas {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+      max-height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header class="demo-bar">
+    <span class="logo">editDemo · <em>paas.js 航线编辑</em>（离线）</span>
+    <button id="btn-new" disabled>新建航线</button>
+    <span id="status">初始化…</span>
+    <div id="library"></div>
+  </header>
+
+  <main class="editor-pane">
+    <div class="fh2-container wayline-editor-root">
+      <div id="wayline-header"></div>
+      <div class="project-details">
+        <div id="project-middle-container"></div>
+        <div id="project-right-micro-app" class="right-micro-app">
+          <div class="maps-micro-app">
+            <div id="project-map-app-placeholder" class="map-app-placeholder">
+              <div id="map-app-global" class="map-app-container"></div>
+            </div>
+          </div>
+          <div id="wayline-app-container"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- paas.js 依赖 fh2 属性解析静态资源根路径；静态页在 DOMContentLoaded 自然拉起 paas-core -->
+  <script src="/paas.js" fh2=""></script>
+  <script src="/app.js"></script>
+</body>
+</html>

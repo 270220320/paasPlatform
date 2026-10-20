@@ -214,8 +214,10 @@ public class MissionDispatchService {
             return;
         }
         DeviceEntity device = requireDevice(plan.getDeviceId());
+        DeviceEntity landingDevice = isLeapfrog(plan) ? requireLandingDevice(plan) : null;
         WaylineEntity wayline = requireWayline(plan.getWaylineId());
         String dockSn = dockSn(device);
+        String landingDockSn = landingDevice == null ? null : dockSn(landingDevice);
         String waylineUuid = wayline.getFh2WaylineUuid().trim();
 
         // 对齐 CreateTaskReq：精度 / 断点续飞 / 返航模式 一并下发
@@ -229,6 +231,9 @@ public class MissionDispatchService {
                 .rthMode(resolveRthMode(plan))
                 .waylinePrecisionType(resolveWaylinePrecisionType(plan))
                 .breakPointResume(plan.getBreakpointResume() != null && plan.getBreakpointResume() == 1);
+        if (landingDockSn != null) {
+            builder.landingDockSn(landingDockSn);
+        }
 
         // 到期触发（含 immediate、周期本地调度、once 兜底重试）用 taskType=1 立即执行；
         // 未到期槽位（once 预下发）保持 taskType=2 条件窗口
@@ -251,13 +256,31 @@ public class MissionDispatchService {
             }
         }
 
+        String uuid = null;
         try {
-            String uuid = fh2SdkClient.createFlightTask(builder.build());
+            // 立即任务创建后司空可能自动推进执行；必须先把两座机场写入飞行器的 roaming 配置。
+            String droneSn = null;
+            if (isLeapfrog(plan)) {
+                droneSn = resolveLeapfrogDroneSn(dockSn);
+                fh2SdkClient.setRoamingStationSns(droneSn, List.of(dockSn, landingDockSn));
+            }
+            uuid = fh2SdkClient.createFlightTask(builder.build());
+            if (isLeapfrog(plan)) {
+                fh2SdkClient.startRoaming(droneSn, uuid);
+            }
             exec.setFh2TaskUuid(uuid);
             missionExecutionMapper.updateById(exec);
             log.info("[mission-dispatch] SDK flight task created planId={} execId={} uuid={}",
                     plan.getId(), exec.getId(), uuid);
         } catch (Exception e) {
+            // 蛙跳启动失败时，删除刚创建的远端任务，避免保留可被意外执行的孤儿任务。
+            if (StringUtils.hasText(uuid)) {
+                try {
+                    fh2SdkClient.deleteFlightTask(uuid);
+                } catch (Exception cleanupError) {
+                    log.warn("[mission-dispatch] cleanup failed for task {}: {}", uuid, cleanupError.getMessage());
+                }
+            }
             String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
             throw new BizException(ErrorCodes.MISSION_REMOTE_ERROR, "SDK 创建飞行任务失败：" + msg);
         }
@@ -678,6 +701,31 @@ public class MissionDispatchService {
         return device;
     }
 
+    private DeviceEntity requireLandingDevice(MissionPlanEntity plan) {
+        if (plan.getLandingDeviceId() == null) {
+            throw new BizException(ErrorCodes.MISSION_PARAM_MISSING, "蛙跳任务缺少降落机场");
+        }
+        DeviceEntity device = requireDevice(plan.getLandingDeviceId());
+        if (Objects.equals(plan.getDeviceId(), device.getId())) {
+            throw new BizException(ErrorCodes.BAD_REQUEST, "起飞机场与降落机场不能相同");
+        }
+        return device;
+    }
+
+    private String resolveLeapfrogDroneSn(String departureDockSn) {
+        List<com.uavplatform.fh2.dto.Fh2DeviceItemVO> aircraft = fh2SdkClient.listAircraft();
+        String droneSn = aircraft.stream()
+                .filter(item -> departureDockSn.equals(item.getGatewaySn()))
+                .map(com.uavplatform.fh2.dto.Fh2DeviceItemVO::getSn)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .orElse(null);
+        if (!StringUtils.hasText(droneSn)) {
+            throw new BizException(ErrorCodes.DEVICE_UNAVAILABLE, "未找到起飞机场关联的飞行器，无法启动蛙跳任务");
+        }
+        return droneSn.trim();
+    }
+
     private WaylineEntity requireWayline(Long waylineId) {
         WaylineEntity wayline = waylineId == null ? null : waylineMapper.selectById(waylineId);
         if (wayline == null || !StringUtils.hasText(wayline.getFh2WaylineUuid())) {
@@ -687,7 +735,11 @@ public class MissionDispatchService {
     }
 
     private static boolean needsRemote(String taskType) {
-        return "normal".equals(taskType) || "wayline".equals(taskType);
+        return "normal".equals(taskType) || "wayline".equals(taskType) || "leapfrog".equals(taskType);
+    }
+
+    private static boolean isLeapfrog(MissionPlanEntity plan) {
+        return plan != null && "leapfrog".equals(plan.getTaskType());
     }
 
     private static String dockSn(DeviceEntity device) {

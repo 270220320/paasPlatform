@@ -689,7 +689,7 @@ onBeforeUnmount(() => {
 .wayline-card {
   padding: 12px;
   margin-bottom: 8px;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #1a1a1a;
   border: 1px solid #2b2b2c;
   cursor: pointer;

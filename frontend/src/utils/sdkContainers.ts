@@ -50,13 +50,13 @@ export function purgeOrphanSdkContainers(keepWithin?: HTMLElement | null): void 
 }
 
 /**
- * SDK 生命周期互斥队列：所有 FH2 destroy 链与下一页的挂载准备必须串行。
+ * SDK 生命周期互斥队列：地图挂载、页面销毁及下一页的重置必须全程串行。
  * 上一页 teardown 的 destroy 是异步的（qiankun 卸载数百 ms），若无互斥，
  * 迟到的 destroyMap 会拆掉驾驶舱正在挂载的 map 微应用，SDK 内部抛
  * map-app mount failed（刷新后全局归零故叉“恢复正常”）。
- * 任务严格按入队顺序执行：teardown 在 onBeforeUnmount 同步入队，
- * 必然先于下一页 mounted 后 boot 入队的重置任务，从而保证下一页 loadMap
- * 开始时所有先行 destroy 已彻底完成。
+ * 只把 reset/destroy 入队不够：loadMap 尚未完成时切页，销毁仍会撞上挂载。
+ * 调用方须将整个异步挂载流程入队，并在队内检查页面是否仍有效；
+ * 队内不能再次调用会入队的函数，以免等待自身造成死锁。
  */
 let sdkLifecycleQueue: Promise<void> = Promise.resolve()
 
@@ -65,6 +65,28 @@ export function enqueueSdkLifecycle(task: () => Promise<void>): Promise<void> {
   // 链断保护：单任务失败不阻塞后续任务
   sdkLifecycleQueue = next.catch(() => undefined)
   return next
+}
+
+/** FH2.loadCockpit/loadWaylineView 返回时，qiankun 微应用可能仍在异步挂载。 */
+export async function waitForFh2Mounts(): Promise<void> {
+  type MicroApp = { mountPromise?: Promise<unknown> }
+  const api = (window as unknown as {
+    FH2?: {
+      mapAppInstance?: MicroApp
+      projectAppInstance?: MicroApp
+      cockpitAppInstance?: MicroApp
+      realTimeAppInstance?: MicroApp
+    }
+  }).FH2
+  // 即使一个应用失败，也等其余挂载结束，才能让队列继续执行销毁。
+  const results = await Promise.allSettled([
+    api?.mapAppInstance?.mountPromise,
+    api?.projectAppInstance?.mountPromise,
+    api?.cockpitAppInstance?.mountPromise,
+    api?.realTimeAppInstance?.mountPromise,
+  ])
+  const failure = results.find((result) => result.status === 'rejected')
+  if (failure?.status === 'rejected') throw failure.reason
 }
 
 type Fh2ResetApi = {
@@ -134,9 +156,13 @@ export function enqueuePageTeardown(pageDestroy?: () => unknown): Promise<void> 
  */
 export async function resetFh2SharedMapContext(keepWithin?: HTMLElement | null): Promise<void> {
   if (typeof window === 'undefined') return
-  await destroyFh2Contexts()
-  purgeOrphanSdkContainers(keepWithin)
-  purgeWaylineSdkOverlays()
+  await enqueueSdkLifecycle(async () => {
+    if (keepWithin && !keepWithin.isConnected) return
+    await destroyFh2ContextsLocked()
+    if (keepWithin && !keepWithin.isConnected) return
+    purgeOrphanSdkContainers(keepWithin)
+    purgeWaylineSdkOverlays()
+  })
 }
 
 /**

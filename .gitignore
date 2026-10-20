@@ -38,3 +38,6 @@ tiles_tianjin/
 
 # 根目录游离的 javac 输出目录（锚定根，避免误伤 backend/src/main/java/com/ 下新增源码）
 /com/
+
+# 本地 SOP 工具包为独立 Git 仓库，不作为主项目的隐式子模块提交
+/tkxm-sop/tkxm-sop/

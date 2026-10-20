@@ -21,6 +21,8 @@ public class MissionPlanEntity {
     private Long waylineId;
     private Long waylineSnapshotId;
     private Long deviceId;
+    /** 蛙跳任务的降落机场；普通任务为空。 */
+    private Long landingDeviceId;
     private String strategy;
     private LocalDateTime scheduleAt;
     private String cronExpr;

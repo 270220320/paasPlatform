@@ -120,7 +120,7 @@ public class MediaService {
     }
 
     /**
-     * 媒体库列表：固定走司空 FlightHub 原生 SDK，查询 uav.fh2（如 192.168.76.141）上的媒体。
+     * 媒体库列表：固定走司空 FlightHub 原生 SDK，查询 uav.fh2（如 192.168.76.129）上的媒体。
      * 不再回退本地 t_media_asset，避免 SDK 不可用时静默返回空库。
      * {@code folderId} 保留兼容前端参数，司空媒体列表暂不按本地文件夹过滤。
      */

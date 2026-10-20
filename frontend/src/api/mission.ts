@@ -10,6 +10,8 @@ export interface MissionVO {
   status: string
   deviceId: number
   deviceName?: string
+  landingDeviceId?: number
+  landingDeviceName?: string
   waylineId?: number
   waylineName?: string
   /** 关联航线是否面状（仅面状显示三维重建入口） */

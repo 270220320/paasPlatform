@@ -213,7 +213,7 @@ export function mapCockpitDevices(payload: RemoteDevicePayload): DeviceVO[] {
 }
 
 /**
- * 直接查询司空设备管理接口；Vite/网关将 /paas-api 转发到 192.168.76.141:30812。
+ * 直接查询司空设备管理接口；Vite/网关将 /paas-api 转发到 192.168.76.129:30812。
  */
 export async function fetchCockpitDevices(): Promise<DeviceVO[]> {
   const response = await fetch('/paas-api/gateway/device/api/v1/manager/devices', {

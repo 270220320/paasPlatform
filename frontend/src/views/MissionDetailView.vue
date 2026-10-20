@@ -21,6 +21,7 @@
         <el-descriptions-item :label="t('missions.taskType')">{{ taskTypeLabel(detail.plan.taskType) }}</el-descriptions-item>
         <el-descriptions-item :label="t('missions.strategy')">{{ strategyLabel(detail.plan.strategy) }}</el-descriptions-item>
         <el-descriptions-item :label="t('missions.device')">{{ detail.plan.deviceName || detail.plan.deviceId }}</el-descriptions-item>
+        <el-descriptions-item v-if="detail.plan.taskType === 'leapfrog'" :label="t('missions.landingDevice')">{{ detail.plan.landingDeviceName || detail.plan.landingDeviceId || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="t('missions.wayline')">{{ detail.plan.waylineName || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="t('common.status')">{{ statusLabel(detail.plan.status) }}</el-descriptions-item>
         <el-descriptions-item :label="t('missions.accuracyMode')">{{ accuracyLabel(detail.plan.accuracyMode) }}</el-descriptions-item>
@@ -568,6 +569,7 @@ function taskTypeLabel(v?: string) {
   const map: Record<string, string> = {
     normal: t('missions.taskNormal'),
     wayline: t('missions.taskWayline'),
+    leapfrog: t('missions.taskLeapfrog'),
     manual: t('missions.taskManual'),
   }
   return v ? map[v] || v : '-'

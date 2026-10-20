@@ -32,7 +32,7 @@
 | 作业空间 Workspace | 平台唯一租户级业务容器（本期单实例，workspace_id=1） |
 | BC | Bounded Context，限界上下文 |
 | U-ID | 功能点唯一编号，下游详设/开发计划复用 |
-| FH2 / 司空 | DJI FlightHub 2 私有化部署实例（192.168.76.141） |
+| FH2 / 司空 | DJI FlightHub 2 私有化部署实例（192.168.76.129） |
 | paas.js | 司空前端组件库（WaylineEditor / DeviceManager / Cockpit / FlyDataReplay） |
 | dji2 REST | 司空侧 openapi HTTP 网关（`/task/create.rest` 等） |
 | KMZ/WPML | 航线文件格式 |
@@ -68,7 +68,7 @@ flowchart TB
     COMMON[common 鉴权/错误码/结果包]
   end
 
-  subgraph FH2Eco["司空 2 私有化（192.168.76.141）"]
+  subgraph FH2Eco["司空 2 私有化（192.168.76.129）"]
     PaaSJS[paas.js 前端组件<br/>WaylineEditor/DeviceManager/Cockpit/FlyDataReplay]
     SDK[FlightHub Java SDK]
     GATE[dji2 REST 网关]

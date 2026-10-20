@@ -1,5 +1,4 @@
-# UAVPlatform 工程说明 
-
+# UAVPlatform 工程说明
 ## 结构
 
 ```
@@ -23,11 +22,11 @@ AiFlow/
 
 | 项 | 值 |
 |----|-----|
-| frontHost（paas.js） | `http://192.168.76.141` |
-| 真实 serverHost | `http://192.168.76.141:30812` |
+| frontHost（paas.js） | `http://192.168.76.129` |
+| 真实 serverHost | `http://192.168.76.129:30812` |
 | 浏览器侧 serverUrl（设备） | `${origin}/paas-api` |
 | 浏览器侧 apiBaseUrl（航线） | `${origin}/paas-api/gateway` |
-| Vite 代理 | `/paas-api` → `http://192.168.76.141:30812` |
+| Vite 代理 | `/paas-api` → `http://192.168.76.129:30812` |
 
 - **前端**：`WaylineEditor`（航线创建/编辑）、`UranusDeviceManagerApp` / `FH2.loadDevice`（设备管理）
 - **后端**：反射调用 FlightHub Java SDK（`getDeviceList` / `getWaylineList` 等）并同步到本地库
@@ -36,11 +35,10 @@ AiFlow/
 ## 默认账号
 
 - 账号：`admin@aiflow.local`
-- 密码：`123456`
+- 密码：`admin123`
 
 ## 启动
-
-```bash
+```b0ash
 # 库表
 # mysql < docs/03-design/database/ddl-v1.0.sql
 # mysql < docs/03-design/database/ddl-fh2-v1.1.sql
@@ -50,7 +48,6 @@ cd frontend && npm install && npm run dev
 ```
 
 浏览器：`http://127.0.0.1:5173`（Vite 代理 `/api` → `8080`）。
-
 ## 页面入口
 
 | 功能 | 路径 |

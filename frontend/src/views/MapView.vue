@@ -13,6 +13,7 @@ import {
 } from '@/api/map'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { ensureGisDependencies, ensureGisI18n } from '@/utils/loadGisDeps'
+import { pruneAnnotationGraphics } from '@/utils/annotationGraphics'
 import {
   createAnnotationRecord,
   endAnnotationEdit,
@@ -459,9 +460,12 @@ async function onGraphRemoved(payload: { ID?: string; class?: string }) {
   cacheLocally()
 }
 
-watch(editingId, async () => {
-  await nextTick()
-})
+// Run before the child GIS watcher removes its registry entries, while drawing
+// listeners can still be detached. Also covers cancelled drafts and saved IDs.
+watch(
+  () => annotations.value.map((item) => item.ID),
+  (ids) => pruneAnnotationGraphics(MAP_ID, ids),
+)
 
 onMounted(async () => {
   try {

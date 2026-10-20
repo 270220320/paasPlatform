@@ -28,7 +28,7 @@ import { ElMessage } from 'element-plus'
 import { upsertFh2Wayline } from '@/api/paas'
 import { usePaasBootstrap } from '@/composables/usePaasBootstrap'
 import { loadPaasJs, loadScript, loadStylesheet } from '@/utils/loadScript'
-import { purgeFh2DepScripts, purgeOrphanSdkContainers, resetFh2SharedMapContext, teardownSdkOnRouteLeave } from '@/utils/sdkContainers'
+import { enqueueSdkLifecycle, purgeFh2DepScripts, purgeOrphanSdkContainers, resetFh2SharedMapContext, teardownSdkOnRouteLeave } from '@/utils/sdkContainers'
 import { installWaylineRenameWatcher } from '@/utils/waylineNameSync'
 
 declare global {
@@ -43,7 +43,7 @@ interface WaylineEditorInstance {
   loadMap: () => Promise<void>
   render: (mode: string, opts?: Record<string, unknown>) => void
   create: (opts?: Record<string, unknown>) => Promise<{ waylineId: string; id?: string; name?: string }>
-  destroy: () => void
+  destroy: () => void | Promise<void>
   on: (event: string, handler: (...args: unknown[]) => void) => void
   save?: () => Promise<void>
 }
@@ -240,21 +240,29 @@ async function flyMapToDefaultCenter() {
   }
 }
 
-function destroyEditor() {
-  try {
-    editor?.destroy()
-  } catch {
-    // ignore
-  }
+function destroyEditor(): Promise<void> {
+  const instance = editor
   editor = null
   booted = false
   // dom 骨架会重建，旧 map-app-global 失效，必须重新 loadMap
   mapLoaded = false
+  // destroy 必须入互斥队列：SDK 内部销毁有异步延续，且可能按全局 ID/共享单例
+  // （mapAppState / #map-app-global）操作；裸跑时迟到段会误拆驾驶舱等下一页
+  // 刚挂的地图与容器（map-app mount failed）。入队后与 FH2 destroy 链、
+  // 下一页 boot 重置严格串行。本地状态同步置空，闭包持有实例引用待队内销毁。
+  return enqueueSdkLifecycle(async () => {
+    try {
+      await Promise.resolve(instance?.destroy())
+    } catch {
+      // ignore
+    }
+  })
 }
 
 /** FH2 destroy 可能拆掉 Vue 管理的节点，递增 key 强制重建挂载骨架 */
 async function rebuildMountDom() {
-  destroyEditor()
+  // 先等队内 destroy 的同步段完成再拆骨架，避免新旧 DOM 交错
+  await destroyEditor()
   domKey.value += 1
   await nextTick()
   for (let i = 0; i < 30; i += 1) {
@@ -382,10 +390,14 @@ async function recreateEditor() {
 }
 
 async function ensureMap() {
-  if (!editor || mapLoaded) return
-  statusText.value = t('waylineEditor.loadingMap')
-  await editor.loadMap()
-  mapLoaded = true
+  const instance = editor
+  if (!instance || mapLoaded) return
+  await enqueueSdkLifecycle(async () => {
+    if (!alive || editor !== instance || mapLoaded) return
+    statusText.value = t('waylineEditor.loadingMap')
+    await instance.loadMap()
+    if (alive && editor === instance) mapLoaded = true
+  })
 }
 
 function getSdkEditorModeRef(): { value: string | null } | null {
@@ -590,7 +602,9 @@ onBeforeUnmount(() => {
   uninstallRenameWatcher?.()
   uninstallRenameWatcher = null
   unbindResizeObservers()
-  destroyEditor()
+  // destroy 入队（同步阶段）→ 后续 teardownSdkOnRouteLeave 的 destroy 链排在它之后，
+  // 与下一页 boot 重置全程串行
+  void destroyEditor()
   // 卸载同步阶段清理：purge 若迟到（等 destroy 链后）会误删已挂载的设备管理容器，页面空白
   teardownSdkOnRouteLeave()
 })

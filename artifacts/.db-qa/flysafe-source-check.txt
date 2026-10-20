@@ -1,0 +1,36 @@
+GO SOURCE LOCATIONS
+/app/db/migrate/init.go
+/app/db/migrate/static_db_area.go
+/app/db/migrate/db_version.go
+/app/db/migrate.go
+/app/config/drone_test.go
+/app/config/initializer/geo_source.go
+/app/config/initializer/postgres.go
+/app/config/initializer/k8s_env_param.go
+/app/config/initializer/cron.go
+/app/config/initializer/tracing.go
+/app/config/initializer/common_info.go
+/app/config/initializer/scheduled_job.go
+/app/config/initializer/mysql.go
+/app/config/initializer/setting_info.go
+/app/config/initializer/redis.go
+/app/config/initializer/hystrix.go
+/app/config/initializer/log.go
+/app/config/initializer/cloudbus.go
+/app/config/initializer/geo_code.go
+TOTAL_SOURCE_FILES 19
+
+MODULE CACHE DIRECTORIES
+/go
+/go/bin
+/go/src
+
+SYMBOL TABLE
+  4002fc r 
+       0 _ 
+  40e020 t 
+  40e000 t 
+  40b968 r 
+  40b728 r 
+  40b678 r 
+ 1b24660 d 

@@ -1,0 +1,190 @@
+BINARY FORMAT
+
+GO BUILD INFO
+/app/main: go1.20.3
+	path	command-line-arguments
+	dep	code.djicorp.com/es310/es-privatization-flysafe	(devel)	
+	dep	code.djiops.com/flysafe/flysafe-geo-drawing	v0.0.0-20190304032019-a83e0f578b1b
+	=>	code.djicorp.com/flysafe/flysafe-geo-drawing	v0.0.0-20190304032019-a83e0f578b1b	h1:FtrX547Ngk0sNHN8qBsVp81fbMrOlO80zRnSaAJ+bAU=
+	
+	dep	code.djiops.com/golang/agollo	v1.8.0
+	=>	code.djicorp.com/es310/es310-privatization-lib-config	v0.0.0-20231025121336-9862cb61fd57	h1:S3yvUqSnp61e1cZ9x6ErbIApQTi6R/2hAy8BCSkaiG4=
+	
+	dep	code.djiops.com/golang/cloudbus	v0.0.0-20190329101259-fd4c060e3e63
+	=>	code.djicorp.com/golang/cloudbus	v0.0.0-20190329101259-fd4c060e3e63	h1:jO/Wsey3u7HcIQPsGYNnsacmMVPo49SR6P6LhxgRhEQ=
+	
+	dep	code.djiops.com/golang/pango_lib	v1.1.2
+	=>	code.djicorp.com/golang/pango_lib	v1.1.2	h1:RrCOmh0uyXD0i0Vt4c/gaq8MLNErmqK1IgHdr6AhLs0=
+	
+	dep	code.djiops.com/golang/pango_lib/gormlogger	v1.0.2
+	=>	code.djicorp.com/golang/pango_lib/gormlogger	v1.0.2	h1:ITiRkeis0kt8GWG614ExKrazqkMDYKbCgSVA/5QSyKU=
+	
+	dep	github.com/PuerkitoBio/purell	v1.1.1	h1:WEQqlqaGbrPkxLJWfBwQmfEAE1Z7ONdDLqrN38tNFfI=
+	dep	github.com/PuerkitoBio/urlesc	v0.0.0-20170810143723-de5bf2ad4578	h1:d+Bc7a5rLufV/sSk/8dngufqelfh6jnri85riMAaF/M=
+	dep	github.com/Tony-Kwan/go-easy-ecc	v0.0.0-20190210131057-087008e39985	h1:UtvqY5Gh6nbkPKyGnsBUEaMF48u7GWR+RjRH7e5/R+Y=
+	dep	github.com/afex/hystrix-go	v0.0.0-20180502004556-fa1af6a1f4f5	h1:rFw4nCn9iMW+Vajsk51NtYIcwSTkXr+JGrMd36kTDJw=
+	dep	github.com/alecthomas/template	v0.0.0-20160405071501-a0175ee3bccc	h1:cAKDfWh5VpdgMhJosfJnn5/FoN2SRZ4p7fJNX58YPaU=
+	dep	github.com/astaxie/beego	v1.10.1	h1:M2ciUnyiZycuTpGEA+idJF0gX24h58EbPvGqjnO/DCg=
+	dep	github.com/aws/aws-sdk-go	v1.19.11	h1:tqaTGER6Byw3QvsjGW0p018U2UOqaJPeJuzoaF7jjoQ=
+	dep	github.com/banzaicloud/logrus-runtime-formatter	v0.0.0-20180617171254-12df4a18567f	h1:WeGZeO6I+lI1IG2vm1iXTeMrHLcMUjfoYm+rubBM5c4=
+	dep	github.com/codahale/hdrhistogram	v0.0.0-20161010025455-3a0bb77429bd	h1:qMd81Ts1T2OTKmB4acZcyKaMtRnY5Y44NuXGX2GFJ1w=
+	dep	github.com/deckarep/golang-set	v1.7.1	h1:SCQV0S6gTtp6itiFrTqI+pfmJ4LN85S1YzhDf9rTHJQ=
+	dep	github.com/garyburd/redigo	v1.6.2	h1:yE/pwKCrbLpLpQICzYTeZ7JsTA/C53wFTJHaEtRqniM=
+	dep	github.com/gin-contrib/sessions	v0.0.0-20181124110724-7687b645ca6b	h1:anIoEqZRku2+0ugTPlRXdW62w1KSwEOHC2h9EU7Hn5w=
+	dep	github.com/gin-contrib/sse	v0.1.0	h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE=
+	dep	github.com/gin-gonic/gin	v1.7.7	h1:3DoBmSbJbZAWqXJC3SLjAPfutPJJRN1U5pALB7EeTTs=
+	dep	github.com/go-errors/errors	v1.0.2-0.20180813162953-d98b870cc4e0	h1:skJKxRtNmevLqnayafdLe2AsenqRupVmzZSqrvb5caU=
+	dep	github.com/go-openapi/jsonpointer	v0.19.5	h1:gZr+CIYByUqjcgeLXnQu2gHYQC9o73G2XUeOFYEICuY=
+	dep	github.com/go-openapi/jsonreference	v0.19.6	h1:UBIxjkht+AWIgYzCDSv2GN+E/togfwXUJFRTWhl2Jjs=
+	dep	github.com/go-openapi/spec	v0.20.3	h1:uH9RQ6vdyPSs2pSy9fL8QPspDF2AMIMPtmK5coSSjtQ=
+	dep	github.com/go-openapi/swag	v0.19.14	h1:gm3vOOXfiuw5i9p5N9xJvfjvuofpyvLA9Wr6QfK5Fng=
+	dep	github.com/go-playground/locales	v0.13.0	h1:HyWk6mgj5qFqCT5fjGBuRArbVDfE4hi8+e8ceBS/t7Q=
+	dep	github.com/go-playground/universal-translator	v0.17.0	h1:icxd5fm+REJzpZx7ZfpaD876Lmtgy7VtROAbHHXk8no=
+	dep	github.com/go-playground/validator/v10	v10.6.1	h1:W6TRDXt4WcWp4c4nf/G+6BkGdhiIo0k417gfr+V6u4I=
+	dep	github.com/go-redis/redis	v6.14.3-0.20181103100725-58f22c56fdbd+incompatible	h1:/2HthhYN0yzfy5lgDVwxBFPNnCp8KtYDCPHhn7U/ptg=
+	dep	github.com/go-sql-driver/mysql	v1.5.0	h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=
+	dep	github.com/golang/geo	v0.0.0-20181008215305-476085157cff	h1:JkeTBbgV6+IWNqy4SR8MV4mj2scYNCEgSvkPJjmh8Cs=
+	dep	github.com/golang/protobuf	v1.5.2	h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw=
+	dep	github.com/google/go-cmp	v0.5.9	h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
+	dep	github.com/google/uuid	v1.1.2	h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=
+	dep	github.com/gorilla/context	v1.1.1	h1:AWwleXJkX/nhcU9bZSnZoi3h/qGYqQAGhq6zZe/aQW8=
+	dep	github.com/gorilla/securecookie	v1.1.2-0.20180913200611-bb1ab7659889	h1:rCUlo8fCOxoH5cVXzMtDC2fIulje24GG/NOXfxK6xuw=
+	dep	github.com/gorilla/sessions	v1.1.3	h1:uXoZdcdA5XdXF3QzuSlheVRUvjl+1rKY7zBXL68L9RU=
+	dep	github.com/grpc-ecosystem/go-grpc-middleware	v1.2.0	h1:0IKlLyQ3Hs9nDaiK5cSHAGmcQEIC8l2Ts1u6x5Dfrqg=
+	dep	github.com/imroc/req	v0.2.3	h1:ElMCifcqg/1GonGloyyTUrj6D6IITL6EiNEKHUl4xZM=
+	dep	github.com/jinzhu/gorm	v1.9.15	h1:OdR1qFvtXktlxk73XFYMiYn9ywzTwytqe4QkuMRqc38=
+	dep	github.com/jinzhu/inflection	v1.0.0	h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD/E=
+	dep	github.com/jmespath/go-jmespath	v0.0.0-20180206201540-c2b33e8439af	h1:pmfjZENx5imkbgOkpRUYLnmbU7UEFbjtDA2hxJ1ichM=
+	dep	github.com/josharian/intern	v1.0.0	h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8HmY=
+	dep	github.com/leodido/go-urn	v1.2.1	h1:BqpAaACuzVSgi/VLzGZIobT2z4v53pjosyNd9Yv6n/w=
+	dep	github.com/lib/pq	v1.10.2	h1:AqzbZs4ZoCBp+GtejcpCpcxM3zlSMx29dXbUSeVtJb8=
+	dep	github.com/mailru/easyjson	v0.7.6	h1:8yTIVnZgCoiM1TgqoeTl+LfU5Jg6/xL3QhGQnimLYnA=
+	dep	github.com/mattn/go-isatty	v0.0.13	h1:qdl+GuBjcsKKDco5BsxPJlId98mSWNKqYA+Co0SC1yA=
+	dep	github.com/mattn/go-sqlite3	v1.14.12	h1:TJ1bhYJPV44phC+IMu1u2K/i5RriLTPe+yc68XDJ1Z0=
+	dep	github.com/mc2soft/pq-types	v0.0.0-20160827221048-ada769d4011a	h1:uQ674dKfe0tM98dj3Xs9FcWmJGXwZzCoyq2ZTcmi6Lw=
+	dep	github.com/mitchellh/mapstructure	v1.0.0	h1:vVpGvMXJPqSDh2VYHF7gsfQj8Ncx+Xw5Y1KHeTRY+7I=
+	dep	github.com/mmcloughlin/geohash	v0.10.0	h1:9w1HchfDfdeLc+jFEf/04D27KP7E2QmpDu52wPbJWRE=
+	dep	github.com/newrelic/go-agent	v2.7.0+incompatible	h1:T5tJ9nNY1bXBfLUTCEZRuBLPT0f9+mE1jd4EaNoN5Zs=
+	dep	github.com/opentracing/opentracing-go	v1.2.0	h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
+	dep	github.com/oschwald/maxminddb-golang	v1.3.1-0.20181014221851-ed835b226061	h1:vKzgVBBoF3uFRhmijauXo6HqsbuSEU/B1qvYWAoNbEU=
+	dep	github.com/paulsmith/gogeos	v0.1.2	h1:PASLPRO7sjXZLERnQ98EKqY4l9zjQW+irDD5FFRms8I=
+	dep	github.com/pkg/errors	v0.9.1	h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
+	dep	github.com/robfig/cron	v1.2.0	h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=
+	dep	github.com/sirupsen/logrus	v1.9.3	h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
+	dep	github.com/spf13/cast	v1.5.1	h1:R+kOtfhWQE6TVQzY+4D7wJLBgkdVasCEFxSUBYBYIlA=
+	dep	github.com/swaggo/swag	v1.4.1-0.20180906063655-dac684d3c269	h1:fcUTQYDtk41wWALukFeeTjuqPPM0jJTjZ3necAiKMhI=
+	dep	github.com/timtadh/data-structures	v0.5.3	h1:F2tEjoG9qWIyUjbvXVgJqEOGJPMIiYn7U5W5mE+i/vQ=
+	dep	github.com/timtadh/lexmachine	v0.2.3-0.20191122170559-2474ad5d8313	h1:bwwHP6SOlxj+5F6+eVoXSK7p0OJpE+0Zghx4BcdON8A=
+	dep	github.com/twpayne/go-geom	v1.0.0	h1:ARrRnN4+rBX3LZFZQy9NFeXXlgQqVL4OOvAcnLdgy2g=
+	dep	github.com/uber/jaeger-client-go	v2.15.0+incompatible	h1:NP3qsSqNxh8VYr956ur1N/1C1PjvOJnJykCzcD5QHbk=
+	dep	github.com/uber/jaeger-lib	v1.5.1-0.20180615202729-a51202d6f4a7	h1:79lot14HgNdQYwdR0+UMnyrGw8dgpDwLTnJXqIaq8bo=
+	dep	github.com/ugorji/go/codec	v1.2.6	h1:7kbGefxLoDBuYXOms4yD7223OpNMMPNPZxXk5TvFcyQ=
+	dep	github.com/vaporz/work	v0.5.1-0.20180309075152-9655df65d893	h1:KMb6vHr1t+EyPOo2P5D2aTBZwVH3xzxVvsRhdaQivyA=
+	dep	golang.org/x/crypto	v0.0.0-20210921155107-089bfa567519	h1:7I4JAnoQBe7ZtJcBaYHi5UtiO8tQHbUSXxL+pnGRANg=
+	dep	golang.org/x/net	v0.5.0	h1:GyT4nK/YDHSqa1c4753ouYCDajOYKTja9Xb/OHtgvSw=
+	dep	golang.org/x/sys	v0.4.0	h1:Zr2JFtRQNX3BCZ8YtxRE9hNJYC8J6I1MVbMg6owUp18=
+	dep	golang.org/x/text	v0.6.0	h1:3XmdazWV+ubf7QgHSTWeykHOci5oeekaGJBLkrkaw4k=
+	dep	golang.org/x/time	v0.0.0-20190308202827-9d24e82272b4	h1:SvFZT6jyqRaOeXpc5h/JSfZenJ2O330aBsf7JfSUXmQ=
+	dep	golang.org/x/tools	v0.1.12	h1:VveCTK38A2rkS8ZqFY25HIDFscX5X9OoEhJd3quQmXU=
+	dep	google.golang.org/genproto	v0.0.0-20200806141610-86f49bd18e98	h1:LCO0fg4kb6WwkXQXRQQgUYsFeFb5taTX5WAx5O/Vt28=
+	dep	google.golang.org/grpc	v1.36.0	h1:o1bcQ6imQMIOpdrO3SWf2z5RV72WbDwdXuK0MDlc8As=
+	dep	google.golang.org/protobuf	v1.27.1	h1:SnqbnDw1V7RiZcXPx5MEeqPv2s79L9i7BJUlG/+RurQ=
+	dep	gopkg.in/yaml.v2	v2.4.0	h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=
+	dep	gopkg.in/yaml.v3	v3.0.1	h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+START SCRIPT
+#!/bin/sh
+
+export PYTHONPATH=/app/script/python/lib:$PYTHONPATH
+
+#./migration
+#./grpc_gateway &
+./main
+
+JAVA PACKAGES
+
+APP FILES
+/app/main 36180224 bytes
+/app/laanc_spider/README.md 796 bytes
+/app/laanc_spider/scrapy.cfg 267 bytes
+/app/laanc_spider/requirements.txt 377 bytes
+/app/laanc_spider/laanc_spider/spiders/tfr_spider.py 1123 bytes
+/app/laanc_spider/laanc_spider/middlewares.py 3607 bytes
+/app/laanc_spider/laanc_spider/pipelines.py 401 bytes
+/app/laanc_spider/laanc_spider/items.py 230 bytes
+/app/laanc_spider/laanc_spider/settings.py 3372 bytes
+/app/laanc_spider/.gitignore 1202 bytes
+/app/script/aes_cbc_256_decrypt.rb 443 bytes
+/app/script/aes_cbc_256_file.rb 443 bytes
+/app/script/python/aa_converter.py 22595 bytes
+/app/script/python/backup/dji_convert_1206_before_30db_backup.py 31892 bytes
+/app/script/python/global_airport_converter.py 5912 bytes
+/app/script/python/global_airport.py 4667 bytes
+/app/script/python/lib/geo.py 4434 bytes
+/app/script/python/lib/python_converter_pb2.py 30792 bytes
+/app/script/python/lib/meiji.py 5041 bytes
+/app/script/python/lib/area_and_plot.py 615 bytes
+/app/script/python/lib/caac_runway.py 5465 bytes
+/app/script/python/lib/twelve.py 2341 bytes
+/app/script/python/lib/dji_runway.py 5076 bytes
+/app/script/python/ph_converter.py 415646 bytes
+/app/script/python/globa_airport_new.py 5622 bytes
+/app/script/python/dji_converter.py 31813 bytes
+/app/db/GeoIP2-Country.mmdb 2639825 bytes
+/app/db/migrate/.keep 0 bytes
+/app/db/migrate/init.go 198 bytes
+/app/db/migrate/static_db_area.go 390 bytes
+/app/db/migrate/db_version.go 348 bytes
+/app/db/sv_military.json 58744 bytes
+/app/db/migrate.go 682 bytes
+/app/db/custom_shapes.json 24753 bytes
+/app/db/master.csv.gz 12555043 bytes
+/app/config/cn_geojson_v2_input.json 938 bytes
+/app/config/fra_geojson.json 2 bytes
+/app/config/us_geojsonv.json 875 bytes
+/app/config/fra_geojson1103.json 8263950 bytes
+/app/config/drone_test.go 6819 bytes
+/app/config/eu_geojsonv4.json 20659 bytes
+/app/config/drones.yaml 11816 bytes
+/app/config/config-center.json 154 bytes
+/app/config/cn_geojsonv2.json 4569 bytes
+/app/config/de_geojsonv230321.json 9252 bytes
+/app/config/de_geojsonv2.json 3 bytes
+/app/config/es_geojson.json 2 bytes
+/app/config/jp_geojsonv.json 874 bytes
+/app/config/de_geojsonv2.back.json 6116 bytes
+/app/config/cn_geojsonv.json 875 bytes
+/app/config/initializer/geo_source.go 830 bytes
+/app/config/initializer/postgres.go 27010 bytes
+/app/config/initializer/k8s_env_param.go 304 bytes
+/app/config/initializer/cron.go 1301 bytes
+/app/config/initializer/tracing.go 389 bytes
+/app/config/initializer/common_info.go 3640 bytes
+/app/config/initializer/scheduled_job.go 491 bytes
+/app/config/initializer/mysql.go 443 bytes
+/app/config/initializer/setting_info.go 10785 bytes
+/app/config/initializer/redis.go 2929 bytes
+/app/config/initializer/hystrix.go 565 bytes
+/app/config/initializer/log.go 1098 bytes
+/app/config/initializer/cloudbus.go 723 bytes
+/app/config/initializer/geo_code.go 1808 bytes
+/app/config/de_geojsonv21103.json 5594 bytes
+/app/config/eu_geojson_v2_input.json 1173 bytes
+/app/config/eu_geojson.json 6878 bytes
+/app/config/es_geojson_v1_input.json 1862 bytes
+/app/config/es_geojson_v2.json 4523 bytes
+/app/config/es_geojson_v1.json 7160 bytes
+/app/config/eu_geojsonv5.json 20642 bytes
+/app/config/es_geojson_v2_input.json 1383 bytes
+/app/run_server.sh 103 bytes
+/app/package.json 407 bytes

@@ -1,0 +1,45 @@
+{
+  "login_status": 200,
+  "session_received": true,
+  "reads": [
+    {
+      "path": "/simulator/api/v1/auth/me",
+      "status": 200,
+      "keys": [
+        "username",
+        "expiresAt"
+      ]
+    },
+    {
+      "path": "/simulator/api/v1/devices",
+      "status": 200,
+      "result": {
+        "items": []
+      }
+    },
+    {
+      "path": "/simulator/api/v1/defaults",
+      "status": 200,
+      "result": {
+        "app_client_id": "WZR2JJGA8FFT349VF9H35D7ZXD4N222KHJBH7HTUYCFDAGHDCA",
+        "client_id_prefix": "",
+        "mqtt_broker": "tcp://192.168.76.129:1883",
+        "mqtt_password": "[REDACTED]",
+        "mqtt_username_template": "{sn}&WZR2JJGA8FFT349VF9H35D7ZXD4N222KHJBH7HTUYCFDAGHDCA"
+      }
+    },
+    {
+      "path": "/simulator/admin/",
+      "status": 200,
+      "page_title": [
+        "PF Simulator Admin"
+      ],
+      "assets": [
+        "/simulator/static/favicon.svg",
+        "/simulator/static/assets/index-D_C2MHRm.js",
+        "/simulator/static/assets/client-B9zLeo41.js",
+        "/simulator/static/assets/index-DpMEft5W.css"
+      ]
+    }
+  ]
+}
